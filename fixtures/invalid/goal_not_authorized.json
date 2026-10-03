@@ -1,7 +1,7 @@
 {
-  "description": "The plan belongs to a different tenant than the envelope.",
+  "description": "The plan pursues goal-post-journal-entries-automatically, which the envelope does not define; a derived task cannot widen the owner's goals (PL-005).",
   "expected_codes": [
-    "TENANT_MISMATCH"
+    "GOAL_NOT_AUTHORIZED"
   ],
   "envelope": {
     "artifact_id": "env-fixture-baseline",
@@ -9,6 +9,7 @@
     "kind": "AutonomyEnvelope",
     "schema_version": "0.2.0",
     "version": 1,
+    "content_digest": null,
     "producer": {
       "principal_id": "owner-01",
       "principal_type": "HUMAN_OWNER",
@@ -26,11 +27,14 @@
     "goals": [
       {
         "goal_id": "goal-fewer-evidence-requests",
-        "objective": "Reduce duplicated evidence requests."
+        "objective": "Reduce duplicated evidence requests.",
+        "success_metric": null,
+        "horizon_days": null
       }
     ],
     "source_grants": [
       {
+        "grant_id": null,
         "source_id": "src-ledger",
         "purposes": [
           "INSPECT",
@@ -43,9 +47,11 @@
           "authenticated_via": "oidc:test-issuer"
         },
         "granted_at": "2026-09-30T00:00:00Z",
+        "expires_at": null,
         "policy_version": "1.0.0"
       },
       {
+        "grant_id": null,
         "source_id": "src-mailbox",
         "purposes": [
           "INSPECT"
@@ -56,6 +62,7 @@
           "authenticated_via": "oidc:test-issuer"
         },
         "granted_at": "2026-09-30T00:00:00Z",
+        "expires_at": null,
         "policy_version": "1.0.0"
       }
     ],
@@ -85,11 +92,12 @@
     "escalation_conditions": [
       "a new processor is requested"
     ],
-    "policy_version": "1.0.0"
+    "policy_version": "1.0.0",
+    "revoked_at": null
   },
   "plan": {
     "artifact_id": "plan-fixture-baseline",
-    "tenant_id": "tnt_other0002",
+    "tenant_id": "tnt_fixture01",
     "kind": "BuildPlan",
     "schema_version": "0.2.0",
     "version": 1,
@@ -102,7 +110,7 @@
     "created_at": "2026-10-02T00:00:00Z",
     "evidence_links": [],
     "plan_id": "plan-fixture-baseline",
-    "goal_id": "goal-fewer-evidence-requests",
+    "goal_id": "goal-post-journal-entries-automatically",
     "opportunity_ref": null,
     "envelope_id": "env-fixture-baseline",
     "envelope_version": 1,
@@ -111,6 +119,12 @@
         "artifact_id": "env-fixture-baseline",
         "kind": "AutonomyEnvelope",
         "digest": "sha256:ad31bc35f8c1cffb5a091fc1f83ac0d4408cc5fa5fa922b46e48cfaaad033526",
+        "schema_version": "0.2.0"
+      },
+      {
+        "artifact_id": "apr-fixture-implement-operate",
+        "kind": "ApprovalRecord",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab",
         "schema_version": "0.2.0"
       }
     ],

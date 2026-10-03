@@ -69,9 +69,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -211,8 +212,8 @@
       "type": "array"
     },
     "expected_state_version": {
-      "description": "Case state version the action was prepared/approved against (section 15).",
-      "minimum": 0,
+      "description": "Case state version the action was prepared/approved against (section 15); cases start at 1.",
+      "minimum": 1,
       "title": "Expected State Version",
       "type": "integer"
     },

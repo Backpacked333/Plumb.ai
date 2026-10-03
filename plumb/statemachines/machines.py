@@ -23,10 +23,14 @@ Implements:
   - Release ``CANDIDATE -> VERIFIED`` requires ``attestations_accepted``; every
     edge into ``ACTIVE`` requires ``authority_current`` and
     ``attestations_accepted`` (PL-040, PL-043, PL-047).
-  - Effect ``-> CONFIRMED`` requires an ``external_receipt``; ``UNKNOWN`` is left
-    only through a matching ``reconciliation_result``; ``CONFIRMED ->
-    COMPENSATED`` requires a ``compensation_receipt`` (PL-037, PL-038, PL-039,
-    ADR-009).
+  - Effect ``-> CONFIRMED`` requires an ``external_receipt``; ``DISPATCHED ->
+    FAILED_FINAL`` requires ``rejection_evidence`` (the provider's synchronous,
+    definitive rejection; a timeout is never one and goes through UNKNOWN);
+    ``UNKNOWN`` is left only through a matching ``reconciliation_result``, and
+    into ``FAILED_FINAL`` only with ``provider_confirmed_absent``; ``CONFIRMED
+    -> COMPENSATED`` requires a ``compensation_receipt`` (PL-037, PL-038,
+    PL-039, ADR-009). Only ``RESERVED -> FAILED_FINAL`` (releasing an
+    undispatched reservation) is unguarded.
 
 Terminal states are derived from the edge set: a state with no outgoing edge
 is terminal (Build VERIFIED/FAILED/CANCELLED, Effect FAILED_FINAL/COMPENSATED,
@@ -430,12 +434,12 @@ EFFECT: StateMachine[EffectState] = StateMachine(
                 (_E.RESERVED, _E.DISPATCHED),
                 (_E.RESERVED, _E.FAILED_FINAL),  # released without dispatch
                 (_E.DISPATCHED, _E.UNKNOWN),  # timeout / ambiguous outcome
-                (_E.DISPATCHED, _E.FAILED_FINAL),  # provider definitively rejected the request
             ]
         ),
+        (_E.DISPATCHED, _E.FAILED_FINAL): present("rejection_evidence"),  # provider definitively rejected the request
         (_E.DISPATCHED, _E.CONFIRMED): present("external_receipt"),
         (_E.UNKNOWN, _E.CONFIRMED): all_of(equals("reconciliation_result", "CONFIRMED"), present("external_receipt")),
-        (_E.UNKNOWN, _E.FAILED_FINAL): equals("reconciliation_result", "FAILED_FINAL"),
+        (_E.UNKNOWN, _E.FAILED_FINAL): all_of(equals("reconciliation_result", "FAILED_FINAL"), flag("provider_confirmed_absent")),
         (_E.CONFIRMED, _E.COMPENSATED): present("compensation_receipt"),
     },
 )

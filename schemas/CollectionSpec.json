@@ -76,7 +76,7 @@
           "type": "string"
         },
         "schema_ref": {
-          "maxLength": 512,
+          "maxLength": 256,
           "minLength": 1,
           "pattern": "^\\S+$",
           "title": "Schema Ref",
@@ -174,9 +174,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -411,7 +412,7 @@
   "description": "Specification of one collector (PL-023..PL-025).",
   "properties": {
     "access_policy_ref": {
-      "maxLength": 512,
+      "maxLength": 256,
       "minLength": 1,
       "pattern": "^\\S+$",
       "title": "Access Policy Ref",
@@ -530,7 +531,7 @@
     },
     "permitted_purpose_evidence_ref": {
       "description": "Grant or approval that justifies collecting these fields for this objective.",
-      "maxLength": 512,
+      "maxLength": 256,
       "minLength": 1,
       "pattern": "^\\S+$",
       "title": "Permitted Purpose Evidence Ref",

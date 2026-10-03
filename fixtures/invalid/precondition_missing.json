@@ -1,0 +1,191 @@
+{
+  "description": "apply-infrastructure consumes neither an InfrastructurePreview from an infrastructure.preview step nor an ApprovalRecord; infrastructure code must not run unpreviewed or unapproved (PL-045).",
+  "expected_codes": [
+    "PRECONDITION_MISSING"
+  ],
+  "envelope": {
+    "artifact_id": "env-fixture-baseline",
+    "tenant_id": "tnt_fixture01",
+    "kind": "AutonomyEnvelope",
+    "schema_version": "0.2.0",
+    "version": 1,
+    "content_digest": null,
+    "producer": {
+      "principal_id": "owner-01",
+      "principal_type": "HUMAN_OWNER",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "created_at": "2026-10-01T00:00:00Z",
+    "evidence_links": [],
+    "envelope_id": "env-fixture-baseline",
+    "envelope_version": 1,
+    "owner": {
+      "principal_id": "owner-01",
+      "principal_type": "HUMAN_OWNER",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "goals": [
+      {
+        "goal_id": "goal-fewer-evidence-requests",
+        "objective": "Reduce duplicated evidence requests.",
+        "success_metric": null,
+        "horizon_days": null
+      }
+    ],
+    "source_grants": [
+      {
+        "grant_id": null,
+        "source_id": "src-ledger",
+        "purposes": [
+          "INSPECT",
+          "COLLECT",
+          "TRANSFORM"
+        ],
+        "granted_by": {
+          "principal_id": "owner-01",
+          "principal_type": "HUMAN_OWNER",
+          "authenticated_via": "oidc:test-issuer"
+        },
+        "granted_at": "2026-09-30T00:00:00Z",
+        "expires_at": null,
+        "policy_version": "1.0.0"
+      },
+      {
+        "grant_id": null,
+        "source_id": "src-mailbox",
+        "purposes": [
+          "INSPECT"
+        ],
+        "granted_by": {
+          "principal_id": "owner-01",
+          "principal_type": "HUMAN_OWNER",
+          "authenticated_via": "oidc:test-issuer"
+        },
+        "granted_at": "2026-09-30T00:00:00Z",
+        "expires_at": null,
+        "policy_version": "1.0.0"
+      }
+    ],
+    "approved_destinations": [
+      "dst-tenant-storage"
+    ],
+    "approved_processors": [
+      "proc-plumb-eu"
+    ],
+    "allowed_effect_classes": [
+      "READ",
+      "INTERNAL_WRITE",
+      "EXTERNAL_WRITE_REVERSIBLE",
+      "INFRASTRUCTURE_CHANGE"
+    ],
+    "spending_limit": {
+      "minor_units": 500000,
+      "currency": "USD"
+    },
+    "per_step_attempt_limit": 3,
+    "deployment_environments": [
+      "staging"
+    ],
+    "allowed_regions": [
+      "eu-west-1"
+    ],
+    "expires_at": "2027-01-01T00:00:00Z",
+    "escalation_conditions": [
+      "a new processor is requested"
+    ],
+    "policy_version": "1.0.0",
+    "revoked_at": null
+  },
+  "plan": {
+    "artifact_id": "plan-fixture-baseline",
+    "tenant_id": "tnt_fixture01",
+    "kind": "BuildPlan",
+    "schema_version": "0.2.0",
+    "version": 1,
+    "content_digest": null,
+    "producer": {
+      "principal_id": "planner-01",
+      "principal_type": "BUILD_AGENT",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "created_at": "2026-10-02T00:00:00Z",
+    "evidence_links": [],
+    "plan_id": "plan-fixture-baseline",
+    "goal_id": "goal-fewer-evidence-requests",
+    "opportunity_ref": null,
+    "envelope_id": "env-fixture-baseline",
+    "envelope_version": 1,
+    "inputs": [
+      {
+        "artifact_id": "env-fixture-baseline",
+        "kind": "AutonomyEnvelope",
+        "digest": "sha256:837801b72bcb31b749c1673a93b1f16322f17f26ca9fd41870c62b99f0fbc1c9",
+        "schema_version": "0.2.0"
+      },
+      {
+        "artifact_id": "apr-fixture-implement-operate",
+        "kind": "ApprovalRecord",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab",
+        "schema_version": "0.2.0"
+      }
+    ],
+    "steps": [
+      {
+        "step_id": "apply-infrastructure",
+        "step_type": "infrastructure.apply",
+        "description": "Apply the previewed infrastructure change.",
+        "depends_on": [],
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "receipt",
+            "kind": "VerificationReceipt"
+          }
+        ],
+        "required_capabilities": [
+          "cap.infrastructure.apply.automation-api"
+        ],
+        "effect_class": "INFRASTRUCTURE_CHANGE",
+        "purposes": [],
+        "scope": {
+          "source_ids": [],
+          "destination_ids": [
+            "dst-tenant-storage"
+          ],
+          "processor_ids": [],
+          "regions": [
+            "eu-west-1"
+          ]
+        },
+        "budget": {
+          "spend": {
+            "minor_units": 10000,
+            "currency": "USD"
+          },
+          "max_attempts": 3,
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
+        },
+        "verification": [
+          {
+            "check": "resource_state",
+            "level": "INTEGRATION_BEHAVIOR",
+            "description": "resource_state confirmed by the verifier."
+          }
+        ],
+        "required": true,
+        "environment": "staging"
+      }
+    ],
+    "total_budget": {
+      "spend": {
+        "minor_units": 100000,
+        "currency": "USD"
+      },
+      "max_attempts": 3,
+      "max_elapsed_seconds": 3600,
+      "max_model_calls": null
+    },
+    "planned_at": "2026-10-02T00:00:00Z"
+  }
+}

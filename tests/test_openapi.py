@@ -355,13 +355,86 @@ def test_error_envelope_has_the_13_error_classes_and_operator_fields(spec: dict[
     assert {"error_class", "message", "retryable", "correlation_id"} <= set(envelope["required"])
 
 
-@pytest.mark.requirements("PL-057")
+@pytest.mark.requirements("PL-057", "PL-060")
 def test_event_envelope_has_the_11_spec_fields(spec: dict[str, Any]) -> None:
     event = spec["components"]["schemas"]["EventEnvelope"]
     assert event["x-plumb-contract"] == "EventEnvelope"
-    assert list(event["required"]) == EVENT_FIELDS
-    assert set(event["properties"]) == set(EVENT_FIELDS)
+    # causation_id is the one optional field of the eleven (a root event has no cause), as in the contract.
+    assert list(event["required"]) == [name for name in EVENT_FIELDS if name != "causation_id"]
+    assert list(event["properties"]) == EVENT_FIELDS
     assert event["additionalProperties"] is False
+
+
+# --------------------------------------------------------------------------
+# Component parity with the Pydantic contracts (x-plumb-contract)
+# --------------------------------------------------------------------------
+
+
+def _flatten_component(spec: dict[str, Any], component: dict[str, Any]) -> tuple[dict[str, Any], set[str]]:
+    """Properties and required set of a component, with ``allOf`` members (ArtifactHeader) merged in."""
+    properties: dict[str, Any] = {}
+    required: set[str] = set()
+    for member in component.get("allOf", []):
+        resolved = _resolve(spec, member["$ref"]) if "$ref" in member else member
+        nested_properties, nested_required = _flatten_component(spec, resolved)
+        properties.update(nested_properties)
+        required |= nested_required
+    properties.update(component.get("properties", {}))
+    required |= set(component.get("required", []))
+    return properties, required
+
+
+def _leaf(spec: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a property schema to its constraint-bearing leaf (through $ref and oneOf-with-null)."""
+    if "$ref" in schema:
+        resolved = dict(_resolve(spec, schema["$ref"]))
+        resolved.pop("description", None)
+        return resolved
+    if "oneOf" in schema:
+        branches = [branch for branch in schema["oneOf"] if branch.get("type") != "null"]
+        if len(branches) == 1:
+            return _leaf(spec, branches[0])
+    return schema
+
+
+def _pydantic_leaf(definitions: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    if "$ref" in schema:
+        return definitions[schema["$ref"].rsplit("/", 1)[-1]]
+    if "anyOf" in schema:
+        branches = [branch for branch in schema["anyOf"] if branch.get("type") != "null"]
+        if len(branches) == 1:
+            return _pydantic_leaf(definitions, branches[0])
+    return schema
+
+
+CONSTRAINT_KEYS = ("minLength", "maxLength", "pattern", "minimum", "maximum", "minItems", "maxItems", "enum")
+
+
+@pytest.mark.requirements("PL-055", "PL-046", "PL-037")
+@pytest.mark.parametrize("name", sorted(CONTRACT_SCHEMAS_EXPECTED))
+def test_annotated_component_mirrors_its_contract(spec: dict[str, Any], name: str) -> None:
+    """Every ``x-plumb-contract`` component has the contract's properties, required set and leaf constraints."""
+    from plumb.contracts import SUPPORTING_CONTRACTS, TOP_LEVEL_CONTRACTS
+
+    model = {**TOP_LEVEL_CONTRACTS, **SUPPORTING_CONTRACTS}[name]
+    component = spec["components"]["schemas"][name]
+    assert component["x-plumb-contract"] == name
+    properties, required = _flatten_component(spec, component)
+    assert set(properties) == set(model.model_fields), name
+    assert required == {field_name for field_name, field in model.model_fields.items() if field.is_required()}, name
+
+    generated = model.model_json_schema(mode="validation")
+    definitions = generated.get("$defs", {})
+    drift: list[str] = []
+    for field_name, pydantic_schema in generated["properties"].items():
+        expected = _pydantic_leaf(definitions, pydantic_schema)
+        actual = _leaf(spec, properties[field_name])
+        for key in CONSTRAINT_KEYS:
+            if key in expected and actual.get(key) != expected[key]:
+                drift.append(f"{name}.{field_name}: {key} openapi={actual.get(key)!r} contract={expected[key]!r}")
+            if key in actual and key not in expected and key in ("minItems", "pattern", "minimum"):
+                drift.append(f"{name}.{field_name}: {key}={actual[key]!r} is stricter than the contract")
+    assert drift == [], "\n".join(drift)
 
 
 @pytest.mark.requirements("PL-057")

@@ -201,8 +201,8 @@
       "default": null
     },
     "idempotency_key": {
-      "description": "Client key, scoped to the tenant by the server.",
-      "maxLength": 256,
+      "description": "Client key, scoped to the tenant by the server; at most 255 characters.",
+      "maxLength": 255,
       "minLength": 1,
       "title": "Idempotency Key",
       "type": "string"
@@ -213,8 +213,8 @@
       "type": "string"
     },
     "operation": {
-      "description": "OpenAPI operationId that started the job.",
-      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "description": "OpenAPI operationId that started the job, e.g. createBuild.",
+      "pattern": "^[A-Za-z][A-Za-z0-9]{0,99}$",
       "title": "Operation",
       "type": "string"
     },

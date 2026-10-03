@@ -4,7 +4,7 @@
   "kind": "AutonomyEnvelope",
   "schema_version": "0.2.0",
   "version": 1,
-  "content_digest": "sha256:dd46b37f6865c0434bccce07bba511766cc92c476d1702f0d7b01d3e104a8c23",
+  "content_digest": "sha256:f449017df2fd4e3e2b6f4bce428d7c5f47a83e2e7b77b179146cbbb5ca6ae606",
   "producer": {
     "principal_id": "owner-lndry-operations-manager",
     "principal_type": "HUMAN_OWNER",

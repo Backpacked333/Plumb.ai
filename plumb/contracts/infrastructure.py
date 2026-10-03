@@ -26,7 +26,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from plumb.contracts.approval import NonSecretRef, require_aware
+from plumb.contracts.common import NonSecretIdentifier, NonSecretRef
 from plumb.contracts.common import (
     ArtifactHeader,
     ArtifactKind,
@@ -96,10 +96,10 @@ class InfrastructurePlan(ArtifactHeader):
     environment: ShortStr
     changes: list[ResourceChange] = Field(default_factory=list)
     expand_contract_phase: ExpandContractPhase
-    destructive_authorization_ref: Identifier | None = Field(
+    destructive_authorization_ref: NonSecretIdentifier | None = Field(
         default=None, description="ApprovalRecord or envelope clause authorizing destructive changes."
     )
-    backup_restore_strategy_ref: Identifier | None = Field(
+    backup_restore_strategy_ref: NonSecretIdentifier | None = Field(
         default=None, description="Verified backup/restore strategy covering the destructive changes."
     )
 
@@ -112,7 +112,6 @@ class InfrastructurePlan(ArtifactHeader):
 
     @model_validator(mode="after")
     def _check_plan(self) -> "InfrastructurePlan":
-        require_aware(self.created_at, "created_at")
         ids = [change.resource_id for change in self.changes]
         repeated = sorted({rid for rid in ids if ids.count(rid) > 1})
         if repeated:

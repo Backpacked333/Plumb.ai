@@ -6,8 +6,15 @@
 -- in the environment that produced the reference package (specification
 -- section 23, Appendix C). Production review must check grants, transaction
 -- isolation, migration tooling, indexes and workload behaviour before use.
+-- The first real run belongs on a disposable PostgreSQL 15+ instance: the file
+-- uses GENERATED ALWAYS AS IDENTITY, FORCE ROW LEVEL SECURITY and the
+-- EXECUTE FUNCTION trigger syntax.
 -- The local simulation uses SQLite only for the smaller effect-ledger contract
--- (plumb/ledger) and must not be mistaken for this persistence design.
+-- (plumb/ledger). The effects and effect_transitions tables below mirror that
+-- ledger column for column (row_version here is the ledger's state_version and
+-- bumps on every update; compensation and rejection evidence, the supersession
+-- link and the persisted guard/event of each audit row are all represented), so
+-- the two cannot drift silently (tests/test_sql_design.py).
 --
 -- Requirements implemented:
 --   PL-052  tenant isolation on database queries: every tenant table carries
@@ -28,9 +35,13 @@
 --           before dispatch.
 --   PL-055  jobs(tenant_id, idempotency_key) is unique and stores the payload
 --           digest so a repeated key with a different payload is a conflict.
---   PL-037..PL-039  effects(tenant_id, slot_key) is unique; payload digest and
---           logical action id are stored separately; dedup is independent of
---           the release (deployment_version is not part of the slot).
+--   PL-037..PL-039  one live holder per effects(tenant_id, slot_key) (a partial
+--           unique index over rows with superseded_by_action_id IS NULL; a
+--           superseded row keeps its key and points at its successor); payload
+--           digest and logical action id are stored separately; dedup is
+--           independent of the release (deployment_version is not part of the
+--           slot). CONFIRMED needs a receipt, COMPENSATED a compensation receipt,
+--           a dispatched FAILED_FINAL the provider's rejection response.
 --   Section 22  outbox + processed_events implement at-least-once delivery with
 --           consumer deduplication (processed_events PK (consumer, event_id)).
 --   Section 23  state columns are CHECK-constrained to the exact lifecycles.
@@ -197,7 +208,8 @@ CREATE TRIGGER envelopes_row_version BEFORE UPDATE ON plumb.envelopes
     FOR EACH ROW EXECUTE FUNCTION plumb.bump_row_version();
 
 -- Source grants (PL-053): actual customer grants per source and purpose, never a
--- tenant-wide checkbox. TRAIN is never inferred from INSPECT/COLLECT.
+-- tenant-wide checkbox. TRAIN is never inferred from INSPECT/COLLECT. The row id is
+-- the grant identity datasets cite (SourceGrant.grant_id / effective_grant_id).
 CREATE TABLE plumb.source_grants (
     tenant_id               plumb.tenant_id NOT NULL REFERENCES plumb.tenants (id),
     id                      plumb.identifier NOT NULL,
@@ -641,12 +653,15 @@ CREATE TABLE plumb.effects (
     effect_class            TEXT        NOT NULL CHECK (effect_class IN ('READ', 'INTERNAL_WRITE', 'EXTERNAL_WRITE_REVERSIBLE', 'EXTERNAL_WRITE_IRREVERSIBLE', 'EXTERNAL_COMMUNICATION', 'FINANCIAL_COMMITMENT', 'INFRASTRUCTURE_CHANGE', 'DESTRUCTIVE')),
     idempotency_key         TEXT        NOT NULL,
     state                   TEXT        NOT NULL CHECK (state IN ('RESERVED', 'DISPATCHED', 'UNKNOWN', 'CONFIRMED', 'FAILED_FINAL', 'COMPENSATED')),
-    state_reason            TEXT        NOT NULL CHECK (length(state_reason) > 0),
+    state_reason            TEXT        NOT NULL CHECK (length(trim(state_reason)) > 0),
     supersedes_action_id    plumb.identifier,
+    superseded_by_action_id plumb.identifier,
     lease_owner             TEXT,
     provider_request_id     TEXT,
     external_id             TEXT,
     receipt_digest          plumb.sha256_digest,
+    rejection_response_digest plumb.sha256_digest,
+    compensation_receipt_digest plumb.sha256_digest,
     reserved_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     dispatched_at           TIMESTAMPTZ,
     finalized_at            TIMESTAMPTZ,
@@ -656,30 +671,44 @@ CREATE TABLE plumb.effects (
     FOREIGN KEY (tenant_id, case_id) REFERENCES plumb.cases (tenant_id, id),
     FOREIGN KEY (tenant_id, deployment_version) REFERENCES plumb.releases (tenant_id, id),
     FOREIGN KEY (tenant_id, supersedes_action_id) REFERENCES plumb.effects (tenant_id, id),
-    -- A CONFIRMED effect requires an external receipt/postcondition (section 23).
+    FOREIGN KEY (tenant_id, superseded_by_action_id) REFERENCES plumb.effects (tenant_id, id) DEFERRABLE INITIALLY DEFERRED,
+    -- A CONFIRMED effect requires an external receipt/postcondition (section 23); the
+    -- original receipt is retained when the effect is later COMPENSATED.
     CONSTRAINT effects_confirmed_has_receipt CHECK (state NOT IN ('CONFIRMED', 'COMPENSATED') OR receipt_digest IS NOT NULL),
-    -- Anything that reached the provider records who dispatched it and when; a
-    -- RESERVED action may still fail final (e.g. authority revoked) without dispatch.
+    -- Compensation is evidenced by the compensating action's own receipt (section 17).
+    CONSTRAINT effects_compensated_has_receipt CHECK (state <> 'COMPENSATED' OR compensation_receipt_digest IS NOT NULL),
+    -- A dispatched action settles as FAILED_FINAL only with the provider's definitive
+    -- rejection; a timeout is UNKNOWN (PL-038). A RESERVED action may be released without.
+    CONSTRAINT effects_rejection_evidenced CHECK (state <> 'FAILED_FINAL' OR dispatched_at IS NULL OR rejection_response_digest IS NOT NULL),
+    -- Anything that reached the provider records who dispatched it and when; the
+    -- provider request id may arrive only with the provider's answer (PL-057).
     CONSTRAINT effects_dispatch_recorded CHECK (state IN ('RESERVED', 'FAILED_FINAL') OR (lease_owner IS NOT NULL AND dispatched_at IS NOT NULL))
 );
 CREATE TRIGGER effects_row_version BEFORE UPDATE ON plumb.effects
     FOR EACH ROW EXECUTE FUNCTION plumb.bump_row_version();
--- One business action per effect slot; dedup survives restarts and releases.
-CREATE UNIQUE INDEX effects_slot_key_idx ON plumb.effects (tenant_id, slot_key);
+-- One live business action per effect slot; dedup survives restarts and releases.
+-- A superseded row keeps its slot key and points at its successor, so the slot's
+-- history stays queryable while only the current holder is unique.
+CREATE UNIQUE INDEX effects_slot_key_idx ON plumb.effects (tenant_id, slot_key) WHERE superseded_by_action_id IS NULL;
 CREATE UNIQUE INDEX effects_idempotency_key_idx ON plumb.effects (tenant_id, idempotency_key);
 -- Outstanding effects: the restart reconciliation list (PL-038, PL-039).
 CREATE INDEX effects_outstanding_idx ON plumb.effects (tenant_id, state) WHERE state IN ('DISPATCHED', 'UNKNOWN');
 CREATE INDEX effects_case_idx ON plumb.effects (tenant_id, case_id, obligation_id);
 CREATE INDEX effects_provider_request_idx ON plumb.effects (tenant_id, provider, provider_request_id) WHERE provider_request_id IS NOT NULL;
 
--- Effect transitions (PL-057): every transition persists from/to/reason/actor.
+-- Effect transitions (PL-057): every audit event persists from/to/reason/actor,
+-- the guard that admitted a state change and the event kind (a supersession, a
+-- reconciliation attempt that stays UNKNOWN or a recorded provider request id is
+-- an audit event with from_state = to_state, not a state-machine edge).
 CREATE TABLE plumb.effect_transitions (
     tenant_id           plumb.tenant_id NOT NULL REFERENCES plumb.tenants (id),
     id                  BIGINT      GENERATED ALWAYS AS IDENTITY,
     action_id           plumb.identifier NOT NULL,
+    event               TEXT        NOT NULL DEFAULT 'TRANSITION' CHECK (event IN ('PROVIDER_REQUEST_RECORDED', 'RECONCILIATION_ATTEMPT', 'SUPERSEDED', 'TRANSITION')),
     from_state          TEXT        CHECK (from_state IS NULL OR from_state IN ('RESERVED', 'DISPATCHED', 'UNKNOWN', 'CONFIRMED', 'FAILED_FINAL', 'COMPENSATED')),
     to_state            TEXT        NOT NULL CHECK (to_state IN ('RESERVED', 'DISPATCHED', 'UNKNOWN', 'CONFIRMED', 'FAILED_FINAL', 'COMPENSATED')),
-    reason              TEXT        NOT NULL CHECK (length(reason) > 0),
+    reason              TEXT        NOT NULL CHECK (length(trim(reason)) > 0),
+    guard               TEXT,
     actor_principal_id  plumb.identifier NOT NULL,
     transitioned_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (tenant_id, id),
@@ -734,7 +763,7 @@ CREATE TABLE plumb.jobs (
     operation_id                TEXT        NOT NULL,
     idempotency_key             TEXT        NOT NULL CHECK (length(idempotency_key) BETWEEN 1 AND 255),
     payload_digest              plumb.sha256_digest NOT NULL,
-    status                      TEXT        NOT NULL CHECK (status IN ('PENDING', 'RUNNING', 'WAITING', 'SUCCEEDED', 'FAILED')),
+    status                      TEXT        NOT NULL CHECK (status IN ('PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'WAITING')),
     result_artifact_id          plumb.identifier,
     result_artifact_version     INTEGER,
     error_class                 TEXT        CHECK (error_class IS NULL OR error_class IN ('AUTH_REQUIRED', 'SCOPE_DENIED', 'PURPOSE_DENIED', 'POLICY_STALE', 'STATE_CONFLICT', 'PAYLOAD_CONFLICT', 'BUDGET_EXCEEDED', 'CAPABILITY_UNSUPPORTED', 'SOURCE_STALE', 'DATA_QUALITY_FAILED', 'VERIFICATION_FAILED', 'EFFECT_UNKNOWN', 'RETRY_EXHAUSTED')),

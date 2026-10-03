@@ -46,6 +46,9 @@ from plumb.contracts.infrastructure import (
 )
 from plumb.contracts.release import (
     REQUIRED_COMPONENTS,
+    Monitor,
+    MonitorKind,
+    OperatingPlan,
     ReleaseComponent,
     ReleaseManifest,
     RolloutStage,
@@ -273,6 +276,27 @@ def rollout() -> list[RolloutStage]:
     ]
 
 
+def make_operating_plan(**overrides: Any) -> OperatingPlan:
+    signals = {
+        MonitorKind.CONNECTOR_FRESHNESS: ("hours since last ledger event", "> 24h", "pause collector, page owner"),
+        MonitorKind.SCHEMA_CHANGE: ("unmapped source fields", "> 0", "quarantine events, raise dependency"),
+        MonitorKind.EXECUTION_FAILURE: ("failed cases per day", "> 2", "pause release"),
+        MonitorKind.QUALITY_DRIFT: ("accountant correction rate", "> 0.08", "route to review, open repair"),
+        MonitorKind.REVIEW_BURDEN: ("review minutes per day", "> 90", "lower routing fraction"),
+        MonitorKind.COST: ("model spend per day", "> 25 USD", "pause release"),
+        MonitorKind.OUTCOME: ("evidence requests per close", "no decrease after 30 days", "owner review of value"),
+    }
+    fields: dict[str, Any] = {
+        "monitors": [Monitor(kind=kind, signal=signal, threshold=threshold, action=action) for kind, (signal, threshold, action) in signals.items()],
+        "rollback_owner": OWNER,
+        "escalation_contact": "oncall:demo-operations",
+        "outcome_measurement_ref": "measurement:demo/evidence-requests-per-close",
+        "review_capacity_per_day": 12,
+    }
+    fields.update(overrides)
+    return OperatingPlan(**fields)
+
+
 def make_manifest(
     attestations: dict[str, VerificationAttestation] | None = None,
     approvals: list[ApprovalRecord] | None = None,
@@ -281,6 +305,7 @@ def make_manifest(
     attestations = attestations if attestations is not None else default_attestations()
     fields = header("rel_demo_001", RELEASE_EXECUTOR)
     fields.update(
+        operating_plan=make_operating_plan(),
         components=make_components(),
         attestation_refs=[attestation_ref(attestation) for attestation in attestations.values()],
         approval_refs=[approval_ref(approval) for approval in (approvals or [])],
@@ -374,7 +399,7 @@ def test_approval_scope_tenant_must_match_tenant() -> None:
 
 @pytest.mark.requirements("PL-040")
 def test_approval_decision_ref_must_not_be_a_secret_and_extra_fields_are_rejected() -> None:
-    rejects(make_approval, "looks like a secret", authenticated_decision_ref="session token=abc123")
+    rejects(make_approval, "looks like a secret|should match pattern", authenticated_decision_ref="session token=abc123")
     rejects(make_approval, "looks like a secret", authenticated_decision_ref="Zm9vYmFyMTIzNDU2Nzg5MGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6QUJD")
     rejects(make_approval, "extra_forbidden|Extra inputs", approved_by_agent=True)
 
@@ -532,7 +557,10 @@ def test_verifier_must_be_a_verifier_principal(verifier: Principal) -> None:
 def test_verifier_equal_to_assessed_producer_is_rejected() -> None:
     self_assessing = Principal(principal_id=BUILD_AGENT.principal_id, principal_type=PrincipalType.VERIFIER, authenticated_via="mtls:verifier")
     rejects(make_attestation, "verifier must not be the principal it assesses", input_digest=digest("x"), verifier=self_assessing)
-    rejects(make_attestation, "cannot be produced by the job it assesses", input_digest=digest("x"), producer=BUILD_AGENT)
+    rejects(make_attestation, "cannot be produced by a BUILD_AGENT", input_digest=digest("x"), producer=BUILD_AGENT)
+    rejects(make_attestation, "cannot be produced by a RUNTIME_AGENT", input_digest=digest("x"), producer=RUNTIME_AGENT)
+    other_agent = Principal(principal_id="agent_build_99", principal_type=PrincipalType.BUILD_AGENT, authenticated_via="workload:build")
+    rejects(make_attestation, "cannot be produced by a BUILD_AGENT", input_digest=digest("x"), producer=other_agent)
 
 
 @pytest.mark.requirements("PL-042")
@@ -622,7 +650,7 @@ def test_plan_ownership_tags_cost_and_lock() -> None:
     rejects(make_plan, "is below the per-resource sum", cost_estimate=Money(minor_units=100, currency="USD"))
     rejects(make_plan, "estimated in EUR but the plan estimate is in USD", changes=[make_change(estimated_cost=Money(minor_units=1, currency="EUR"))])
     rejects(make_plan, "resource_id must be unique", changes=[make_change(), make_change()])
-    rejects(make_plan, "looks like a secret", state_lock_ref="lock secret value")
+    rejects(make_plan, "looks like a secret|should match pattern", state_lock_ref="lock secret value")
 
 
 # ---------------------------------------------------------------------------
@@ -682,7 +710,12 @@ def test_rollout_policy_is_ordered_and_canary_is_bounded() -> None:
         RolloutStage(state=ReleaseState.ACTIVE, gate="g", environment=ENVIRONMENT, max_case_fraction=1.5)
     with pytest.raises(ValidationError, match="Input should be"):
         RolloutStage(state=ReleaseState.PAUSED, gate="g", environment=ENVIRONMENT, max_case_fraction=0.5)
-    assert make_manifest(rollout_policy=[shadow, active]).rollout_policy[-1].state is ReleaseState.ACTIVE
+    rejects(make_manifest, "reaches ACTIVE without a CANARY stage", rollout_policy=[shadow, active])
+    rejects(make_manifest, "must start with SHADOW", rollout_policy=[canary, active])
+    rejects(make_manifest, "must start with SHADOW", rollout_policy=[active])
+    assert make_manifest(rollout_policy=[shadow]).rollout_policy[-1].state is ReleaseState.SHADOW
+    assert make_manifest(rollout_policy=[shadow, canary]).rollout_policy[-1].state is ReleaseState.CANARY
+    assert make_manifest(rollout_policy=[shadow, canary, active]).rollout_policy[-1].state is ReleaseState.ACTIVE
 
 
 @pytest.mark.requirements("PL-034")
@@ -919,3 +952,187 @@ def test_unreferenced_attestations_are_not_evidence() -> None:
     assert report.summary["unreferenced_attestations"] == ["att_connector_stray"]
     with pytest.raises(ValueError, match="timezone-aware"):
         run_release(manifest, supplied, approvals, now=datetime(2026, 10, 1, 14, 0))
+
+
+# ---------------------------------------------------------------------------
+# Review regressions (learning / trust lens)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.requirements("PL-046", "PL-040", "PL-042")
+def test_forged_attestation_or_approval_claiming_the_bound_digest_is_rejected() -> None:
+    """Records are matched by the digest of their bytes, never by the content_digest they declare (F1)."""
+    attestations = default_attestations()
+    failing = component_attestation(
+        "connector",
+        checks=[make_check("connector_checks"), make_check("rate_limiting", result=CheckOutcome.FAIL, evidence_refs=(), detail="429 not retried")],
+        result=AttestationResult.FAIL,
+    )
+    attestations["connector"] = failing
+    manifest, supplied, approvals = release_world(attestations)  # the manifest binds digest(failing)
+    assert not run_release(manifest, supplied, approvals).ok
+    forged = component_attestation("connector", content_digest=compute_artifact_digest(failing))
+    assert compute_artifact_digest(forged) != forged.content_digest
+    report = run_release(manifest, [a for a in supplied if a.artifact_id != "att_connector_001"] + [forged], approvals)
+    assert not report.ok
+    [inconsistent] = only(report.findings, "ARTIFACT_DIGEST_INCONSISTENT")
+    assert inconsistent.subject_id == "att_connector_001" and inconsistent.details["declared_digest"] == forged.content_digest
+    assert report.has("ATTESTATION_DIGEST_MISMATCH") and report.has("ATTESTATION_MISSING")
+
+    manifest, supplied, approvals = release_world(expires_at=NOW - timedelta(minutes=1))
+    expired = approvals[0]
+    assert [f.details["cause"] for f in run_release(manifest, supplied, approvals).errors] == ["APPROVAL_EXPIRED"]
+    fresh = make_approval(subject_digest=expired.subject_digest, content_digest=compute_artifact_digest(expired))
+    report = run_release(manifest, supplied, [fresh])
+    assert not report.ok and report.summary["approvals_valid"] == 0
+    assert [f.subject_id for f in only(report.findings, "ARTIFACT_DIGEST_INCONSISTENT")] == ["apr_release_001"]
+    assert [f.details["cause"] for f in only(report.findings, "APPROVAL_INVALID")] == ["approval_record_not_supplied"]
+    # An honest record that carries its own correct digest is accepted as before.
+    honest = make_approval(subject_digest=manifest.approval_subject_digest())
+    honest = make_approval(subject_digest=manifest.approval_subject_digest(), content_digest=compute_artifact_digest(honest))
+    manifest = make_manifest(default_attestations(), approvals=[honest])
+    assert run_release(manifest, list(default_attestations().values()), [honest]).ok
+
+
+@pytest.mark.requirements("PL-034", "PL-043")
+def test_model_or_workflow_without_an_evaluation_component_is_rejected() -> None:
+    """Model promotion requires a held-out evaluation; the contract and the checker both say so (F2)."""
+    components = make_components()
+    components["evaluation"] = ReleaseComponent(omitted_reason="evaluation skipped to hit the deadline")
+    rejects(make_manifest, "evaluation' is omitted", components=components)
+    atts = {k: v for k, v in default_attestations().items() if k != "evaluation"}
+    manifest = bypass_validation(make_manifest(atts), components=components)
+    report = check_release(manifest, list(atts.values()), [], now=NOW, current_policy_version=POLICY)
+    [finding] = only(report.findings, "HELD_OUT_EVALUATION_MISSING")
+    assert finding.details["present_components"] == ["model", "workflow"]
+    assert finding.error_class is ErrorClass.VERIFICATION_FAILED
+    # Omitting model and workflow together makes an omitted evaluation legitimate (e.g. a connector-only release).
+    components = make_components()
+    for key in ("model", "workflow", "evaluation"):
+        components[key] = ReleaseComponent(omitted_reason=f"{key} unchanged in this release")
+    assert make_manifest(components=components, resolved_model_version=None).components["evaluation"].present is False
+
+
+@pytest.mark.requirements("PL-043", "PL-046", "PL-047")
+def test_every_rollout_environment_needs_behavioural_verification_in_that_environment() -> None:
+    """Sandbox attestations do not cover a CANARY or ACTIVE stage that runs in production (F3)."""
+    stages = [
+        RolloutStage(state=ReleaseState.SHADOW, gate="g", environment=ENVIRONMENT, max_case_fraction=1.0),
+        RolloutStage(state=ReleaseState.CANARY, gate="g", environment="production-eu", max_case_fraction=0.1),
+        RolloutStage(state=ReleaseState.ACTIVE, gate="g", environment="production-eu", max_case_fraction=1.0),
+    ]
+    atts = default_attestations()
+    assert {a.environment for a in atts.values()} == {ENVIRONMENT}
+    unapproved = make_manifest(atts, rollout_policy=stages)
+    approval = make_approval(subject_digest=unapproved.approval_subject_digest())
+    manifest = make_manifest(atts, approvals=[approval], rollout_policy=stages)
+    report = run_release(manifest, list(atts.values()), [approval])
+    assert not report.ok
+    findings = only(report.findings, "ENVIRONMENT_NOT_VERIFIED")
+    assert [(f.details["stage"], f.details["environment"]) for f in findings] == [("CANARY", "production-eu"), ("ACTIVE", "production-eu")]
+    assert report.summary["behaviourally_verified_environments"] == [ENVIRONMENT]
+    # A production attestation at INTEGRATION_BEHAVIOR for one component covers the environment.
+    atts["connector"] = component_attestation("connector", environment="production-eu")
+    unapproved = make_manifest(atts, rollout_policy=stages)
+    approval = make_approval(subject_digest=unapproved.approval_subject_digest())
+    manifest = make_manifest(atts, approvals=[approval], rollout_policy=stages)
+    report = run_release(manifest, list(atts.values()), [approval])
+    assert report.ok, report.render()
+
+
+@pytest.mark.requirements("PL-040", "PL-041")
+def test_release_authority_must_be_an_implement_operate_decision() -> None:
+    """A DATA_USE consent over the same bytes does not authorize a release (F4)."""
+    manifest, supplied, approvals = release_world(decision_kind=DecisionKind.DATA_USE)
+    report = run_release(manifest, supplied, approvals)
+    assert not report.ok and report.summary["approvals_valid"] == 0
+    [finding] = only(report.findings, "APPROVAL_INVALID")
+    assert finding.details["cause"] == "APPROVAL_WRONG_DECISION_KIND" and finding.error_class is ErrorClass.SCOPE_DENIED
+    direct = judge(make_approval(decision_kind=DecisionKind.DATA_USE), decision_kind=DecisionKind.IMPLEMENT_OPERATE)
+    assert direct.codes() == {"APPROVAL_WRONG_DECISION_KIND"}
+    assert judge(make_approval(), decision_kind=DecisionKind.IMPLEMENT_OPERATE).ok
+    assert judge(make_approval(decision_kind=DecisionKind.DATA_USE)).ok, "without a required kind the rule is not applied"
+
+
+@pytest.mark.requirements("PL-040")
+def test_checker_rejects_agent_produced_and_unbound_case_level_approvals_even_when_validation_was_bypassed() -> None:
+    """The defensive re-checks cover every PL-040 binding the contract enforces (F7)."""
+    forged = bypass_validation(make_approval(), producer=BUILD_AGENT)
+    [finding] = only(judge(forged).findings, "APPROVAL_AGENT_SUPPLIED")
+    assert finding.error_class is ErrorClass.AUTH_REQUIRED and finding.details["producer_type"] == "BUILD_AGENT"
+    unbound = bypass_validation(make_approval(), decision_kind=DecisionKind.CASE_LEVEL_BUSINESS, case_version=None)
+    report = judge(unbound, case_version=7)
+    assert not report.ok
+    assert single_code(report, "APPROVAL_CASE_VERSION_MISSING").error_class is ErrorClass.STATE_CONFLICT
+
+
+def single_code(report: Any, code: str) -> Any:
+    [finding] = only(report.findings, code)
+    return finding
+
+
+@pytest.mark.requirements("PL-043")
+def test_verification_levels_are_read_from_passing_checks_not_from_the_declared_level() -> None:
+    """A bypassed attestation declaring BUSINESS_OUTCOME without such a check does not satisfy the level (F11)."""
+    atts = default_attestations()
+    workflow = component_attestation(
+        "workflow",
+        level=VerificationLevel.INTEGRATION_BEHAVIOR,
+        checks=[make_check("schema_only", VerificationLevel.SCHEMA_VALIDITY), make_check("wf_int", VerificationLevel.INTEGRATION_BEHAVIOR)],
+    )
+    atts["workflow"] = bypass_validation(workflow, level=VerificationLevel.BUSINESS_OUTCOME)
+    unapproved = make_manifest(atts)
+    approval = make_approval(subject_digest=unapproved.approval_subject_digest())
+    manifest = make_manifest(atts, approvals=[approval])
+    report = run_release(manifest, list(atts.values()), [approval])
+    assert [f.details["level"] for f in only(report.findings, "MISSING_VERIFICATION_LEVEL")] == ["BUSINESS_OUTCOME"]
+    assert "BUSINESS_OUTCOME" not in report.summary["verification_levels"]
+
+
+@pytest.mark.requirements("PL-042")
+def test_checker_rejects_agent_produced_attestation_even_when_validation_was_bypassed() -> None:
+    atts = default_attestations()
+    atts["connector"] = bypass_validation(atts["connector"], producer=BUILD_AGENT)
+    unapproved = make_manifest(atts)
+    approval = make_approval(subject_digest=unapproved.approval_subject_digest())
+    manifest = make_manifest(atts, approvals=[approval])
+    report = run_release(manifest, list(atts.values()), [approval])
+    [finding] = only(report.findings, "ATTESTATION_NOT_INDEPENDENT")
+    assert finding.subject_id == "att_connector_001" and "BUILD_AGENT" in finding.message
+    assert report.summary["unverified_components"] == ["connector"]
+
+
+@pytest.mark.requirements("PL-043", "PL-048")
+def test_release_carries_a_prospective_operating_plan_covering_every_pl048_signal() -> None:
+    """PL-043's prospective operating plan is a required field, and the checker re-checks its monitors (F7 contracts lens)."""
+    with pytest.raises(ValidationError, match="lacks monitors for: COST, OUTCOME"):
+        make_operating_plan(monitors=[m for m in make_operating_plan().monitors if m.kind not in (MonitorKind.COST, MonitorKind.OUTCOME)])
+    with pytest.raises(ValidationError, match="rollback_owner must be a human"):
+        make_operating_plan(rollback_owner=BUILD_AGENT)
+    with pytest.raises(ValidationError, match="operating_plan"):
+        ReleaseManifest(**{k: v for k, v in make_manifest().model_dump().items() if k != "operating_plan"})
+    manifest, supplied, approvals = release_world()
+    bypassed = bypass_validation(manifest, operating_plan=None)
+    report = run_release(bypassed, supplied, approvals)
+    assert single_code(report, "OPERATING_PLAN_MISSING").error_class is ErrorClass.VERIFICATION_FAILED
+    thin = bypass_validation(
+        manifest.operating_plan, monitors=[m for m in manifest.operating_plan.monitors if m.kind is MonitorKind.COST]
+    )
+    report = run_release(bypass_validation(manifest, operating_plan=thin), supplied, approvals)
+    assert sorted(single_code(report, "OPERATING_PLAN_MISSING").details["missing_monitors"]) == sorted(
+        kind.value for kind in MonitorKind if kind is not MonitorKind.COST
+    )
+
+
+@pytest.mark.requirements("PL-047")
+def test_rollout_policy_follows_the_release_state_machine() -> None:
+    """[ACTIVE] and [CANARY, ACTIVE] described rollouts the RELEASE machine cannot execute (F9)."""
+    from plumb.statemachines.machines import RELEASE
+
+    shadow, canary, active = rollout()
+    rejects(make_manifest, "must start with SHADOW", rollout_policy=[active])
+    rejects(make_manifest, "must start with SHADOW", rollout_policy=[canary, active])
+    rejects(make_manifest, "without a CANARY", rollout_policy=[shadow, active])
+    into_active = {a for (a, b) in RELEASE.edges() if b is ReleaseState.ACTIVE}
+    assert into_active == {ReleaseState.CANARY, ReleaseState.PAUSED}
+    assert make_manifest(rollout_policy=[shadow, canary, active]).rollout_policy[-1].state is ReleaseState.ACTIVE

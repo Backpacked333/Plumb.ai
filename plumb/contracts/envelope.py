@@ -8,9 +8,21 @@ Implements (specification v0.2):
   versioned (``envelope_version``) and tied to an authorized business owner
   (``owner`` must be a ``HUMAN_OWNER``). A derived task cannot widen it: the
   reference checker compares a plan's scope against :meth:`AutonomyEnvelope.scope`.
-* PL-040: approvals bind to a policy version and expire; the envelope carries
-  ``policy_version``, ``expires_at`` and ``revoked_at`` so that
-  :meth:`AutonomyEnvelope.is_active` can be evaluated at any instant.
+* PL-040 / section 17: approvals bind to a policy version and expire; the
+  envelope carries ``policy_version``, ``expires_at`` and ``revoked_at`` so that
+  :meth:`AutonomyEnvelope.is_active` can be evaluated at any instant. Expiry is
+  exclusive (inactive at and after ``expires_at``). Revocation is an *event
+  that has happened*: a non-null ``revoked_at`` makes the envelope inactive at
+  every instant ("revocation invalidates cached grants and queued dispatches"),
+  which is also how the plan checker reads it (``ENVELOPE_INACTIVE``). A
+  scheduled future revocation is expressed by issuing a new version with an
+  earlier ``expires_at``, never by a ``revoked_at`` in the future.
+* Section 4 / Appendix A section 1: the envelope is authority, so it cannot be
+  produced by the agent it constrains; ``producer`` is never a build or runtime
+  agent, in parity with :class:`~plumb.contracts.approval.ApprovalRecord`.
+  Every :class:`SourceGrant` has a stable identity (``grant_id``, defaulting to
+  ``grant:<source_id>:<policy_version>``) that dataset rows and manifests cite
+  as their ``purpose_authorization_ref`` / ``source_rights_refs``.
 * PL-053: data-purpose authorization is per source grant, not a tenant-wide
   checkbox. :meth:`AutonomyEnvelope.purposes_for` returns exactly the purposes
   granted for one source by grants that are unexpired at the evaluation time;
@@ -29,6 +41,8 @@ from typing import Literal
 from pydantic import AwareDatetime, Field, model_validator
 
 from plumb.contracts.common import (
+    AGENT_PRINCIPAL_TYPES,
+    HUMAN_PRINCIPAL_TYPES,
     ArtifactHeader,
     ArtifactKind,
     DataPurpose,
@@ -36,6 +50,7 @@ from plumb.contracts.common import (
     Identifier,
     Money,
     NonEmptyStr,
+    NonSecretIdentifier,
     Principal,
     PrincipalType,
     Region,
@@ -43,19 +58,10 @@ from plumb.contracts.common import (
     SemVer,
     ShortStr,
     StrictModel,
+    require_aware,
 )
 
-HUMAN_PRINCIPAL_TYPES: frozenset[PrincipalType] = frozenset(
-    {PrincipalType.HUMAN_OWNER, PrincipalType.HUMAN_APPROVER, PrincipalType.HUMAN_REVIEWER}
-)
-"""Principal types that may grant access to customer data (a generated artifact cannot)."""
-
-
-def _require_aware(value: datetime, field_name: str) -> datetime:
-    """Reject naive datetimes so that time comparisons are always well defined."""
-    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
-        raise ValueError(f"{field_name} must be a timezone-aware datetime")
-    return value
+_require_aware = require_aware
 
 
 def _unique(values: list[object], field_name: str) -> None:
@@ -83,12 +89,21 @@ class SourceGrant(StrictModel):
     that is not listed here.
     """
 
+    grant_id: NonSecretIdentifier | None = Field(
+        default=None,
+        description="Stable identity datasets cite as their authorization; defaults to grant:<source_id>:<policy_version>.",
+    )
     source_id: Identifier
     purposes: list[DataPurpose] = Field(min_length=1)
     granted_by: Principal
     granted_at: AwareDatetime
     expires_at: AwareDatetime | None = None
     policy_version: SemVer
+
+    @property
+    def effective_grant_id(self) -> str:
+        """``grant_id`` when set, else the derived ``grant:<source_id>:<policy_version>``."""
+        return self.grant_id if self.grant_id is not None else f"grant:{self.source_id}:{self.policy_version}"
 
     @model_validator(mode="after")
     def _check_grant(self) -> "SourceGrant":
@@ -136,11 +151,15 @@ class AutonomyEnvelope(ArtifactHeader):
 
     @model_validator(mode="after")
     def _check_envelope(self) -> "AutonomyEnvelope":
-        _require_aware(self.created_at, "created_at")
         if self.envelope_id != self.artifact_id:
             raise ValueError("envelope_id must equal artifact_id")
         if self.owner.principal_type != PrincipalType.HUMAN_OWNER:
             raise ValueError("owner must be a HUMAN_OWNER principal")
+        if self.producer.principal_type in AGENT_PRINCIPAL_TYPES:
+            raise ValueError(
+                "an autonomy envelope cannot be produced by a build or runtime agent; a derived task cannot "
+                "mint or widen the authority it is compiled against (PL-005, Appendix A section 1)"
+            )
         if self.spending_limit.minor_units <= 0:
             raise ValueError("spending_limit must be a positive amount")
         if self.expires_at <= self.created_at:
@@ -153,12 +172,22 @@ class AutonomyEnvelope(ArtifactHeader):
         _unique(list(self.approved_processors), "approved_processors")
         _unique(list(self.allowed_regions), "allowed_regions")
         _unique(list(self.deployment_environments), "deployment_environments")
+        _unique([grant.grant_id for grant in self.source_grants if grant.grant_id is not None], "source_grants[].grant_id")
         for grant in self.source_grants:
             if grant.expires_at is not None and grant.expires_at <= self.created_at:
                 raise ValueError(
                     f"source grant for {grant.source_id} is already expired at the envelope's created_at"
                 )
         return self
+
+    def grants_by_id(self, grant_id: str, now: datetime | None = None) -> list[SourceGrant]:
+        """Active grants whose :attr:`SourceGrant.effective_grant_id` is ``grant_id``.
+
+        Several grants for one source under one policy version share the derived
+        id; they necessarily name the same source, so a consumer unions their
+        purposes. Empty when no active grant carries the id.
+        """
+        return [grant for grant in self.active_grants(now) if grant.effective_grant_id == grant_id]
 
     # -- time-dependent queries -------------------------------------------------
 
@@ -169,11 +198,16 @@ class AutonomyEnvelope(ArtifactHeader):
         return _require_aware(now, "now")
 
     def is_active(self, now: datetime) -> bool:
-        """True when the envelope is neither expired nor revoked at ``now`` (PL-005, PL-040)."""
+        """True when the envelope is in force at ``now`` and has not been revoked (PL-005, PL-040).
+
+        Revocation is an event that has happened: any ``revoked_at`` makes the
+        envelope inactive at every instant, matching the plan checker's
+        ``ENVELOPE_INACTIVE`` rule.
+        """
         _require_aware(now, "now")
-        if now < self.created_at or now >= self.expires_at:
+        if self.revoked_at is not None:
             return False
-        return self.revoked_at is None or now < self.revoked_at
+        return self.created_at <= now < self.expires_at
 
     def active_grants(self, now: datetime | None = None) -> list[SourceGrant]:
         """Grants that are in force at ``now`` (default: the envelope's ``created_at``)."""

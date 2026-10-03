@@ -17,18 +17,18 @@ Implements:
   limitation. Low-confidence assumptions stay visible on the inventory while
   unaffected work progresses.
 
-This module also defines the reference types shared by the evidence and domain
-contracts (:data:`NonSecretRef`, :data:`NonSecretIdentifier`): a reference is a
-single opaque token that is rejected when it looks like a credential value.
+The reference types this module used to define (:data:`NonSecretRef`,
+:data:`NonSecretIdentifier`, :func:`reject_secret_like`) now live in
+:mod:`plumb.contracts.common` and are re-exported here unchanged in name so
+existing imports keep working; there is exactly one secret heuristic in the package.
 """
 
 from __future__ import annotations
 
-import re
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import AfterValidator, AwareDatetime, Field, StringConstraints, model_validator
+from pydantic import AwareDatetime, Field, model_validator
 
 from plumb.contracts.common import (
     ArtifactHeader,
@@ -36,44 +36,13 @@ from plumb.contracts.common import (
     CapabilityMaturity,
     Identifier,
     NonEmptyStr,
+    NonSecretIdentifier,
+    NonSecretRef,
     ShortStr,
     SourceRef,
     StrictModel,
+    reject_secret_like,
 )
-
-# ---------------------------------------------------------------------------
-# Reference types (design section 2: references, never values)
-# ---------------------------------------------------------------------------
-
-_SECRET_MARKERS: tuple[str, ...] = ("secret", "password", "token=")
-_BASE64_RUN = re.compile(r"[A-Za-z0-9+/=_-]{40,}")
-
-
-def reject_secret_like(value: str) -> str:
-    """Reject a string that looks like a secret value rather than a reference to one.
-
-    A reference contains none of ``secret``, ``password`` or ``token=`` and no
-    run of 40+ base64-like characters mixing upper case, lower case and digits.
-    """
-    lowered = value.lower()
-    for marker in _SECRET_MARKERS:
-        if marker in lowered:
-            raise ValueError(f"value looks like a secret (contains {marker!r}); store a reference, not a value")
-    for run in _BASE64_RUN.findall(value):
-        if any(c.isupper() for c in run) and any(c.islower() for c in run) and any(c.isdigit() for c in run):
-            raise ValueError("value looks like a secret (40+ characters of base64-like text)")
-    return value
-
-
-NonSecretRef = Annotated[
-    str,
-    StringConstraints(min_length=1, max_length=512, pattern=r"^\S+$"),
-    AfterValidator(reject_secret_like),
-]
-"""An opaque reference token: no whitespace (so it cannot be content) and never secret-looking."""
-
-NonSecretIdentifier = Annotated[Identifier, AfterValidator(reject_secret_like)]
-"""An :data:`~plumb.contracts.common.Identifier` used as a ``*_ref`` field."""
 
 EVIDENCE_BACKED_MATURITIES: frozenset[CapabilityMaturity] = frozenset(
     {CapabilityMaturity.SANDBOX_TESTED, CapabilityMaturity.PRODUCTION_VERIFIED}

@@ -40,7 +40,8 @@ from plumb.contracts.common import (
     SourceRef,
     StrictModel,
 )
-from plumb.contracts.inventory import NonSecretIdentifier, NonSecretRef, OperationDirection
+from plumb.contracts.common import NonSecretIdentifier, NonSecretRef, StorageRef
+from plumb.contracts.inventory import OperationDirection
 
 REQUIRED_CONTRACT_TESTS: frozenset[str] = frozenset(
     {
@@ -247,8 +248,8 @@ class StateCapture(StrictModel):
     """Before/after record of a configuration change in the customer's application (section 10)."""
 
     operation_name: Identifier
-    before_state_ref: NonSecretRef
-    after_state_ref: NonSecretRef
+    before_state_ref: StorageRef
+    after_state_ref: StorageRef
     affected_resources: list[ShortStr] = Field(min_length=1)
     expected_effect: NonEmptyStr
     reversal_limits: NonEmptyStr

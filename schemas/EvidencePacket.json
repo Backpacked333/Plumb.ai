@@ -106,7 +106,7 @@
       "description": "One observed record from one source at one point in time (PL-009).",
       "properties": {
         "access_policy_ref": {
-          "maxLength": 512,
+          "maxLength": 256,
           "minLength": 1,
           "pattern": "^\\S+$",
           "title": "Access Policy Ref",
@@ -151,10 +151,10 @@
           "type": "array"
         },
         "raw_content_ref": {
-          "description": "Where the raw content is stored; never the content itself.",
-          "maxLength": 512,
+          "description": "Locator of the stored raw content (scheme://path); never the content itself (PL-009).",
+          "maxLength": 256,
           "minLength": 1,
-          "pattern": "^\\S+$",
+          "pattern": "^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$",
           "title": "Raw Content Ref",
           "type": "string"
         },
@@ -388,9 +388,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -616,7 +617,7 @@
     },
     "TimeAxes": {
       "additionalProperties": false,
-      "description": "Separate time axes for evidence (PL-009, ADR-005).\n\n``event_time`` is when the described thing happened (valid time).\n``observation_time`` is when Plumb observed it at the source.\n``availability_time`` is when it became available to Plumb's decision\nboundary (knowledge time). Availability can never precede observation.",
+      "description": "Separate time axes for evidence (PL-009, ADR-005).\n\n``event_time`` is when the described thing happened (valid time).\n``observation_time`` is when Plumb observed it at the source.\n``availability_time`` is when it became available to Plumb's decision\nboundary (knowledge time). Availability can never precede observation.\nAll three are timezone-aware (design section 2); a naive instant cannot be\ncompared with the knowledge boundary of a replay and is rejected.",
       "properties": {
         "availability_time": {
           "format": "date-time",

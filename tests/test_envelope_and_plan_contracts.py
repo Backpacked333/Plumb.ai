@@ -281,7 +281,7 @@ def test_envelope_requires_goals_and_unique_lists() -> None:
 def test_envelope_rejects_naive_timestamps() -> None:
     with pytest.raises(ValidationError):
         _envelope(expires_at=datetime(2027, 1, 1))
-    with pytest.raises(ValidationError, match="timezone-aware"):
+    with pytest.raises(ValidationError, match="timezone"):
         _envelope(created_at=datetime(2026, 10, 1, 12, 0))
 
 
@@ -294,8 +294,11 @@ def test_is_active_respects_expiry_and_revocation() -> None:
     assert not envelope.is_active(T0 + 91 * DAY)
     assert not envelope.is_active(T0 - DAY), "not yet issued"
 
+    # Revocation is an event that has happened (section 17: it invalidates cached grants and
+    # queued dispatches): any revoked_at makes the envelope inactive at every instant, which is
+    # exactly how the plan checker's ENVELOPE_INACTIVE rule reads it.
     revoked = _envelope(revoked_at=T0 + 10 * DAY)
-    assert revoked.is_active(T0 + 9 * DAY)
+    assert not revoked.is_active(T0 + 9 * DAY)
     assert not revoked.is_active(T0 + 10 * DAY)
     assert not revoked.is_active(T0 + 30 * DAY)
 
@@ -775,3 +778,51 @@ def test_load_registry_default_matches_packaged_file(registry: CapabilityRegistr
     assert loaded.capability_ids() == registry.capability_ids()
     assert loaded.step_types() == registry.step_types()
     assert load_registry(DEFAULT_REGISTRY_PATH).records() == registry.records()
+
+
+# ---------------------------------------------------------------------------
+# Review regressions (contracts fidelity lens)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.requirements("PL-005", "PL-040")
+@pytest.mark.parametrize("principal_type", [PrincipalType.BUILD_AGENT, PrincipalType.RUNTIME_AGENT])
+def test_envelope_cannot_be_produced_by_an_agent(principal_type: PrincipalType) -> None:
+    """An agent cannot mint the authority artifact it is compiled against (F6)."""
+    with pytest.raises(ValidationError, match="cannot be produced by a build or runtime agent"):
+        _envelope(producer=_principal("build-agent-1", principal_type))
+    assert _envelope(producer=_principal("control-plane", PrincipalType.SERVICE)).producer.principal_type is PrincipalType.SERVICE
+
+
+@pytest.mark.requirements("PL-040", "PL-057")
+def test_every_artifact_header_rejects_a_naive_created_at() -> None:
+    """ArtifactHeader.created_at is AwareDatetime on every contract, not only on five of them (F10)."""
+    with pytest.raises(ValidationError, match="timezone"):
+        _plan(created_at=datetime(2026, 10, 1, 12, 0))
+    with pytest.raises(ValidationError, match="timezone"):
+        _capability(created_at=datetime(2026, 10, 1, 12, 0))
+    with pytest.raises(ValidationError, match="timezone"):
+        _plan(planned_at=datetime(2026, 10, 2, 12, 0))
+
+
+@pytest.mark.requirements("PL-053")
+def test_source_grants_have_a_stable_identity_datasets_can_cite() -> None:
+    envelope = _envelope(source_grants=[_grant(), _grant(source_id=OTHER_SOURCE, purposes=[DataPurpose.INSPECT], grant_id="grant-other-inspect")])
+    assert envelope.source_grants[0].effective_grant_id == f"grant:{SOURCE}:1.0.0"
+    assert envelope.source_grants[1].effective_grant_id == "grant-other-inspect"
+    assert [g.source_id for g in envelope.grants_by_id("grant-other-inspect")] == [OTHER_SOURCE]
+    assert envelope.grants_by_id("grant-unknown") == []
+    with pytest.raises(ValidationError, match="grant_id must not contain duplicates"):
+        _envelope(source_grants=[_grant(grant_id="g1"), _grant(grant_id="g1", purposes=[DataPurpose.TRAIN])])
+    with pytest.raises(ValidationError, match="looks like a secret"):
+        _grant(grant_id="grant-with-password")
+
+
+@pytest.mark.requirements("PL-053", "PL-015")
+def test_step_input_lineage_narrowing_is_declared_on_from_step_inputs_only() -> None:
+    narrowed = StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="build-dataset", source_ids=[SOURCE])
+    assert narrowed.source_ids == [SOURCE]
+    with pytest.raises(ValidationError, match="a plan input carries none"):
+        StepInput(name="envelope", kind=ArtifactKind.AUTONOMY_ENVELOPE, plan_input="env-synthetic", source_ids=[SOURCE])
+    with pytest.raises(ValidationError, match="must not contain duplicates"):
+        StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="build-dataset", source_ids=[SOURCE, SOURCE])

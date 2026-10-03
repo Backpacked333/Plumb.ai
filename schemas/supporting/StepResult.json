@@ -30,7 +30,7 @@
           "$ref": "#/$defs/FailureClass"
         },
         "missing_authority": {
-          "description": "Exact grants, consents or decisions required.",
+          "description": "Exact grants, consents or decisions required; names, never values.",
           "items": {
             "maxLength": 256,
             "minLength": 1,

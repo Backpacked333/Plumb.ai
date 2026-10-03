@@ -4,7 +4,7 @@
   "kind": "AutonomyEnvelope",
   "schema_version": "0.2.0",
   "version": 1,
-  "content_digest": "sha256:eb529e5f6b7aed5956a41466f7246962873d3d5857eaf79679155bbfc4e0157d",
+  "content_digest": "sha256:7d54d69d3e039b7235834aa2c2f5748e6c4bc755c240cb615599b83b4ddb8a4a",
   "producer": {
     "principal_id": "owner-rfq-commercial-director",
     "principal_type": "HUMAN_OWNER",

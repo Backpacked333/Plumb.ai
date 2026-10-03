@@ -50,9 +50,10 @@
       "type": "string"
     },
     "payload_ref": {
-      "maxLength": 512,
+      "description": "Locator of the stored payload (scheme://path); never the payload itself.",
+      "maxLength": 256,
       "minLength": 1,
-      "pattern": "^\\S+$",
+      "pattern": "^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$",
       "title": "Payload Ref",
       "type": "string"
     },

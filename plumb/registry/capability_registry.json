@@ -294,7 +294,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:5857ff3bb485726c8b2285e3fdec0e2a4c70eae05ab9d2aefe5d69ee7b1d3b37",
+      "content_digest": "sha256:2028a31eb1a826a69cf64d2f0de8db68e8fe1251c57f2bac147f017f682669e7",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -331,7 +331,8 @@
       ],
       "consumes": [
         "IntegrationSpec",
-        "AdapterConfiguration"
+        "AdapterConfiguration",
+        "VerificationReceipt"
       ],
       "probe_receipt_ref": "probe:platform/nango-management/sync.deploy_shadow/2026-09-18",
       "capability_version": "1.2.0"
@@ -537,7 +538,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:9223922bd6cc2b1c87e1a64198e4ff20507e955ed9b2fa775c52ecdc72342239",
+      "content_digest": "sha256:6683af4ba80da2ffc582a1cbdccbaef67342ae57606923c0d1e01d8fac0bf53e",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -577,7 +578,9 @@
       "consumes": [
         "SourceCandidateTable",
         "TaskDefinition",
-        "EvidencePacket"
+        "EvidencePacket",
+        "QualityReport",
+        "IntegrationSpec"
       ],
       "probe_receipt_ref": "probe:platform/plumb-dataset-builder/dataset.materialize_manifest/2026-09-19",
       "capability_version": "0.8.0"
@@ -734,7 +737,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:d740dca016575d38a5c7e544377ba8ebed20bb1afd4e275c4b0cc6e5deb998f2",
+      "content_digest": "sha256:b46e91aad0ca010e7bdeaf54314c5d0a61800e6002a0a946987eb49669c4dcad",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -773,7 +776,8 @@
       "consumes": [
         "DatasetManifest",
         "ModelVersion",
-        "WorkflowSpec"
+        "WorkflowSpec",
+        "LabelAuditReport"
       ],
       "probe_receipt_ref": "probe:platform/plumb-verifier/evaluation.run_holdout/2026-09-24",
       "capability_version": "2.0.0"
@@ -784,7 +788,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:a0b58dd33754b76eba2c8de1e90deb60a6afcacba9ea259879f510787dcbcf01",
+      "content_digest": "sha256:896703b20b1e3175ab1330a4a083f2655f7e270a6db1025ce62a8d77e06b5f88",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -822,7 +826,8 @@
       "consumes": [
         "OpportunitySpec",
         "IntegrationSpec",
-        "ModelVersion"
+        "ModelVersion",
+        "CandidateComparison"
       ],
       "probe_receipt_ref": "probe:platform/plumb-workflow-compiler/workflow.compile_bounded/2026-09-25",
       "capability_version": "0.7.0"
@@ -977,7 +982,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:affa22e6a1f0354091f2d05cedac6955d11a9a507efdb7a553c8f1f7a47f1a26",
+      "content_digest": "sha256:ca496d60c922e50e58fbc559950f60c54b948a0774c204bbc1d23008f22b7dfa",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -1016,7 +1021,8 @@
         "ModelVersion",
         "InfrastructurePlan",
         "EvaluationReport",
-        "VerificationAttestation"
+        "VerificationAttestation",
+        "VerificationReceipt"
       ],
       "probe_receipt_ref": "probe:platform/plumb-release-executor/release.assemble_manifest/2026-09-27",
       "capability_version": "1.0.0"
@@ -1127,7 +1133,7 @@
       "kind": "CapabilityRecord",
       "schema_version": "0.2.0",
       "version": 1,
-      "content_digest": "sha256:bcf304824105315bd344a3378173530aa057705df67fb5d746a25a747388383d",
+      "content_digest": "sha256:ad1411c2f8b7c4a31e3e3b4698d5d821fa0ea19fe2bee887cad46458293047b5",
       "producer": {
         "principal_id": "plumb-platform-registry",
         "principal_type": "SERVICE",
@@ -1167,7 +1173,8 @@
         "DatasetManifest",
         "WorkflowSpec",
         "InfrastructurePlan",
-        "ReleaseManifest"
+        "ReleaseManifest",
+        "CanaryReport"
       ],
       "probe_receipt_ref": "probe:platform/plumb-verifier/verification.request_attestation/2026-09-20",
       "capability_version": "2.0.0"

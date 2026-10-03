@@ -279,9 +279,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -395,6 +396,23 @@
           "default": null,
           "description": "artifact_id of a BuildPlan.inputs entry.",
           "title": "Plan Input"
+        },
+        "source_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lineage narrowing (PL-053): the subset of the producer's sources this input actually carries. None means all of them. Only meaningful on a from_step input of a data-bearing kind; the checker rejects a narrowing that names a source the producer never touched.",
+          "title": "Source Ids"
         }
       },
       "required": [

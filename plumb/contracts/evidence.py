@@ -13,7 +13,10 @@ Implements:
   number in [0, 1] and never substitutes for authority: a fact may only be
   ``CONFIRMED`` when at least one supporting event comes from a source the
   packet lists as authoritative. Unknown absence stays distinguishable from
-  confirmed absence through :class:`~plumb.contracts.common.Presence`.
+  confirmed absence through :class:`~plumb.contracts.common.Presence`, and
+  ``CONFIRMED_ABSENT`` is itself a confirmation: it requires status
+  ``CONFIRMED`` (hence authoritative evidence); an inferred absence is
+  ``UNKNOWN`` presence, however high its confidence.
 * PL-011: :class:`ObjectResolution` keeps ambiguous candidates with scores,
   merge/split history and reversible :class:`ScopedCorrection` records. A
   correction names the objects it applies to and the impact set to revalidate;
@@ -42,11 +45,12 @@ from plumb.contracts.common import (
     SemVer,
     Sha256Digest,
     ShortStr,
+    NonSecretRef,
     SourceRef,
+    StorageRef,
     StrictModel,
     TimeAxes,
 )
-from plumb.contracts.inventory import NonSecretRef
 
 FactValue = str | int | float | bool | None
 """JSON scalar carried by a fact; structured values are separate facts."""
@@ -61,7 +65,9 @@ class EvidenceEvent(StrictModel):
     external_version: ShortStr = Field(description="Source-assigned version, etag or revision of the record.")
     time: TimeAxes = Field(description="Event, observation and availability time.")
     content_digest: Sha256Digest
-    raw_content_ref: NonSecretRef = Field(description="Where the raw content is stored; never the content itself.")
+    raw_content_ref: StorageRef = Field(
+        description="Locator of the stored raw content (scheme://path); never the content itself (PL-009)."
+    )
     access_policy_ref: NonSecretRef
     retention_class: ShortStr
     extraction_version: SemVer
@@ -103,6 +109,11 @@ class DerivedFact(StrictModel):
             raise ValueError(f"a {self.presence.value} fact cannot carry a value; absence has no value")
         if self.status is FactStatus.CONFIRMED and self.presence is Presence.UNKNOWN:
             raise ValueError("a CONFIRMED fact cannot have UNKNOWN presence; unknown absence is not confirmed absence")
+        if self.presence is Presence.CONFIRMED_ABSENT and self.status is not FactStatus.CONFIRMED:
+            raise ValueError(
+                f"CONFIRMED_ABSENT requires status CONFIRMED, not {self.status.value}; an inferred absence is "
+                "UNKNOWN presence, because confidence does not substitute for source authority (PL-010)"
+            )
         return self
 
 

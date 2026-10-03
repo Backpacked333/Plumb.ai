@@ -25,11 +25,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 SCHEMA_VERSION = "0.2.0"
 """Schema version stamped on every artifact header produced by this package."""
@@ -81,6 +82,105 @@ NonEmptyStr = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
 
 ShortStr = Annotated[str, StringConstraints(min_length=1, max_length=256)]
 
+OperationId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9]{0,99}$")]
+"""An OpenAPI ``operationId`` (camelCase, e.g. ``createBuild``); not an :data:`Identifier`."""
+
+
+# ---------------------------------------------------------------------------
+# References, never values (PL-054, design section 2)
+# ---------------------------------------------------------------------------
+
+SECRET_MARKERS: tuple[str, ...] = ("secret", "password", "token=", "token:", "bearer ", "private key")
+"""Substrings (case-insensitive) that mark a value as credential material rather than a reference."""
+
+_SECRET_SHAPES: tuple[tuple[str, "re.Pattern[str]"], ...] = (
+    ("an AWS access key id", re.compile(r"AKIA[0-9A-Z]{16}")),
+    ("a JWT", re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.")),
+)
+_DIGEST_SEGMENT = re.compile(r"sha256:[0-9a-f]{64}")
+_HEX_RUN = re.compile(r"[0-9a-fA-F]{32,}")
+_BASE64_RUN = re.compile(r"[A-Za-z0-9+/=_-]{40,}")
+_ALNUM_RUN = re.compile(r"[A-Za-z0-9]{40,}")
+_BASE64_WHOLE = re.compile(r"[A-Za-z0-9+/=]{40,}")
+
+
+def reject_secret_like(value: str, field_name: str | None = None) -> str:
+    """Reject a string that looks like a secret value rather than a reference to one (PL-054).
+
+    This is the one secret heuristic of the package; every ``*_ref`` field and
+    every authentication reference uses it. It is the union of the rules the
+    modules used to carry separately, so it is the strictest of them:
+
+    * the markers ``secret``, ``password``, ``token=``, ``token:``, ``bearer ``
+      and ``private key`` (case-insensitive);
+    * the shapes of an AWS access key id (``AKIA`` + 16) and of a JWT (``eyJ…``);
+    * any run of 32+ hexadecimal characters that is not a ``sha256:<64 hex>``
+      digest segment (a digest is a reference, a bare hex run is a key);
+    * any run of 40+ base64/URL-safe characters mixing upper case, lower case
+      and digits; any run of 40+ alphanumerics whatever its case; and a value
+      that is nothing but 40+ base64 characters.
+
+    References may be long, but they are structured (``probe:platform/.../2026-09-15``);
+    a 40-character unbroken run is how encoded secrets look, not how references look.
+    """
+    label = f"{field_name} " if field_name else "value "
+    lowered = value.lower()
+    for marker in SECRET_MARKERS:
+        if marker in lowered:
+            raise ValueError(f"{label}looks like a secret (contains {marker!r}); store a reference, not a value")
+    for description, shape in _SECRET_SHAPES:
+        if shape.search(value):
+            raise ValueError(f"{label}looks like a secret (contains {description}); store a reference, not a value")
+    scrubbed = _DIGEST_SEGMENT.sub("", value)
+    if _HEX_RUN.search(scrubbed):
+        raise ValueError(f"{label}looks like a secret (32+ hexadecimal characters); store a reference, not a value")
+    for run in _BASE64_RUN.findall(scrubbed):
+        if any(c.isupper() for c in run) and any(c.islower() for c in run) and any(c.isdigit() for c in run):
+            raise ValueError(f"{label}looks like a secret (40+ characters of base64-like text); store a reference, not a value")
+    if _ALNUM_RUN.search(scrubbed) or _BASE64_WHOLE.fullmatch(scrubbed):
+        raise ValueError(f"{label}looks like a secret (40+ unbroken alphanumeric characters); store a reference, not a value")
+    return value
+
+
+NonSecretRef = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=256, pattern=r"^\S+$"),
+    AfterValidator(reject_secret_like),
+]
+"""An opaque reference token: one word (no whitespace), at most 256 characters, never secret-looking."""
+
+NonSecretIdentifier = Annotated[Identifier, AfterValidator(reject_secret_like)]
+"""An :data:`Identifier` used as a ``*_ref`` field; rejected when it looks like a secret."""
+
+NonSecretText = Annotated[ShortStr, AfterValidator(reject_secret_like)]
+"""Short free text (an authority name, a mechanism) that may contain spaces but never a secret."""
+
+StorageRef = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=256, pattern=r"^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$"),
+    AfterValidator(reject_secret_like),
+]
+"""A locator for stored bytes: ``scheme:`` or ``scheme://`` followed by a path of URI-safe characters.
+
+Content cannot pass as a storage reference: there is no room for braces, quotes,
+commas, percent-escapes or spaces, a ``data:`` URI fails on its comma, and the
+secret heuristic refuses long hex or base64 runs (PL-009: raw content is
+referenced, never copied into downstream records).
+"""
+
+
+def require_aware(value: datetime, field_name: str) -> datetime:
+    """Reject naive datetimes so that comparisons between instants are always defined."""
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+        raise ValueError(f"{field_name} must be a timezone-aware datetime")
+    return value
+
+
+MODEL_ALIAS_WORDS: frozenset[str] = frozenset(
+    {"latest", "champion", "challenger", "prod", "production", "staging", "stable", "current", "default", "canary", "live"}
+)
+"""Mutable registry aliases that never identify a model version (PL-032, PL-034, ADR-008)."""
+
 
 # ---------------------------------------------------------------------------
 # Closed vocabularies
@@ -121,6 +221,15 @@ class PrincipalType(str, Enum):
     RUNTIME_AGENT = "RUNTIME_AGENT"
     VERIFIER = "VERIFIER"
     RELEASE_EXECUTOR = "RELEASE_EXECUTOR"
+
+
+HUMAN_PRINCIPAL_TYPES: frozenset["PrincipalType"] = frozenset(
+    {PrincipalType.HUMAN_OWNER, PrincipalType.HUMAN_REVIEWER, PrincipalType.HUMAN_APPROVER}
+)
+"""Principal types that are people: the only ones that can grant, approve or decide (PL-005, PL-040)."""
+
+AGENT_PRINCIPAL_TYPES: frozenset["PrincipalType"] = frozenset({PrincipalType.BUILD_AGENT, PrincipalType.RUNTIME_AGENT})
+"""Principal types whose supplied values never constitute authority or verification (PL-040, PL-042)."""
 
 
 class HumanEffortCategory(str, Enum):
@@ -375,11 +484,13 @@ class TimeAxes(StrictModel):
     ``observation_time`` is when Plumb observed it at the source.
     ``availability_time`` is when it became available to Plumb's decision
     boundary (knowledge time). Availability can never precede observation.
+    All three are timezone-aware (design section 2); a naive instant cannot be
+    compared with the knowledge boundary of a replay and is rejected.
     """
 
-    event_time: datetime
-    observation_time: datetime
-    availability_time: datetime
+    event_time: AwareDatetime
+    observation_time: AwareDatetime
+    availability_time: AwareDatetime
 
     @model_validator(mode="after")
     def _availability_not_before_observation(self) -> "TimeAxes":
@@ -393,8 +504,8 @@ class Principal(StrictModel):
 
     principal_id: Identifier
     principal_type: PrincipalType
-    authenticated_via: ShortStr = Field(
-        description="Authentication mechanism reference (e.g. oidc:issuer), never a secret."
+    authenticated_via: NonSecretRef = Field(
+        description="Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054)."
     )
 
 
@@ -445,9 +556,9 @@ class Provenance(StrictModel):
     """Who/what produced an artifact or fact, from which evidence, at which derivation version."""
 
     producer: Identifier
-    produced_at: datetime
+    produced_at: AwareDatetime
     derivation_version: SemVer
-    evidence_refs: list[Identifier] = Field(default_factory=list)
+    evidence_refs: list[NonSecretIdentifier] = Field(default_factory=list)
 
 
 class ArtifactRef(StrictModel):
@@ -464,6 +575,8 @@ class ArtifactHeader(StrictModel):
 
     ``content_digest`` is assigned by the artifact store over the canonical JSON
     of the artifact with this field blank; see :func:`compute_artifact_digest`.
+    ``created_at`` is timezone-aware on every artifact (design section 2), so
+    audit ordering and approval/envelope windows never compare a naive instant.
     """
 
     artifact_id: Identifier
@@ -473,7 +586,7 @@ class ArtifactHeader(StrictModel):
     version: int = Field(ge=1, description="Immutable version number of this artifact id.")
     content_digest: Sha256Digest | None = None
     producer: Principal
-    created_at: datetime
+    created_at: AwareDatetime
     evidence_links: list[Identifier] = Field(default_factory=list)
 
 
@@ -484,15 +597,15 @@ class DependencyRecord(StrictModel):
     failure_class: FailureClass
     error_class: ErrorClass
     description: NonEmptyStr
-    missing_authority: list[ShortStr] = Field(
-        default_factory=list, description="Exact grants, consents or decisions required."
+    missing_authority: list[NonSecretText] = Field(
+        default_factory=list, description="Exact grants, consents or decisions required; names, never values."
     )
     resolver_role: PrincipalType
     blocked_step_ids: list[Identifier] = Field(default_factory=list)
     resumes_after: NonEmptyStr | None = Field(
         default=None, description="What continues once the dependency is supplied."
     )
-    raised_at: datetime
+    raised_at: AwareDatetime
 
 
 class HumanEffortRecord(StrictModel):
@@ -502,7 +615,7 @@ class HumanEffortRecord(StrictModel):
     principal: Principal
     minutes: int = Field(ge=0)
     description: NonEmptyStr
-    recorded_at: datetime
+    recorded_at: AwareDatetime
 
 
 # ---------------------------------------------------------------------------
@@ -549,6 +662,17 @@ __all__ = [
     "OpaqueCursor",
     "NonEmptyStr",
     "ShortStr",
+    "OperationId",
+    "SECRET_MARKERS",
+    "reject_secret_like",
+    "NonSecretRef",
+    "NonSecretIdentifier",
+    "NonSecretText",
+    "StorageRef",
+    "require_aware",
+    "MODEL_ALIAS_WORDS",
+    "HUMAN_PRINCIPAL_TYPES",
+    "AGENT_PRINCIPAL_TYPES",
     "EffectClass",
     "DataPurpose",
     "PrincipalType",

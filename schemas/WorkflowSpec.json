@@ -217,9 +217,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -341,7 +342,7 @@
         },
         "type_ref": {
           "description": "Schema or contract the input must satisfy.",
-          "maxLength": 512,
+          "maxLength": 256,
           "minLength": 1,
           "pattern": "^\\S+$",
           "title": "Type Ref",
@@ -494,10 +495,10 @@
       "type": "array"
     },
     "durable_waits": {
+      "description": "Declared durable waits (PL-035); the list must be declared and is empty for a synchronous preparation workflow.",
       "items": {
         "$ref": "#/$defs/DurableWait"
       },
-      "minItems": 1,
       "title": "Durable Waits",
       "type": "array"
     },
@@ -510,10 +511,10 @@
       "type": "array"
     },
     "human_decision_points": {
+      "description": "Declared human decision points (PL-035); the list must be declared and is non-empty when an operation commits the business (section 17).",
       "items": {
         "$ref": "#/$defs/HumanDecisionPoint"
       },
-      "minItems": 1,
       "title": "Human Decision Points",
       "type": "array"
     },

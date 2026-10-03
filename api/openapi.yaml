@@ -30,10 +30,18 @@ info:
       identifiers (section 22). Error responses use `ErrorEnvelope`.
 
     Schemas annotated with `x-plumb-contract` mirror the package contracts in
-    `plumb/contracts` (JSON Schemas under `schemas/<ContractName>.json`). All `$ref`s
-    are local to this document; reference validation (`api/validate_openapi.py`) checks
-    JSON validity and local reference resolution only. Authentication, serialization
-    compatibility and complete OpenAPI conformance need implementation-time tests.
+    `plumb/contracts` (JSON Schemas under `schemas/<ContractName>.json`) field for
+    field: the same property set, the same required set and the same leaf constraints
+    (`tests/test_openapi.py` asserts the parity for every annotated component). A
+    server may add stricter API-level checks (for example requiring `kind` on every
+    body) but the documented component never accepts what the contract rejects, nor
+    rejects what the contract accepts. The `Idempotency-Key` header, `JobEnvelope.
+    idempotency_key` and the `jobs` table share one limit of 255 characters. All
+    `$ref`s are local to this document; reference validation (`api/validate_openapi.py`)
+    checks JSON validity and local reference resolution only. Authentication,
+    serialization compatibility and complete OpenAPI conformance need
+    implementation-time tests. `x-plumb-result-contract` on a 202 operation names the
+    contract its `JobEnvelope.result_ref` resolves to.
   license:
     name: Proprietary
 servers:
@@ -1165,11 +1173,28 @@ components:
       type: string
       minLength: 1
       maxLength: 256
+      pattern: '^\S+$'
       description: |
-        Reference resolved by the gateway (e.g. `vault:ref/...`). Never a secret value;
-        servers reject values that look like secrets (PL-054).
+        Reference resolved by the gateway (e.g. `vault:ref/...`): one word, never a secret
+        value. Servers apply the package's one secret heuristic
+        (`plumb.contracts.common.reject_secret_like`, PL-054): the markers `secret`,
+        `password`, `token=`, `token:`, `bearer `, `private key`, the shapes of an AWS
+        access key id and a JWT, and long hexadecimal or base64 runs are rejected.
       not:
-        pattern: '[sS][eE][cC][rR][eE][tT]|[pP][aA][sS][sS][wW][oO][rR][dD]|[tT][oO][kK][eE][nN]='
+        pattern: '[sS][eE][cC][rR][eE][tT]|[pP][aA][sS][sS][wW][oO][rR][dD]|[tT][oO][kK][eE][nN][=:]|[bB][eE][aA][rR][eE][rR] |[pP][rR][iI][vV][aA][tT][eE] [kK][eE][yY]|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{10,}\.'
+    StorageRef:
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: '^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$'
+      description: |
+        Locator of stored bytes (`scheme:` or `scheme://` plus a URI-safe path). Content
+        cannot pass as a locator: braces, quotes, commas, spaces and percent-escapes are
+        not admitted, and the secret heuristic of `NonSecretRef` applies too (PL-009, PL-054).
+    OperationId:
+      type: string
+      pattern: '^[A-Za-z][A-Za-z0-9]{0,99}$'
+      description: An operationId of this document (camelCase), e.g. `createBuild`.
 
     # ------------------------------------------------------------------
     # Closed vocabularies (exact values from plumb.contracts.common)
@@ -1354,22 +1379,6 @@ components:
         max_model_calls:
           type: [integer, 'null']
           minimum: 0
-    TimeAxes:
-      type: object
-      description: Event, observation and availability time are kept apart (PL-009, ADR-005).
-      required: [event_time, observation_time, availability_time]
-      additionalProperties: false
-      properties:
-        event_time:
-          type: string
-          format: date-time
-        observation_time:
-          type: string
-          format: date-time
-        availability_time:
-          type: string
-          format: date-time
-          description: Never precedes `observation_time`.
     Principal:
       type: object
       description: An authenticated acting principal.
@@ -1381,10 +1390,8 @@ components:
         principal_type:
           $ref: '#/components/schemas/PrincipalType'
         authenticated_via:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Authentication mechanism reference (e.g. `oidc:issuer`), never a secret.
+          $ref: '#/components/schemas/NonSecretRef'
+          description: Authentication mechanism reference (e.g. `oidc:issuer`), never a secret (PL-054).
     ResourceScope:
       type: object
       description: Sources, destinations, processors and regions an operation may touch.
@@ -1425,6 +1432,7 @@ components:
           description: Provider-assigned account identity (opaque, non-secret).
         resource:
           type: [string, 'null']
+          minLength: 1
           maxLength: 256
     ArtifactRef:
       type: object
@@ -1444,8 +1452,10 @@ components:
       type: object
       description: |
         Fields every stored artifact carries (section 8). `content_digest` is assigned by
-        the artifact store; a client-supplied value is ignored (PL-055).
-      required: [artifact_id, tenant_id, kind, version, producer, created_at]
+        the artifact store; a client-supplied value is ignored (PL-055). `kind` defaults
+        to the contract's pinned value, as in the Pydantic models; each annotated component
+        constrains it with `const`.
+      required: [artifact_id, tenant_id, version, producer, created_at]
       properties:
         artifact_id:
           $ref: '#/components/schemas/Identifier'
@@ -1490,7 +1500,7 @@ components:
           maxLength: 4000
         missing_authority:
           type: array
-          description: Exact grants, consents or decisions required.
+          description: Exact grants, consents or decisions required; names, never credential values (PL-054).
           items:
             type: string
             minLength: 1
@@ -1503,6 +1513,7 @@ components:
             $ref: '#/components/schemas/Identifier'
         resumes_after:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
         raised_at:
           type: string
@@ -1527,11 +1538,11 @@ components:
         idempotency_key:
           type: string
           minLength: 1
-          maxLength: 256
-          description: Client key, scoped to the tenant by the server.
+          maxLength: 255
+          description: Client key, scoped to the tenant by the server; the same 255-character limit as the Idempotency-Key header (PL-055).
         operation:
-          $ref: '#/components/schemas/Identifier'
-          description: OpenAPI operationId that started the job.
+          $ref: '#/components/schemas/OperationId'
+          description: OpenAPI operationId that started the job, e.g. `createBuild`.
         created_at:
           type: string
           format: date-time
@@ -1558,7 +1569,10 @@ components:
     ErrorEnvelope:
       x-plumb-contract: ErrorEnvelope
       type: object
-      description: Shared error shape of every control-plane response (section 22).
+      description: |
+        Shared error shape of every control-plane response (section 22). Neither `message`
+        nor `operator_action` may carry a secret-looking value or another tenant's
+        identifier; servers apply the same heuristic as `NonSecretRef` to both texts.
       required: [error_class, message, retryable, correlation_id]
       additionalProperties: false
       properties:
@@ -1590,7 +1604,7 @@ components:
       x-plumb-contract: EventEnvelope
       type: object
       description: Domain event as published through the outbox (section 22).
-      required: [event_id, tenant_id, aggregate_id, aggregate_version, event_type, occurred_at, recorded_at, correlation_id, causation_id, schema_version, payload_ref]
+      required: [event_id, tenant_id, aggregate_id, aggregate_version, event_type, occurred_at, recorded_at, correlation_id, schema_version, payload_ref]
       additionalProperties: false
       properties:
         event_id:
@@ -1621,10 +1635,8 @@ components:
         schema_version:
           $ref: '#/components/schemas/SemVer'
         payload_ref:
-          type: string
-          pattern: ^\S+$
-          minLength: 1
-          maxLength: 512
+          $ref: '#/components/schemas/StorageRef'
+          description: Locator of the stored payload (scheme://path); never the payload itself.
 
     # ------------------------------------------------------------------
     # Contract schemas (mirror plumb/contracts; see x-plumb-contract)
@@ -1642,6 +1654,7 @@ components:
           maxLength: 4000
         success_metric:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
         horizon_days:
           type: [integer, 'null']
@@ -1652,6 +1665,11 @@ components:
       required: [source_id, purposes, granted_by, granted_at, policy_version]
       additionalProperties: false
       properties:
+        grant_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+          description: Stable identity datasets cite as their authorization; defaults to `grant:<source_id>:<policy_version>` (PL-053).
         source_id:
           $ref: '#/components/schemas/Identifier'
         purposes:
@@ -1903,7 +1921,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [kind, inventory_id, applications, coverage_report]
+          required: [inventory_id, applications, coverage_report]
           properties:
             kind:
               const: EnvironmentInventory
@@ -2056,7 +2074,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [kind, opportunity_id, goal_id, business_objective, eligible_case_population, baseline, evidence_coverage, proposed_change, expected_benefit_range, failure_cost, review_cost, measurement_plan, candidate_comparison, status]
+          required: [opportunity_id, goal_id, business_objective, eligible_case_population, baseline, evidence_coverage, proposed_change, expected_benefit_range, failure_cost, review_cost, measurement_plan, candidate_comparison, status]
           properties:
             kind:
               const: OpportunitySpec
@@ -2142,6 +2160,11 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Identifier'
             - type: 'null'
+        source_ids:
+          type: [array, 'null']
+          items:
+            $ref: '#/components/schemas/Identifier'
+          description: Lineage narrowing (PL-053) - the subset of the producer's sources this input carries; null means all of them.
     StepOutput:
       type: object
       required: [name, kind]
@@ -2214,6 +2237,7 @@ components:
           default: true
         environment:
           type: [string, 'null']
+          minLength: 1
           maxLength: 256
           description: Deployment environment for infrastructure/release steps.
     BuildPlan:
@@ -2531,10 +2555,7 @@ components:
         region:
           $ref: '#/components/schemas/Region'
         schema_ref:
-          type: string
-          pattern: ^\S+$
-          minLength: 1
-          maxLength: 512
+          $ref: '#/components/schemas/NonSecretRef'
     QualityCheck:
       type: object
       required: [name, expression]
@@ -2570,7 +2591,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [kind, collection_id, objective_ref, allowed_sources, selected_fields, join_strategy, incremental_mechanism, reordering_policy, correction_policy, watermark, backfill_boundary, idempotent_event_identity, reconciliation, retention, destination, access_policy_ref, quality_checks, permitted_purpose_evidence_ref, health, downstream_block_on_missing_coverage]
+          required: [collection_id, objective_ref, allowed_sources, selected_fields, join_strategy, incremental_mechanism, reordering_policy, correction_policy, watermark, backfill_boundary, idempotent_event_identity, reconciliation, retention, destination, access_policy_ref, quality_checks, permitted_purpose_evidence_ref, health, downstream_block_on_missing_coverage]
           properties:
             kind:
               const: CollectionSpec
@@ -2636,20 +2657,14 @@ components:
             destination:
               $ref: '#/components/schemas/Destination'
             access_policy_ref:
-              type: string
-              pattern: ^\S+$
-              minLength: 1
-              maxLength: 512
+              $ref: '#/components/schemas/NonSecretRef'
             quality_checks:
               type: array
               minItems: 1
               items:
                 $ref: '#/components/schemas/QualityCheck'
             permitted_purpose_evidence_ref:
-              type: string
-              pattern: ^\S+$
-              minLength: 1
-              maxLength: 512
+              $ref: '#/components/schemas/NonSecretRef'
               description: Grant or approval that justifies collecting these fields for this objective.
             health:
               $ref: '#/components/schemas/HealthContract'
@@ -2726,6 +2741,7 @@ components:
           $ref: '#/components/schemas/SplitName'
         exclusion_reason:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
           description: Required when `label_status` is not `ACCEPTED`.
     LabelDefinition:
@@ -2780,7 +2796,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [dataset_id, revision, task_definition_ref, label_definition, split_rules, schema_ref, source_versions]
+          required: [dataset_id, revision, task_definition_ref, label_definition, split_rules, schema_ref]
           properties:
             kind:
               const: DatasetManifest
@@ -2818,8 +2834,7 @@ components:
                 $ref: '#/components/schemas/Sha256Digest'
             source_versions:
               type: array
-              minItems: 1
-              description: Pinned source artifacts the rows are reproducible from (PL-030).
+              description: Pinned source artifacts the rows are reproducible from (PL-030); the dataset checker reports UNPINNED_SOURCE when empty.
               items:
                 $ref: '#/components/schemas/ArtifactRef'
             transformation_refs:
@@ -2830,12 +2845,19 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Identifier'
+            source_ids:
+              type: array
+              items:
+                $ref: '#/components/schemas/Identifier'
+              description: Envelope source ids the rows derive from; the grants in source_rights_refs must cover them (PL-053).
             source_rights_refs:
               type: array
               items:
                 $ref: '#/components/schemas/Identifier'
+              description: Grant ids (SourceGrant.effective_grant_id) authorising the sources for the dataset's purpose (PL-053).
             unavailable_reason:
               type: [string, 'null']
+              minLength: 1
               maxLength: 4000
               description: Set when deleted source material makes the revision intentionally unreconstructable.
       unevaluatedProperties: false
@@ -2857,6 +2879,9 @@ components:
           type: string
           minLength: 1
           maxLength: 256
+          description: Exact provider model version; a mutable alias (latest, prod, champion, ...) is rejected (PL-032, ADR-008).
+          not:
+            pattern: '(?i)^(latest|champion|challenger|prod|production|staging|stable|current|default|canary|live)$|[:@/-](latest|champion|challenger|prod|production|staging|stable|current|default|canary|live)$'
           description: Exact provider model version; never a mutable alias (PL-034).
     StoppingCondition:
       type: object
@@ -2873,6 +2898,7 @@ components:
           minimum: 1
         early_stopping_metric:
           type: [string, 'null']
+          minLength: 1
           maxLength: 256
         early_stopping_patience:
           type: [integer, 'null']
@@ -3190,7 +3216,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [kind, subject_ref, dataset_ref, held_out_split, level, case_count, metrics, error_severity_breakdown, review_time_minutes, cost_comparison, nondeterministic, trials, segregation_statement]
+          required: [subject_ref, dataset_ref, held_out_split, level, case_count, metrics, error_severity_breakdown, review_time_minutes, cost_comparison, nondeterministic, trials, segregation_statement]
           properties:
             kind:
               const: EvaluationReport
@@ -3279,7 +3305,53 @@ components:
             - type: 'null'
         omitted_reason:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
+    MonitorKind:
+      type: string
+      enum: [CONNECTOR_FRESHNESS, SCHEMA_CHANGE, EXECUTION_FAILURE, QUALITY_DRIFT, REVIEW_BURDEN, COST, OUTCOME]
+      description: The seven signals every active intervention is monitored on (PL-048).
+    Monitor:
+      type: object
+      required: [kind, signal, threshold, action]
+      additionalProperties: false
+      properties:
+        kind:
+          $ref: '#/components/schemas/MonitorKind'
+        signal:
+          type: string
+          minLength: 1
+          maxLength: 256
+        threshold:
+          type: string
+          minLength: 1
+          maxLength: 256
+        action:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    OperatingPlan:
+      type: object
+      description: Prospective operating plan of a release - one monitor per PL-048 signal, a human rollback owner and the outcome measurement (PL-043, PL-048).
+      required: [monitors, rollback_owner, escalation_contact, outcome_measurement_ref, review_capacity_per_day]
+      additionalProperties: false
+      properties:
+        monitors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Monitor'
+        rollback_owner:
+          $ref: '#/components/schemas/Principal'
+        escalation_contact:
+          type: string
+          minLength: 1
+          maxLength: 256
+        outcome_measurement_ref:
+          $ref: '#/components/schemas/NonSecretRef'
+        review_capacity_per_day:
+          type: integer
+          minimum: 0
     RolloutStage:
       type: object
       required: [state, gate, environment, max_case_fraction]
@@ -3306,7 +3378,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [components, attestation_refs, approval_refs, rollout_policy, allowed_effect_classes]
+          required: [components, attestation_refs, rollout_policy, allowed_effect_classes, operating_plan]
           properties:
             kind:
               const: ReleaseManifest
@@ -3319,6 +3391,7 @@ components:
                 $ref: '#/components/schemas/ReleaseComponent'
             attestation_refs:
               type: array
+              minItems: 1
               items:
                 $ref: '#/components/schemas/ArtifactRef'
             approval_refs:
@@ -3354,6 +3427,8 @@ components:
               type: boolean
             scope:
               $ref: '#/components/schemas/ResourceScope'
+            operating_plan:
+              $ref: '#/components/schemas/OperatingPlan'
       unevaluatedProperties: false
     ReleaseStatus:
       type: object
@@ -3466,7 +3541,8 @@ components:
               type: integer
               minimum: 1
             authority_ref:
-              $ref: '#/components/schemas/NonSecretRef'
+              $ref: '#/components/schemas/Identifier'
+              description: Approval or envelope id authorizing the effect; an identifier, never a secret (PL-054).
             deployment_version:
               $ref: '#/components/schemas/Identifier'
             provider_target:
@@ -3475,9 +3551,8 @@ components:
               $ref: '#/components/schemas/EffectClass'
             idempotency_key:
               type: string
-              minLength: 1
-              maxLength: 255
-              description: Derived from `action_id`, never from the payload (PL-039).
+              pattern: '^[0-9a-f]{64}$'
+              description: Hex SHA-256 of the logical action identity (action_id + slot), never derived from the payload (PL-039).
             supersedes_action_id:
               oneOf:
                 - $ref: '#/components/schemas/Identifier'
@@ -3496,9 +3571,11 @@ components:
           maxLength: 256
         external_id:
           type: [string, 'null']
+          minLength: 1
           maxLength: 256
         postcondition_probe:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
           description: Read-after-write observation that confirms the business state.
         observed_at:

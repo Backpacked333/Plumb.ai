@@ -498,10 +498,10 @@ def test_local_reference_checks_name_existing_tests_or_finding_codes(
         for path in sorted((repo_root / "tests").glob("test_*.py"))
         if path.resolve() != own_file
     )
+    # A finding code must be emitted by a checker in this package; the design document alone is not enough.
     code_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in sorted((repo_root / "plumb" / "checker").glob("*.py"))
     )
-    code_sources += (repo_root / "docs" / "REFERENCE_PACKAGE_DESIGN.md").read_text(encoding="utf-8")
     for scenario in scenarios:
         reference = scenario["local_reference_check"]
         if reference is None:
@@ -510,7 +510,7 @@ def test_local_reference_checks_name_existing_tests_or_finding_codes(
             assert f"def {reference}(" in test_sources, (scenario["id"], reference)
         else:
             assert FINDING_CODE.match(reference), (scenario["id"], reference)
-            assert f'"{reference}"' in code_sources or f"`{reference}`" in code_sources, (scenario["id"], reference)
+            assert f'"{reference}"' in code_sources, (scenario["id"], reference)
 
 
 @pytest.mark.requirements("PL-052")

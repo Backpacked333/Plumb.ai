@@ -20,72 +20,37 @@ Implements:
   :meth:`ApprovalRecord.is_valid_at` is false at and after ``expires_at`` or
   ``revoked_at``.
 
-This module also hosts the small helpers shared by the trust vertical
-(approval, verification, infrastructure, release): :func:`reject_secret_like`
-for ``*_ref`` fields that must never carry a credential value, and
-:func:`require_aware` for instants used in comparisons.
+The helpers the trust vertical shares (:func:`reject_secret_like`,
+:data:`NonSecretRef`, :func:`require_aware`, the principal-type groups) live in
+:mod:`plumb.contracts.common`; they are re-exported here under their previous
+names so existing imports keep working.
 """
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import AfterValidator, AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, model_validator
 
 from plumb.contracts.common import (
+    AGENT_PRINCIPAL_TYPES,
+    HUMAN_PRINCIPAL_TYPES,
     ArtifactHeader,
     ArtifactKind,
     Identifier,
+    NonSecretRef,
     Principal,
-    PrincipalType,
     SemVer,
     Sha256Digest,
-    ShortStr,
     TenantId,
+    reject_secret_like,
+    require_aware,
 )
 
-HUMAN_APPROVER_TYPES: frozenset[PrincipalType] = frozenset(
-    {PrincipalType.HUMAN_OWNER, PrincipalType.HUMAN_REVIEWER, PrincipalType.HUMAN_APPROVER}
-)
+HUMAN_APPROVER_TYPES: frozenset = HUMAN_PRINCIPAL_TYPES
 """Principal types that can approve. Agents, services and verifiers cannot (PL-040)."""
-
-AGENT_PRINCIPAL_TYPES: frozenset[PrincipalType] = frozenset(
-    {PrincipalType.BUILD_AGENT, PrincipalType.RUNTIME_AGENT}
-)
-"""Principal types whose supplied values never constitute an approval (PL-040)."""
-
-_SECRET_MARKERS: tuple[str, ...] = ("secret", "password", "token=")
-_BASE64_RUN = re.compile(r"[A-Za-z0-9+/=_-]{40,}")
-
-
-def reject_secret_like(value: str) -> str:
-    """Reject a string that looks like a secret value rather than a reference to one.
-
-    A reference contains none of ``secret``, ``password`` or ``token=`` and no
-    run of 40+ base64-like characters mixing upper case, lower case and digits.
-    """
-    lowered = value.lower()
-    for marker in _SECRET_MARKERS:
-        if marker in lowered:
-            raise ValueError(f"value looks like a secret (contains {marker!r}); store a reference, not a value")
-    for run in _BASE64_RUN.findall(value):
-        if any(c.isupper() for c in run) and any(c.islower() for c in run) and any(c.isdigit() for c in run):
-            raise ValueError("value looks like a secret (40+ characters of base64-like text)")
-    return value
-
-
-NonSecretRef = Annotated[ShortStr, AfterValidator(reject_secret_like)]
-"""A short reference string that is rejected when it looks like a credential value."""
-
-
-def require_aware(value: datetime, field_name: str) -> datetime:
-    """Reject naive datetimes so that comparisons between instants are always defined."""
-    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
-        raise ValueError(f"{field_name} must be a timezone-aware datetime")
-    return value
 
 
 class DecisionKind(str, Enum):
@@ -122,7 +87,6 @@ class ApprovalRecord(ArtifactHeader):
 
     @model_validator(mode="after")
     def _check_bindings(self) -> "ApprovalRecord":
-        require_aware(self.created_at, "created_at")
         if self.approver.principal_type not in HUMAN_APPROVER_TYPES:
             raise ValueError(
                 "approver must be a human principal (HUMAN_OWNER, HUMAN_REVIEWER or HUMAN_APPROVER); "

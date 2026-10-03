@@ -4,7 +4,7 @@
   "kind": "BuildPlan",
   "schema_version": "0.2.0",
   "version": 1,
-  "content_digest": "sha256:db563f93e9ff767038fad3861a5dfc286be2b8a662dfda41437335219316a277",
+  "content_digest": "sha256:efe83a1d127a968b7ecb113796a7df79d6c5d3328847af33141c4125c6b294ab",
   "producer": {
     "principal_id": "plumb-build-planner-rfq",
     "principal_type": "BUILD_AGENT",
@@ -26,7 +26,7 @@
     {
       "artifact_id": "env-rfq-quotation-preparation",
       "kind": "AutonomyEnvelope",
-      "digest": "sha256:eb529e5f6b7aed5956a41466f7246962873d3d5857eaf79679155bbfc4e0157d",
+      "digest": "sha256:7d54d69d3e039b7235834aa2c2f5748e6c4bc755c240cb615599b83b4ddb8a4a",
       "schema_version": "0.2.0"
     },
     {

@@ -48,6 +48,18 @@ REQ_PATTERN = re.compile(r"^PL-\d{3}$")
 TEXT_PIN_FILES = {"test_requirements_index.py"}
 """Test files whose requirement markers pin specification text rather than enforce behaviour."""
 
+ARTIFACT_INSPECTION_FILES = {
+    "test_openapi.py",
+    "test_sql_design.py",
+    "test_schemas.py",
+    "test_contract_registry.py",
+    "test_acceptance_catalog.py",
+}
+"""Test files that inspect a delivered artifact (the OpenAPI document, the SQL design, the generated
+schemas, the contract registry, the acceptance catalog) rather than exercise contract, checker,
+ledger or state-machine behaviour. Their markers are reported in their own column so that
+"locally tested" means a behaviour was executed."""
+
 NOT_EXECUTED = [
     "Live API or connector calls",
     "Authentication/security integration tests",
@@ -68,6 +80,7 @@ class _Collector:
     def __init__(self) -> None:
         self.requirements: dict[str, set[str]] = defaultdict(set)
         self.text_pins: dict[str, set[str]] = defaultdict(set)
+        self.inspections: dict[str, set[str]] = defaultdict(set)
         self.outcomes: dict[str, str] = {}
         self.per_file: dict[str, int] = defaultdict(int)
         self.unmarked: list[str] = []
@@ -82,9 +95,16 @@ class _Collector:
             if not ids:
                 self.unmarked.append(item.nodeid)
             file_part = item.nodeid.split("::", 1)[0]
-            # Tests in TEXT_PIN_FILES pin the normative wording of a requirement; they do
-            # not exercise its behaviour, so they are reported separately in the matrix.
-            target = self.text_pins if Path(file_part).name in TEXT_PIN_FILES else self.requirements
+            # Tests in TEXT_PIN_FILES pin the normative wording of a requirement and tests in
+            # ARTIFACT_INSPECTION_FILES inspect a delivered artifact; neither exercises the
+            # requirement's behaviour, so both are reported in their own matrix columns.
+            file_name = Path(file_part).name
+            if file_name in TEXT_PIN_FILES:
+                target = self.text_pins
+            elif file_name in ARTIFACT_INSPECTION_FILES:
+                target = self.inspections
+            else:
+                target = self.requirements
             for req in ids:
                 target[req].add(item.nodeid)
             self.per_file[file_part] += 1
@@ -238,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     covered = sorted(r for r in collector.requirements if REQ_PATTERN.match(r))
     all_ids = [r["id"] for r in requirements]
     uncovered = [r for r in all_ids if r not in collector.requirements]
+    inspected_only = [r for r in uncovered if r in collector.inspections]
 
     finished = datetime.now(timezone.utc)
 
@@ -270,7 +291,8 @@ def main(argv: list[str] | None = None) -> int:
     lines.append(f"| Capability registry | {len(step_types)} step types |")
     lines.append(f"| Normative requirements | {len(requirements)} indexed requirements; {len(adrs)} ADRs |")
     lines.append(f"| Production acceptance | {len(scenarios)} scenarios specified; none run against production |")
-    lines.append(f"| Requirements with at least one local test | {len(covered)} of {len(all_ids)} |")
+    lines.append(f"| Requirements with at least one local behavioural test | {len(covered)} of {len(all_ids)} |")
+    lines.append(f"| Requirements covered only by artifact-inspection tests | {len(inspected_only)} |")
     lines.append("")
     lines.append("## Commands executed\n")
     lines.append("```")
@@ -291,36 +313,46 @@ def main(argv: list[str] | None = None) -> int:
         lines.append("")
     lines.append("## Requirement coverage matrix\n")
     lines.append(
-        "A requirement is *locally tested* when at least one behavioural test carries its marker. "
-        "Tests in `tests/test_requirements_index.py` only pin the normative wording and are counted in their own column. "
-        "A local test exercises the reference contract or checker, not the production behaviour; "
-        "the acceptance column lists production acceptance scenarios that specify the real test. "
+        "A requirement is *locally tested* when at least one behavioural test carries its marker: a test that "
+        "exercises a reference contract, checker, ledger or state machine. Tests in "
+        "`tests/test_requirements_index.py` only pin the normative wording, and tests in "
+        + ", ".join(f"`tests/{name}`" for name in sorted(ARTIFACT_INSPECTION_FILES))
+        + " only inspect a delivered artifact (the OpenAPI document, the SQL design, the generated schemas, "
+        "the registry, the acceptance catalog); both are counted in their own columns and never make a "
+        "requirement *locally tested*. A local test exercises the reference package, not the production "
+        "behaviour; the acceptance column lists production acceptance scenarios that specify the real test. "
         "Requirements with neither are enforced only by the production gates named in the specification.\n"
     )
     lines.append(
-        "| Requirement | Section | Local behavioural tests | Text-pinning tests | Acceptance scenarios | Status |\n|---|---|---|---|---|---|"
+        "| Requirement | Section | Local behavioural tests | Artifact-inspection tests | Text-pinning tests | Acceptance scenarios | Status |\n|---|---|---|---|---|---|---|"
     )
     for req in requirements:
         rid = req["id"]
         tests = sorted(collector.requirements.get(rid, set()))
+        inspections = sorted(collector.inspections.get(rid, set()))
         pins = sorted(collector.text_pins.get(rid, set()))
         accept = sorted(acceptance_by_req.get(rid, []))
         if tests and accept:
             status = "locally tested + production scenario"
         elif tests:
             status = "locally tested"
+        elif inspections and accept:
+            status = "artifact inspected + production scenario"
+        elif inspections:
+            status = "artifact inspected only"
         elif accept:
             status = "production scenario only"
         else:
             status = "production gate only (no local check)"
         lines.append(
-            f"| {rid} | {req['section']} | {len(tests)} | {len(pins)} | {', '.join(accept) if accept else '-'} | {status} |"
+            f"| {rid} | {req['section']} | {len(tests)} | {len(inspections)} | {len(pins)} | {', '.join(accept) if accept else '-'} | {status} |"
         )
     lines.append("")
     if uncovered:
-        lines.append("Requirements without any local test:\n")
+        lines.append("Requirements without a local behavioural test:\n")
         for rid in uncovered:
-            lines.append(f"- {rid}")
+            note = " (artifact-inspection tests only)" if rid in inspected_only else ""
+            lines.append(f"- {rid}{note}")
         lines.append("")
     lines.append("## Not executed locally\n")
     lines.append(
@@ -366,6 +398,7 @@ def main(argv: list[str] | None = None) -> int:
         "fixture_plans": fixture_results,
         "requirements_locally_tested": len(covered),
         "requirements_without_local_test": uncovered,
+        "requirements_inspected_only": inspected_only,
         "environment": env,
     }
 

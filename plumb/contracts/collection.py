@@ -39,7 +39,7 @@ from plumb.contracts.common import (
     SourceRef,
     StrictModel,
 )
-from plumb.contracts.inventory import NonSecretRef
+from plumb.contracts.common import NonSecretIdentifier, NonSecretRef
 
 
 class IncrementalMechanism(str, Enum):
@@ -162,7 +162,7 @@ class CollectionSpec(ArtifactHeader):
 
     kind: Literal[ArtifactKind.COLLECTION_SPEC] = ArtifactKind.COLLECTION_SPEC
     collection_id: Identifier
-    objective_ref: Identifier = Field(description="Goal or opportunity the collection serves.")
+    objective_ref: NonSecretIdentifier = Field(description="Goal or opportunity the collection serves.")
     allowed_sources: list[SourceRef] = Field(min_length=1)
     selected_fields: list[ShortStr] = Field(min_length=1)
     join_strategy: JoinStrategy

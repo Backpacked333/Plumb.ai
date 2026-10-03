@@ -7,9 +7,9 @@ Implements:
   version, the input artifact digest, per-check evidence, result, timestamp
   and environment. The verifier must not be writable by the implementation job
   it assesses: ``verifier`` must be a ``VERIFIER`` principal distinct from
-  ``assessed_producer``, and the artifact ``producer`` can never be the
-  assessed job either (attestations are records issued by the verifier, not
-  fields the builder may fill).
+  ``assessed_producer``, and the artifact ``producer`` can never be a build or
+  runtime agent at all, let alone the assessed job (attestations are records
+  issued by the verifier, not fields any builder may fill; Appendix A section 3).
 * PL-043: passing unit tests cannot substitute for verifying a real effect in
   the intended environment. A ``PASS`` attestation needs at least one passing
   check *at the attested level* backed by evidence; a check that is ``PASS``
@@ -29,12 +29,13 @@ from typing import Literal
 
 from pydantic import AwareDatetime, Field, model_validator
 
-from plumb.contracts.approval import NonSecretRef, require_aware
 from plumb.contracts.common import (
+    AGENT_PRINCIPAL_TYPES,
     ArtifactHeader,
     ArtifactKind,
     Identifier,
     NonEmptyStr,
+    NonSecretRef,
     Principal,
     PrincipalType,
     ResourceScope,
@@ -101,10 +102,14 @@ class VerificationAttestation(ArtifactHeader):
 
     @model_validator(mode="after")
     def _check_independence_and_result(self) -> "VerificationAttestation":
-        require_aware(self.created_at, "created_at")
         if self.verifier.principal_type is not PrincipalType.VERIFIER:
             raise ValueError(
                 f"verifier must be a VERIFIER principal, not {self.verifier.principal_type.value} (PL-042)"
+            )
+        if self.producer.principal_type in AGENT_PRINCIPAL_TYPES:
+            raise ValueError(
+                f"an attestation cannot be produced by a {self.producer.principal_type.value}; verifier attestations "
+                "are separate records issued by the verifier, not fields a builder may fill (PL-042)"
             )
         if self.verifier.principal_id == self.assessed_producer.principal_id:
             raise ValueError(

@@ -1083,13 +1083,44 @@ def test_workflow_bounds_waits_and_decision_points_are_required() -> None:
     with pytest.raises(ValidationError):
         _workflow(max_iterations=0)
     with pytest.raises(ValidationError):
-        _workflow(durable_waits=[])
-    with pytest.raises(ValidationError):
-        _workflow(human_decision_points=[])
-    with pytest.raises(ValidationError):
         _workflow(completion_conditions=[])
     with pytest.raises(ValidationError, match="human principal type"):
         HumanDecisionPoint(state="review", decision="x", decider_role=PrincipalType.RUNTIME_AGENT)
+    # PL-035 asks the workflow to *declare* durable waits and human decision points; a synchronous
+    # read-only preparation workflow (section 8, section 17) legitimately declares none of either...
+    assert _workflow(durable_waits=[]).durable_waits == []
+    assert _workflow(human_decision_points=[]).human_decision_points == []
+    # ...but the declaration itself is mandatory: a spec that omits either list does not validate.
+    for omitted in ("durable_waits", "human_decision_points"):
+        data = _workflow().model_dump(mode="json")
+        del data[omitted]
+        with pytest.raises(ValidationError, match=f"{omitted}\n  Field required"):
+            WorkflowSpec.model_validate(data)
+
+
+@pytest.mark.requirements("PL-035", "PL-041")
+def test_workflow_that_commits_the_business_needs_a_human_decision_point() -> None:
+    committing = WorkflowOperation(
+        name="post_payment",
+        primitive="write",
+        external_effect=True,
+        effect_class=EffectClass.FINANCIAL_COMMITMENT,
+        requires_case_state_version_check=True,
+        deterministic_rule_ref="rule-approved-recipient",
+    )
+    operations = [_fetch_operation(), committing]
+    with pytest.raises(ValidationError, match="commit the business"):
+        _workflow(allowed_operations=operations, human_decision_points=[])
+    assert _workflow(allowed_operations=operations).human_decision_points, "the default workflow declares a reviewer"
+    reversible = WorkflowOperation(
+        name="draft_reminder",
+        primitive="write",
+        external_effect=True,
+        effect_class=EffectClass.EXTERNAL_WRITE_REVERSIBLE,
+        requires_case_state_version_check=True,
+        deterministic_rule_ref="rule-approved-recipient",
+    )
+    assert _workflow(allowed_operations=[_fetch_operation(), reversible], human_decision_points=[]).human_decision_points == []
 
 
 # ---------------------------------------------------------------------------
@@ -1275,6 +1306,19 @@ def test_agent_task_constructs_and_round_trips() -> None:
         _task(input_artifact_refs=[task.input_artifact_refs[0], task.input_artifact_refs[0]])
 
 
+@pytest.mark.requirements("PL-019")
+@pytest.mark.parametrize(
+    "field_name",
+    ["aws_secret_access_key", "database_password", "provider_credential", "api_key", "apiKey", "private_key", "access_token", "bearer"],
+)
+def test_agent_task_never_carries_a_credential_field_whatever_its_value(field_name: str) -> None:
+    """The build environment receives no unmediated production credentials (PL-019)."""
+    with pytest.raises(ValidationError, match="unmediated production credentials"):
+        _task(**{field_name: "ref:vault/provider-01"})
+    # the fencing token is a lease epoch, not a credential, and stays allowed
+    assert _task(fencing_token=3).fencing_token == 3
+
+
 @pytest.mark.requirements("PL-016", "PL-042")
 def test_step_result_round_trips_and_carries_only_claims() -> None:
     dependency = DependencyRecord(
@@ -1312,3 +1356,58 @@ def test_check_result_against_task_reports_stale_fencing_and_budget() -> None:
     assert any("exceeds remaining spend" in reason for reason in over)
     wrong = check_result_against_task(task, _result(task_id="task-999", step_id="step-other", cost_usage=_money(1, "EUR")))
     assert len(wrong) == 3
+
+
+# ---------------------------------------------------------------------------
+# Review regressions (contracts fidelity lens)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.requirements("PL-009", "PL-029")
+def test_time_axes_reject_naive_instants_so_the_knowledge_boundary_is_always_defined() -> None:
+    """Naive time axes used to be accepted and made facts_as_of raise TypeError (F1)."""
+    naive = datetime(2026, 9, 1, 12, 0)
+    with pytest.raises(ValidationError, match="timezone"):
+        TimeAxes(event_time=naive, observation_time=naive, availability_time=naive)
+    with pytest.raises(ValidationError, match="timezone"):
+        TimeAxes(event_time=T0, observation_time=naive, availability_time=T0)
+    with pytest.raises(ValidationError, match="timezone"):
+        _event(time=_axes(naive, naive, naive))
+    assert _packet().facts_as_of(T0 + DAY)
+
+
+@pytest.mark.requirements("PL-010")
+def test_confirmed_absence_requires_confirmed_status_and_authoritative_evidence() -> None:
+    """An INFERRED fact with 0.99 confidence cannot assert CONFIRMED_ABSENT (F5)."""
+    with pytest.raises(ValidationError, match="CONFIRMED_ABSENT requires status CONFIRMED"):
+        _fact("fact-abs", predicate="bank_statement_present", value=None, supporting_evidence_ids=["evt-mail-001"], status=FactStatus.INFERRED, presence=Presence.CONFIRMED_ABSENT, confidence=0.99)
+    with pytest.raises(ValidationError, match="CONFIRMED_ABSENT requires status CONFIRMED"):
+        _fact(value=None, presence=Presence.CONFIRMED_ABSENT, status=FactStatus.OBSERVED)
+    inferred_unknown = _fact(value=None, presence=Presence.UNKNOWN, status=FactStatus.INFERRED, confidence=0.99)
+    assert inferred_unknown.presence is Presence.UNKNOWN
+    # CONFIRMED_ABSENT from a non-authoritative source fails the packet's authority rule.
+    absent = _fact("fact-abs", value=None, supporting_evidence_ids=["evt-mail-001"], status=FactStatus.CONFIRMED, presence=Presence.CONFIRMED_ABSENT)
+    with pytest.raises(ValidationError, match="CONFIRMED without evidence from an authoritative source"):
+        _packet(facts=[_fact(), absent])
+
+
+@pytest.mark.requirements("PL-012", "PL-013")
+def test_blocked_backlog_entry_may_have_non_positive_net_value() -> None:
+    """Section 7 says failed feasibility checks remain backlog entries; the SHOULD-reject is advisory (F11)."""
+    blocked = _opportunity(
+        status=OpportunityStatus.BLOCKED,
+        blocking_conditions=[BlockingCondition(condition_id="bc-1", failure_class=FailureClass.MISSING_AUTHORIZATION, description="no bank API access")],
+        failure_cost=Money(minor_units=10**9, currency=_opportunity().failure_cost.currency),
+    )
+    assert blocked.should_reject() and blocked.status is OpportunityStatus.BLOCKED
+    with pytest.raises(ValidationError, match="must be REJECTED_NEGATIVE_VALUE"):
+        _opportunity(status=OpportunityStatus.FEASIBLE, failure_cost=Money(minor_units=10**9, currency=_opportunity().failure_cost.currency))
+    assert not _opportunity().should_reject()
+
+
+@pytest.mark.requirements("PL-054", "PL-040")
+def test_authority_names_are_references_never_credential_values() -> None:
+    with pytest.raises(ValidationError, match="looks like a secret"):
+        BlockingCondition(condition_id="bc-1", failure_class=FailureClass.MISSING_AUTHORIZATION, description="x", missing_authority=["password=hunter2"])
+    with pytest.raises(ValidationError, match="looks like a secret"):
+        _principal().model_copy(update={}) and Principal(principal_id="agent-01", principal_type=PrincipalType.BUILD_AGENT, authenticated_via="token=abc")

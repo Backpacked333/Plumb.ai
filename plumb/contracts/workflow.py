@@ -12,6 +12,15 @@ Implements:
   operation with an external effect references such a rule as its guard and
   requires a case-state version check; ``model_output_validation_required``
   must be true. A prompt is not an approval mechanism.
+* PL-035 (declaration vs. presence): ``durable_waits`` and
+  ``human_decision_points`` are *declared* lists: both fields are required
+  (a WorkflowSpec that omits either does not validate) but may be empty; a
+  synchronous read-only preparation workflow has no durable wait, and section
+  17 describes interventions that run without any human decision. What section
+  17 does require is a human decision point whenever an operation commits the
+  business: any operation with an external effect of class
+  ``FINANCIAL_COMMITMENT``, ``EXTERNAL_WRITE_IRREVERSIBLE`` or ``DESTRUCTIVE``
+  needs at least one human decision point.
 * Section 15 (primitives): operations use the certified primitives in
   :data:`CERTIFIED_PRIMITIVES`, or a declared custom primitive that carries an
   adapter verification reference, since a generated primitive must pass the
@@ -36,7 +45,7 @@ from plumb.contracts.common import (
     ShortStr,
     StrictModel,
 )
-from plumb.contracts.inventory import NonSecretIdentifier, NonSecretRef
+from plumb.contracts.common import NonSecretIdentifier, NonSecretRef
 
 CERTIFIED_PRIMITIVES: frozenset[str] = frozenset(
     {
@@ -64,6 +73,11 @@ PREPARATION_EFFECT_CLASSES: frozenset[EffectClass] = frozenset({EffectClass.READ
 HUMAN_PRINCIPAL_TYPES: frozenset[PrincipalType] = frozenset(
     {PrincipalType.HUMAN_OWNER, PrincipalType.HUMAN_REVIEWER, PrincipalType.HUMAN_APPROVER}
 )
+
+COMMITMENT_EFFECT_CLASSES: frozenset[EffectClass] = frozenset(
+    {EffectClass.FINANCIAL_COMMITMENT, EffectClass.EXTERNAL_WRITE_IRREVERSIBLE, EffectClass.DESTRUCTIVE}
+)
+"""Effect classes that commit the business; a workflow using them needs a human decision point (section 17)."""
 
 
 class TriggerKind(str, Enum):
@@ -100,7 +114,7 @@ class Transition(StrictModel):
     from_state: Identifier
     to_state: Identifier
     trigger: Identifier = Field(description="Operation name, timeout or decision that fires the transition.")
-    guard_rule_ref: Identifier | None = Field(default=None, description="Deterministic rule that must hold.")
+    guard_rule_ref: NonSecretIdentifier | None = Field(default=None, description="Deterministic rule that must hold.")
 
 
 class WorkflowOperation(StrictModel):
@@ -111,7 +125,7 @@ class WorkflowOperation(StrictModel):
     external_effect: bool
     effect_class: EffectClass
     requires_case_state_version_check: bool
-    deterministic_rule_ref: Identifier | None = Field(
+    deterministic_rule_ref: NonSecretIdentifier | None = Field(
         default=None, description="Rule enforced outside the model that gates this operation."
     )
 
@@ -189,7 +203,7 @@ class HumanDecisionPoint(StrictModel):
 class CompletionCondition(StrictModel):
     terminal_state: Identifier
     description: NonEmptyStr
-    rule_ref: Identifier | None = None
+    rule_ref: NonSecretIdentifier | None = None
 
 
 class WorkflowSpec(ArtifactHeader):
@@ -209,8 +223,12 @@ class WorkflowSpec(ArtifactHeader):
     max_iterations: int = Field(ge=1)
     max_duration_seconds: int = Field(ge=1)
     max_cost: Money
-    durable_waits: list[DurableWait] = Field(min_length=1)
-    human_decision_points: list[HumanDecisionPoint] = Field(min_length=1)
+    durable_waits: list[DurableWait] = Field(
+        description="Declared durable waits (PL-035); the list must be declared and is empty for a synchronous preparation workflow."
+    )
+    human_decision_points: list[HumanDecisionPoint] = Field(
+        description="Declared human decision points (PL-035); the list must be declared and is non-empty when an operation commits the business (section 17).",
+    )
     completion_conditions: list[CompletionCondition] = Field(min_length=1)
     model_output_validation_required: bool = Field(
         description="Must be true: the runtime validates model outputs before tool execution."
@@ -281,6 +299,16 @@ class WorkflowSpec(ArtifactHeader):
                 raise ValueError(f"completion condition state {condition.terminal_state} is not terminal")
             if condition.rule_ref is not None and condition.rule_ref not in rules:
                 raise ValueError(f"completion condition references unknown rule {condition.rule_ref}")
+        committing = [
+            operation.name
+            for operation in self.allowed_operations
+            if operation.external_effect and operation.effect_class in COMMITMENT_EFFECT_CLASSES
+        ]
+        if committing and not self.human_decision_points:
+            raise ValueError(
+                f"operations {', '.join(committing)} commit the business (financial, irreversible or destructive); "
+                "the workflow must declare at least one human decision point (section 17)"
+            )
         return self
 
 
@@ -288,6 +316,7 @@ __all__ = [
     "CERTIFIED_PRIMITIVES",
     "EXTERNAL_EFFECT_PRIMITIVES",
     "PREPARATION_EFFECT_CLASSES",
+    "COMMITMENT_EFFECT_CLASSES",
     "HUMAN_PRINCIPAL_TYPES",
     "TriggerKind",
     "CaseIdentity",

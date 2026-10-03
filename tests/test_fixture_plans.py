@@ -477,12 +477,18 @@ def test_train_purpose_on_a_source_without_training_rights_is_purpose_denied(ste
 
     assert not report.ok
     denied = [finding for finding in report.findings if finding.code == "PURPOSE_DENIED"]
-    assert [finding.step_id for finding in denied] == [target.step_id]
+    assert denied[0].step_id == target.step_id
     finding = denied[0]
     assert finding.error_class is ErrorClass.PURPOSE_DENIED
     assert finding.details["source_id"] == source_id
+    assert finding.details["inherited"] is False
     assert "TRAIN" in finding.details["missing"]
     assert "never inferred from permission to inspect or collect" in finding.message
+    # Derived data inherits the restriction (PL-053): every downstream consumer of the widened
+    # artifact now touches the source too, and each is reported as an inherited denial.
+    downstream = [finding for finding in denied[1:]]
+    assert all(finding.details["inherited"] is True and finding.details["source_id"] == source_id for finding in downstream)
+    assert all(finding.step_id != target.step_id for finding in downstream)
     assert {finding.code for finding in report.errors} == {"PURPOSE_DENIED"}, report.render()
 
 

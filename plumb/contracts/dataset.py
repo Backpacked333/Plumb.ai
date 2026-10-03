@@ -20,6 +20,12 @@ Implements:
   ``unavailable_reason`` rather than falsifying reproducibility.
 * PL-027: quarantined and rejected rows remain in the manifest with their
   status and reason; they are never silently dropped.
+* PL-053: the manifest names the envelope sources its rows derive from
+  (``source_ids``) and the grants that authorise that use
+  (``source_rights_refs``, one per row as ``purpose_authorization_ref``). The
+  checker resolves those grant ids against an :class:`~plumb.contracts.envelope.AutonomyEnvelope`
+  when one is supplied, so permission to train is never inferred from
+  permission to inspect.
 
 The contract validates what must hold for *any* well-formed manifest. Rules
 whose violation is a data-quality finding (future information, leaked targets,
@@ -41,6 +47,7 @@ from plumb.contracts.common import (
     LabelKind,
     LabelStatus,
     NonEmptyStr,
+    NonSecretIdentifier,
     Sha256Digest,
     StrictModel,
 )
@@ -58,14 +65,14 @@ class DatasetRow(StrictModel):
     group_id: Identifier = Field(
         description="Transaction/document family. Near-duplicate families must not straddle splits."
     )
-    input_snapshot_refs: list[Identifier] = Field(
+    input_snapshot_refs: list[NonSecretIdentifier] = Field(
         min_length=1, description="Evidence event ids whose values were known at the decision boundary."
     )
     input_availability_time: AwareDatetime = Field(
         description="Latest availability time among the input snapshots (knowledge time)."
     )
     decision_time: AwareDatetime = Field(description="When the decision the row models was made.")
-    target_evidence_ref: Identifier | None = Field(
+    target_evidence_ref: NonSecretIdentifier | None = Field(
         default=None, description="Evidence event id carrying the label; required for accepted rows."
     )
     target_availability_time: AwareDatetime | None = Field(
@@ -74,8 +81,8 @@ class DatasetRow(StrictModel):
     )
     label_kind: LabelKind
     label_status: LabelStatus
-    purpose_authorization_ref: Identifier = Field(
-        description="Grant that permits this row's source to be used for the dataset's purpose."
+    purpose_authorization_ref: NonSecretIdentifier = Field(
+        description="Grant (SourceGrant.effective_grant_id) that permits this row's source to be used for the dataset's purpose."
     )
     split: SplitName
     exclusion_reason: NonEmptyStr | None = Field(
@@ -137,7 +144,7 @@ class DatasetManifest(ArtifactHeader):
     task_definition_ref: ArtifactRef = Field(description="Pinned TaskDefinition the rows were built for.")
     label_definition: LabelDefinition
     split_rules: list[SplitRule] = Field(min_length=1)
-    schema_ref: Identifier = Field(description="Row schema the materialised rows conform to.")
+    schema_ref: NonSecretIdentifier = Field(description="Row schema the materialised rows conform to.")
     rows: list[DatasetRow] = Field(default_factory=list)
     counts: DatasetCounts = Field(default_factory=DatasetCounts)
     distributions: dict[str, dict[str, float]] = Field(
@@ -152,9 +159,12 @@ class DatasetManifest(ArtifactHeader):
     transformation_refs: list[ArtifactRef] = Field(
         default_factory=list, description="Pinned transformation code that produced the rows."
     )
-    lineage_refs: list[Identifier] = Field(default_factory=list)
-    source_rights_refs: list[Identifier] = Field(
-        default_factory=list, description="Grants authorising the sources for the dataset's purpose."
+    lineage_refs: list[NonSecretIdentifier] = Field(default_factory=list)
+    source_ids: list[Identifier] = Field(
+        default_factory=list, description="Envelope source ids the rows derive from (the sources the grants must cover)."
+    )
+    source_rights_refs: list[NonSecretIdentifier] = Field(
+        default_factory=list, description="Grant ids (SourceGrant.effective_grant_id) authorising the sources for the dataset's purpose."
     )
     unavailable_reason: NonEmptyStr | None = Field(
         default=None,
@@ -187,6 +197,8 @@ class DatasetManifest(ArtifactHeader):
                 "every split used by rows needs a SplitRule stating the question it answers; "
                 f"missing: {', '.join(unruled)}"
             )
+        if len(set(self.source_ids)) != len(self.source_ids):
+            raise ValueError("source_ids must not contain duplicates")
         return self
 
     @property

@@ -4,7 +4,7 @@
   "kind": "BuildPlan",
   "schema_version": "0.2.0",
   "version": 1,
-  "content_digest": "sha256:5716645162efb4dfc8ec838a201986af2e4317a84cc961465f1f9acda7792a63",
+  "content_digest": "sha256:216eeb65088354d99af1a73fe6deb34bc8f2432541af089e695974461a16f365",
   "producer": {
     "principal_id": "plumb-build-planner-acct",
     "principal_type": "BUILD_AGENT",
@@ -26,7 +26,7 @@
     {
       "artifact_id": "env-acct-evidence-preparation",
       "kind": "AutonomyEnvelope",
-      "digest": "sha256:01e3239779de4ab5f8c23273e4045e9148de3c3afd8e2fd5c8fddb58cb29afa2",
+      "digest": "sha256:7d00ce266fe06adedd972d0916e4079cae4cb7d163e01ba7940beac5bfa6b483",
       "schema_version": "0.2.0"
     },
     {
@@ -635,7 +635,11 @@
           "name": "evidence-packet",
           "kind": "EvidencePacket",
           "from_step": "backfill-close-history",
-          "plan_input": null
+          "plan_input": null,
+          "source_ids": [
+            "src-acct-bookkeeping-ledger",
+            "src-acct-document-store"
+          ]
         },
         {
           "name": "opportunity",
@@ -705,13 +709,19 @@
           "name": "source-candidate-table",
           "kind": "SourceCandidateTable",
           "from_step": "discover-categorization-sources",
-          "plan_input": null
+          "plan_input": null,
+          "source_ids": [
+            "src-acct-bookkeeping-ledger"
+          ]
         },
         {
           "name": "evidence-packet",
           "kind": "EvidencePacket",
           "from_step": "backfill-close-history",
-          "plan_input": null
+          "plan_input": null,
+          "source_ids": [
+            "src-acct-bookkeeping-ledger"
+          ]
         },
         {
           "name": "task-definition",

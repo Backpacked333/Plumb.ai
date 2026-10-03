@@ -75,7 +75,7 @@
     },
     "BaseModelRef": {
       "additionalProperties": false,
-      "description": "Pinned base model: provider, capability and exact version (PL-032).",
+      "description": "Pinned base model: provider, capability and exact version (PL-032).\n\n``version`` must be an exact provider version. A mutable alias such as\n``latest``, ``prod`` or ``champion`` (as a whole, or as the last segment\nafter ``:``, ``@``, ``/`` or ``-``) is rejected, so the job a TrainingSpec\nsubmits is reproducible and a ReleaseManifest never has to resolve an alias\nthe training stage already let through (PL-032, ADR-008).",
       "properties": {
         "capability": {
           "description": "Provider capability used, e.g. 'text-classification-tuning'.",
@@ -154,6 +154,7 @@
           "description": "Reference resolved by the gateway; never a secret value.",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Credential Ref",
           "type": "string"
         },
@@ -223,9 +224,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -494,6 +496,7 @@
         {
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "type": "string"
         },
         {
@@ -534,6 +537,7 @@
         {
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "type": "string"
         },
         {

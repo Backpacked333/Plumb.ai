@@ -11,6 +11,14 @@ code                             error_class      severity  rule
                                                             the contract rejects this, a record built with
                                                             ``model_construct`` or loaded from an older
                                                             schema is judged on content)
+``APPROVAL_AGENT_SUPPLIED``      AUTH_REQUIRED    ERROR     the record was produced by a build or runtime
+                                                            agent (defensive, PL-040)
+``APPROVAL_CASE_VERSION_MISSING`` STATE_CONFLICT  ERROR     a CASE_LEVEL_BUSINESS approval carries no case
+                                                            version (defensive, PL-040)
+``APPROVAL_WRONG_DECISION_KIND`` SCOPE_DENIED     ERROR     the approval decides something other than what
+                                                            it is used to authorize (PL-041: data use,
+                                                            implement/operate and case-level business
+                                                            approvals are distinct decisions)
 ``APPROVAL_DIGEST_MISMATCH``     SCOPE_DENIED     ERROR     approval binds to different bytes (PL-040)
 ``APPROVAL_TENANT_MISMATCH``     SCOPE_DENIED     ERROR     approval belongs to another tenant (PL-040)
 ``APPROVAL_POLICY_STALE``        POLICY_STALE     ERROR     decided under a different policy version (PL-040)
@@ -36,7 +44,7 @@ from typing import Any
 from pydantic import AwareDatetime, Field
 
 from plumb.checker.findings import CheckReport, Finding
-from plumb.contracts.approval import HUMAN_APPROVER_TYPES, ApprovalRecord, require_aware
+from plumb.contracts.approval import AGENT_PRINCIPAL_TYPES, HUMAN_APPROVER_TYPES, ApprovalRecord, DecisionKind, require_aware
 from plumb.contracts.common import (
     DependencyRecord,
     ErrorClass,
@@ -59,16 +67,48 @@ def check_approval(
     policy_version: str,
     case_version: int | None = None,
     now: datetime,
+    decision_kind: DecisionKind | None = None,
 ) -> CheckReport:
     """Judge ``approval`` as authority for ``subject_digest`` in ``tenant_id`` under ``policy_version`` at ``now``.
 
     ``case_version`` is the version of the case the authorization is needed for;
     an approval bound to a case version authorizes only that version. An
     approval that carries no case version (data-use or implement/operate
-    decisions) is not case-bound and passes this rule regardless.
+    decisions) is not case-bound and passes this rule regardless; a case-level
+    business approval without one is defective. ``decision_kind`` names the
+    decision the caller relies on; when given, an approval of another kind does
+    not authorize it (PL-041: an owner's consent to use data is not a decision
+    to implement and operate an intervention).
     """
     require_aware(now, "now")
     report = CheckReport(checker=CHECKER_NAME, subject=approval.approval_id)
+    if approval.producer.principal_type in AGENT_PRINCIPAL_TYPES:
+        _error(
+            report,
+            "APPROVAL_AGENT_SUPPLIED",
+            ErrorClass.AUTH_REQUIRED,
+            f"approval record was produced by {approval.producer.principal_id}, a {approval.producer.principal_type.value}; "
+            "approval must come from an independently authenticated decision, not a value supplied by the build agent",
+            producer_type=approval.producer.principal_type.value,
+        )
+    if decision_kind is not None and approval.decision_kind is not decision_kind:
+        _error(
+            report,
+            "APPROVAL_WRONG_DECISION_KIND",
+            ErrorClass.SCOPE_DENIED,
+            f"approval decides {approval.decision_kind.value}, but {decision_kind.value} authority is required; "
+            "the three decisions are distinct and one never substitutes for another",
+            approval_decision_kind=approval.decision_kind.value,
+            required_decision_kind=decision_kind.value,
+        )
+    if approval.decision_kind is DecisionKind.CASE_LEVEL_BUSINESS and approval.case_version is None:
+        _error(
+            report,
+            "APPROVAL_CASE_VERSION_MISSING",
+            ErrorClass.STATE_CONFLICT,
+            "a CASE_LEVEL_BUSINESS approval must bind to a case version; an unbound case-level approval authorizes nothing",
+            requested_case_version=case_version,
+        )
     if approval.approver.principal_type not in HUMAN_APPROVER_TYPES:
         _error(
             report,

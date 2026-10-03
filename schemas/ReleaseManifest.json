@@ -88,14 +88,115 @@
       "title": "EffectClass",
       "type": "string"
     },
+    "Monitor": {
+      "additionalProperties": false,
+      "description": "One monitor of the operating plan: what is watched, when it alarms and what happens then (PL-048).",
+      "properties": {
+        "action": {
+          "description": "What the owner or the runtime does when the alarm fires (pause, page, roll back).",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/MonitorKind"
+        },
+        "signal": {
+          "description": "Observed quantity, e.g. 'hours since last ledger event'.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Signal",
+          "type": "string"
+        },
+        "threshold": {
+          "description": "Condition that raises the alarm, e.g. '> 24h'.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Threshold",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "signal",
+        "threshold",
+        "action"
+      ],
+      "title": "Monitor",
+      "type": "object"
+    },
+    "MonitorKind": {
+      "description": "The seven signals every active intervention is monitored on (PL-048).",
+      "enum": [
+        "CONNECTOR_FRESHNESS",
+        "SCHEMA_CHANGE",
+        "EXECUTION_FAILURE",
+        "QUALITY_DRIFT",
+        "REVIEW_BURDEN",
+        "COST",
+        "OUTCOME"
+      ],
+      "title": "MonitorKind",
+      "type": "string"
+    },
+    "OperatingPlan": {
+      "additionalProperties": false,
+      "description": "The prospective operating plan a release must include (PL-043, PL-048).\n\nEvery PL-048 signal has a monitor, a human owner can pause or roll back,\nand the release names the prospective measurement its outcome is judged by.",
+      "properties": {
+        "escalation_contact": {
+          "description": "Where alarms go, as a reference (a queue or role), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Escalation Contact",
+          "type": "string"
+        },
+        "monitors": {
+          "items": {
+            "$ref": "#/$defs/Monitor"
+          },
+          "minItems": 1,
+          "title": "Monitors",
+          "type": "array"
+        },
+        "outcome_measurement_ref": {
+          "description": "Prospective outcome measurement (section 24) this release is judged against.",
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Outcome Measurement Ref",
+          "type": "string"
+        },
+        "review_capacity_per_day": {
+          "description": "Reviews per day the owner can absorb; the review-burden monitor's ceiling.",
+          "minimum": 0,
+          "title": "Review Capacity Per Day",
+          "type": "integer"
+        },
+        "rollback_owner": {
+          "$ref": "#/$defs/Principal",
+          "description": "Human who can pause or roll the release back."
+        }
+      },
+      "required": [
+        "monitors",
+        "rollback_owner",
+        "escalation_contact",
+        "outcome_measurement_ref",
+        "review_capacity_per_day"
+      ],
+      "title": "OperatingPlan",
+      "type": "object"
+    },
     "Principal": {
       "additionalProperties": false,
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -342,6 +443,10 @@
       "title": "Kind",
       "type": "string"
     },
+    "operating_plan": {
+      "$ref": "#/$defs/OperatingPlan",
+      "description": "Prospective operating plan: monitors, rollback owner, outcome measurement (PL-043, PL-048)."
+    },
     "producer": {
       "$ref": "#/$defs/Principal"
     },
@@ -409,7 +514,8 @@
     "components",
     "attestation_refs",
     "rollout_policy",
-    "allowed_effect_classes"
+    "allowed_effect_classes",
+    "operating_plan"
   ],
   "title": "ReleaseManifest",
   "type": "object"

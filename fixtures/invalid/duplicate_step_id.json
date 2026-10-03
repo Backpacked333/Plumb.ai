@@ -93,6 +93,7 @@
     "kind": "BuildPlan",
     "schema_version": "0.2.0",
     "version": 1,
+    "content_digest": null,
     "producer": {
       "principal_id": "planner-01",
       "principal_type": "BUILD_AGENT",
@@ -102,13 +103,14 @@
     "evidence_links": [],
     "plan_id": "plan-fixture-baseline",
     "goal_id": "goal-fewer-evidence-requests",
+    "opportunity_ref": null,
     "envelope_id": "env-fixture-baseline",
     "envelope_version": 1,
     "inputs": [
       {
         "artifact_id": "env-fixture-baseline",
         "kind": "AutonomyEnvelope",
-        "digest": "sha256:abababababababababababababababababababababababababababababababab",
+        "digest": "sha256:ad31bc35f8c1cffb5a091fc1f83ac0d4408cc5fa5fa922b46e48cfaaad033526",
         "schema_version": "0.2.0"
       }
     ],
@@ -122,7 +124,9 @@
           {
             "name": "envelope",
             "kind": "AutonomyEnvelope",
-            "plan_input": "env-fixture-baseline"
+            "from_step": null,
+            "plan_input": "env-fixture-baseline",
+            "source_ids": null
           }
         ],
         "outputs": [
@@ -157,7 +161,8 @@
             "currency": "USD"
           },
           "max_attempts": 3,
-          "max_elapsed_seconds": 3600
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
         },
         "verification": [
           {
@@ -166,7 +171,8 @@
             "description": "probe_receipt confirmed by the verifier."
           }
         ],
-        "required": true
+        "required": true,
+        "environment": null
       },
       {
         "step_id": "profile-sources",
@@ -179,7 +185,9 @@
           {
             "name": "inventory",
             "kind": "EnvironmentInventory",
-            "from_step": "probe-sources"
+            "from_step": "probe-sources",
+            "plan_input": null,
+            "source_ids": null
           }
         ],
         "outputs": [
@@ -213,7 +221,8 @@
             "currency": "USD"
           },
           "max_attempts": 3,
-          "max_elapsed_seconds": 3600
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
         },
         "verification": [
           {
@@ -222,7 +231,8 @@
             "description": "probe_receipt confirmed by the verifier."
           }
         ],
-        "required": true
+        "required": true,
+        "environment": null
       },
       {
         "step_id": "configure-integration",
@@ -235,7 +245,9 @@
           {
             "name": "inventory",
             "kind": "EnvironmentInventory",
-            "from_step": "probe-sources"
+            "from_step": "probe-sources",
+            "plan_input": null,
+            "source_ids": null
           }
         ],
         "outputs": [
@@ -272,7 +284,8 @@
             "currency": "USD"
           },
           "max_attempts": 3,
-          "max_elapsed_seconds": 3600
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
         },
         "verification": [
           {
@@ -281,7 +294,8 @@
             "description": "contract_tests confirmed by the verifier."
           }
         ],
-        "required": true
+        "required": true,
+        "environment": null
       },
       {
         "step_id": "build-dataset",
@@ -295,12 +309,16 @@
           {
             "name": "profile",
             "kind": "QualityReport",
-            "from_step": "profile-sources"
+            "from_step": "profile-sources",
+            "plan_input": null,
+            "source_ids": null
           },
           {
             "name": "integration",
             "kind": "IntegrationSpec",
-            "from_step": "configure-integration"
+            "from_step": "configure-integration",
+            "plan_input": null,
+            "source_ids": null
           }
         ],
         "outputs": [
@@ -337,7 +355,8 @@
             "currency": "USD"
           },
           "max_attempts": 3,
-          "max_elapsed_seconds": 3600
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
         },
         "verification": [
           {
@@ -346,7 +365,8 @@
             "description": "dataset_counts confirmed by the verifier."
           }
         ],
-        "required": true
+        "required": true,
+        "environment": null
       },
       {
         "step_id": "probe-sources",
@@ -357,7 +377,9 @@
           {
             "name": "envelope",
             "kind": "AutonomyEnvelope",
-            "plan_input": "env-fixture-baseline"
+            "from_step": null,
+            "plan_input": "env-fixture-baseline",
+            "source_ids": null
           }
         ],
         "outputs": [
@@ -392,7 +414,8 @@
             "currency": "USD"
           },
           "max_attempts": 3,
-          "max_elapsed_seconds": 3600
+          "max_elapsed_seconds": 3600,
+          "max_model_calls": null
         },
         "verification": [
           {
@@ -401,7 +424,8 @@
             "description": "probe_receipt confirmed by the verifier."
           }
         ],
-        "required": true
+        "required": true,
+        "environment": null
       }
     ],
     "total_budget": {
@@ -410,7 +434,8 @@
         "currency": "USD"
       },
       "max_attempts": 3,
-      "max_elapsed_seconds": 3600
+      "max_elapsed_seconds": 3600,
+      "max_model_calls": null
     },
     "planned_at": "2026-10-02T00:00:00Z"
   }

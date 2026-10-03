@@ -21,11 +21,10 @@ customer records: every record is stored under :data:`PLATFORM_TENANT_ID`.
 
 from __future__ import annotations
 
-import re
 from enum import Enum
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from plumb.contracts.common import (
     ArtifactHeader,
@@ -34,8 +33,11 @@ from plumb.contracts.common import (
     DataPurpose,
     EffectClass,
     Identifier,
+    NonSecretIdentifier,
+    NonSecretText,
     SemVer,
     ShortStr,
+    reject_secret_like,
 )
 
 PLATFORM_TENANT_ID = "tnt_platform"
@@ -53,20 +55,6 @@ EVIDENCE_BACKED_MATURITIES: frozenset[CapabilityMaturity] = frozenset(
     {CapabilityMaturity.SANDBOX_TESTED, CapabilityMaturity.PRODUCTION_VERIFIED}
 )
 """Maturities that may only be claimed with a probe receipt and a tested environment."""
-
-_SECRET_LIKE = re.compile(r"secret|password|token=", re.IGNORECASE)
-_BASE64_RUN = re.compile(r"[A-Za-z0-9+/=]{40,}")
-
-
-def reject_secret_like(value: str, field_name: str) -> str:
-    """Reject reference values that look like credentials (design section 2).
-
-    References point at receipts or records; they never carry secret material.
-    """
-    if _SECRET_LIKE.search(value) or _BASE64_RUN.fullmatch(value):
-        raise ValueError(f"{field_name} looks like a secret; references must not carry credentials")
-    return value
-
 
 class MaintenanceBurden(str, Enum):
     """Observed maintenance burden of a capability (Appendix A section 5)."""
@@ -91,8 +79,8 @@ class CapabilityRecord(ArtifactHeader):
     required_purposes: list[DataPurpose] = Field(
         default_factory=list, description="Data purposes the source grant must include."
     )
-    required_authority: list[ShortStr] = Field(
-        default_factory=list, description="Grants, approvals or roles needed to dispatch it."
+    required_authority: list[NonSecretText] = Field(
+        default_factory=list, description="Grants, approvals or roles needed to dispatch it; names, never values."
     )
     tested_environment: ShortStr | None = Field(
         default=None, description="Where the probe ran, e.g. sandbox account or production region."
@@ -101,17 +89,10 @@ class CapabilityRecord(ArtifactHeader):
     maintenance_burden: MaintenanceBurden
     produces: list[ArtifactKind] = Field(default_factory=list)
     consumes: list[ArtifactKind] = Field(default_factory=list)
-    probe_receipt_ref: Identifier | None = Field(
+    probe_receipt_ref: NonSecretIdentifier | None = Field(
         default=None, description="Receipt of the successful probe that established the maturity."
     )
     capability_version: SemVer
-
-    @field_validator("probe_receipt_ref")
-    @classmethod
-    def _probe_receipt_not_secret(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        return reject_secret_like(value, "probe_receipt_ref")
 
     @model_validator(mode="after")
     def _check_record(self) -> "CapabilityRecord":

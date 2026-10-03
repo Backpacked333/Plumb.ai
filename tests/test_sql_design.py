@@ -234,8 +234,12 @@ def test_effect_transitions_audit_from_to_reason(tables: dict[str, str]) -> None
     body = tables["effect_transitions"]
     assert _check_values(body, "to_state") == LIFECYCLES["effects"]
     assert re.search(r"from_state\s+TEXT\s+CHECK\s*\(\s*from_state IS NULL OR from_state IN", body)
-    assert re.search(r"reason\s+TEXT\s+NOT NULL CHECK \(length\(reason\) > 0\)", body)
+    assert re.search(r"reason\s+TEXT\s+NOT NULL CHECK \(length\(trim\(reason\)\) > 0\)", body)
     assert "action_id" in body and "actor_principal_id" in body
+    assert re.search(r"^\s*guard\s+TEXT", body, re.MULTILINE), "the admitting guard is persisted, as in the ledger"
+    from plumb.ledger.effect_ledger import AUDIT_EVENTS
+
+    assert set(_check_values(body, "event")) == set(AUDIT_EVENTS)
 
 
 @pytest.mark.requirements("PL-057")
@@ -256,11 +260,18 @@ def test_row_version_triggers_exist_for_versioned_aggregates(sql: str) -> None:
 @pytest.mark.requirements("PL-037", "PL-039")
 def test_effects_slot_is_unique_and_payload_digest_separate(sql: str, tables: dict[str, str]) -> None:
     body = tables["effects"]
-    assert re.search(r"CREATE UNIQUE INDEX effects_slot_key_idx\s+ON plumb\.effects \(tenant_id, slot_key\)", sql)
-    for column in ("slot_key", "payload_digest", "expected_state_version", "authority_ref", "deployment_version", "idempotency_key", "supersedes_action_id", "provider_request_id", "external_id"):
+    index = re.search(r"CREATE UNIQUE INDEX effects_slot_key_idx\s+ON plumb\.effects \(tenant_id, slot_key\) WHERE superseded_by_action_id IS NULL", sql)
+    assert index, "one live holder per slot: a partial unique index over non-superseded rows (mirrors the ledger)"
+    for column in (
+        "slot_key", "payload_digest", "expected_state_version", "authority_ref", "deployment_version", "idempotency_key",
+        "supersedes_action_id", "superseded_by_action_id", "provider_request_id", "external_id", "receipt_digest",
+        "rejection_response_digest", "compensation_receipt_digest",
+    ):
         assert re.search(rf"^\s*{column}\s", body, re.MULTILINE), f"effects lacks {column}"
-    assert "deployment_version" not in re.search(r"CREATE UNIQUE INDEX effects_slot_key_idx[^;]*", sql).group(0), "dedup must not depend on the release"
+    assert "deployment_version" not in index.group(0), "dedup must not depend on the release"
     assert re.search(r"CONSTRAINT effects_confirmed_has_receipt CHECK \(state NOT IN \('CONFIRMED', 'COMPENSATED'\) OR receipt_digest IS NOT NULL\)", body)
+    assert re.search(r"CONSTRAINT effects_compensated_has_receipt CHECK \(state <> 'COMPENSATED' OR compensation_receipt_digest IS NOT NULL\)", body)
+    assert re.search(r"CONSTRAINT effects_rejection_evidenced CHECK \(state <> 'FAILED_FINAL' OR dispatched_at IS NULL OR rejection_response_digest IS NOT NULL\)", body)
 
 
 @pytest.mark.requirements("PL-038", "PL-039")
@@ -379,7 +390,7 @@ def test_jobs_are_idempotent_per_tenant_with_payload_digest(tables: dict[str, st
     from plumb.contracts.api import JobStatus
 
     assert set(_check_values(body, "status")) == {status.value for status in JobStatus}
-    assert _check_values(body, "status") == ["PENDING", "RUNNING", "WAITING", "SUCCEEDED", "FAILED"]
+    assert _check_values(body, "status") == [status.value for status in JobStatus]
     match = re.search(r"error_class IN \(([^)]*)\)", body)
     assert match and re.findall(r"'([^']*)'", match.group(1)) == ERROR_CLASSES
 

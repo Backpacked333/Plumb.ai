@@ -96,9 +96,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -256,7 +257,7 @@
       "type": "string"
     },
     "required_authority": {
-      "description": "Grants, approvals or roles needed to dispatch it.",
+      "description": "Grants, approvals or roles needed to dispatch it; names, never values.",
       "items": {
         "maxLength": 256,
         "minLength": 1,

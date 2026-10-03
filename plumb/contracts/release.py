@@ -13,10 +13,21 @@ Implements:
 * PL-034 / ADR-008: when a model component is present, ``resolved_model_version``
   must name an immutable version (a numeric registry version or a digest).
   Mutable aliases such as ``latest``, ``champion`` or ``prod`` are rejected so
-  that one customer case can never silently switch model behaviour.
+  that one customer case can never silently switch model behaviour. Model
+  promotion requires a held-out evaluation, so a present ``model`` component
+  (and, per PL-043's business scenario evaluation, a present ``workflow``
+  component) requires a present ``evaluation`` component; it cannot be omitted
+  with a reason.
+* PL-043 / PL-048: a release includes a *prospective operating plan*
+  (:class:`OperatingPlan`): one monitor for each of the seven PL-048 signals
+  (connector freshness, schema change, execution failure, quality drift, review
+  burden, cost, outcome), the human owner who can pause or roll the release
+  back, and the prospective outcome measurement the release will be judged by.
 * PL-047: the rollout policy is an ordered list of stages SHADOW < CANARY <
   ACTIVE, each with a gate, an environment and a bounded case fraction (a
-  canary is bounded, so its fraction is strictly below 1). ``in_flight_pinning``
+  canary is bounded, so its fraction is strictly below 1). It starts with
+  SHADOW and reaches ACTIVE only through CANARY, which is the only path the
+  RELEASE state machine (design section 7) can execute. ``in_flight_pinning``
   must be true: in-flight cases stay pinned to the release they started on
   unless an explicit migration is validated outside this contract.
 
@@ -29,18 +40,22 @@ approver signed off on.
 from __future__ import annotations
 
 import re
+from enum import Enum
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from plumb.contracts.approval import require_aware
 from plumb.contracts.common import (
+    HUMAN_PRINCIPAL_TYPES,
+    MODEL_ALIAS_WORDS,
     ArtifactHeader,
     ArtifactKind,
     ArtifactRef,
     EffectClass,
     Identifier,
     NonEmptyStr,
+    NonSecretRef,
+    Principal,
     ReleaseState,
     ResourceScope,
     ShortStr,
@@ -78,10 +93,8 @@ ROLLOUT_STAGE_ORDER: dict[ReleaseState, int] = {
 }
 """Stages a rollout policy may contain, in the only order they may appear (PL-047)."""
 
-MODEL_ALIAS_WORDS: frozenset[str] = frozenset(
-    {"latest", "champion", "challenger", "prod", "production", "staging", "stable", "current", "default", "canary", "live"}
-)
-"""Mutable registry aliases that never identify a model version (PL-034, ADR-008)."""
+EVALUATION_DEPENDENT_COMPONENTS: tuple[str, ...] = ("model", "workflow")
+"""Components whose presence requires a present ``evaluation`` component (PL-034, PL-043)."""
 
 _IMMUTABLE_MODEL_VERSION = re.compile(
     r"^(?:"
@@ -106,6 +119,56 @@ def is_immutable_model_version(value: str) -> bool:
         return False
     tail = re.split(r"[:@/]", value)[-1].lower()
     return tail not in MODEL_ALIAS_WORDS
+
+
+class MonitorKind(str, Enum):
+    """The seven signals every active intervention is monitored on (PL-048)."""
+
+    CONNECTOR_FRESHNESS = "CONNECTOR_FRESHNESS"
+    SCHEMA_CHANGE = "SCHEMA_CHANGE"
+    EXECUTION_FAILURE = "EXECUTION_FAILURE"
+    QUALITY_DRIFT = "QUALITY_DRIFT"
+    REVIEW_BURDEN = "REVIEW_BURDEN"
+    COST = "COST"
+    OUTCOME = "OUTCOME"
+
+
+class Monitor(StrictModel):
+    """One monitor of the operating plan: what is watched, when it alarms and what happens then (PL-048)."""
+
+    kind: MonitorKind
+    signal: ShortStr = Field(description="Observed quantity, e.g. 'hours since last ledger event'.")
+    threshold: ShortStr = Field(description="Condition that raises the alarm, e.g. '> 24h'.")
+    action: NonEmptyStr = Field(description="What the owner or the runtime does when the alarm fires (pause, page, roll back).")
+
+
+class OperatingPlan(StrictModel):
+    """The prospective operating plan a release must include (PL-043, PL-048).
+
+    Every PL-048 signal has a monitor, a human owner can pause or roll back,
+    and the release names the prospective measurement its outcome is judged by.
+    """
+
+    monitors: list[Monitor] = Field(min_length=1)
+    rollback_owner: Principal = Field(description="Human who can pause or roll the release back.")
+    escalation_contact: ShortStr = Field(description="Where alarms go, as a reference (a queue or role), never a secret.")
+    outcome_measurement_ref: NonSecretRef = Field(
+        description="Prospective outcome measurement (section 24) this release is judged against."
+    )
+    review_capacity_per_day: int = Field(ge=0, description="Reviews per day the owner can absorb; the review-burden monitor's ceiling.")
+
+    @model_validator(mode="after")
+    def _covers_every_signal(self) -> "OperatingPlan":
+        kinds = [monitor.kind for monitor in self.monitors]
+        missing = sorted(kind.value for kind in MonitorKind if kind not in kinds)
+        if missing:
+            raise ValueError(f"operating plan lacks monitors for: {', '.join(missing)} (PL-048)")
+        if self.rollback_owner.principal_type not in HUMAN_PRINCIPAL_TYPES:
+            raise ValueError("rollback_owner must be a human principal")
+        return self
+
+    def covered_kinds(self) -> set[MonitorKind]:
+        return {monitor.kind for monitor in self.monitors}
 
 
 class ReleaseComponent(StrictModel):
@@ -174,6 +237,7 @@ class ReleaseManifest(ArtifactHeader):
     scope: ResourceScope = Field(
         default_factory=ResourceScope, description="Sources, destinations, processors and regions the release touches."
     )
+    operating_plan: OperatingPlan = Field(description="Prospective operating plan: monitors, rollback owner, outcome measurement (PL-043, PL-048).")
 
     @field_validator("attestation_refs")
     @classmethod
@@ -191,11 +255,22 @@ class ReleaseManifest(ArtifactHeader):
     @classmethod
     def _stages_ordered(cls, stages: list[RolloutStage]) -> list[RolloutStage]:
         ranks = [ROLLOUT_STAGE_ORDER[stage.state] for stage in stages]
+        states = [stage.state for stage in stages]
         if any(later <= earlier for earlier, later in zip(ranks, ranks[1:])):
             raise ValueError(
                 "rollout_policy stages must appear once each in the order SHADOW, CANARY, ACTIVE; got "
-                + ", ".join(stage.state.value for stage in stages)
+                + ", ".join(state.value for state in states)
                 + " (PL-047)"
+            )
+        if states[0] is not ReleaseState.SHADOW:
+            raise ValueError(
+                f"rollout_policy must start with SHADOW, not {states[0].value}; a release reaches production only "
+                "through shadow and a bounded canary (PL-047, release state machine)"
+            )
+        if ReleaseState.ACTIVE in states and ReleaseState.CANARY not in states:
+            raise ValueError(
+                "rollout_policy reaches ACTIVE without a CANARY stage; the release state machine admits ACTIVE "
+                "only from CANARY (PL-047)"
             )
         return stages
 
@@ -208,7 +283,6 @@ class ReleaseManifest(ArtifactHeader):
 
     @model_validator(mode="after")
     def _check_manifest(self) -> "ReleaseManifest":
-        require_aware(self.created_at, "created_at")
         missing = [key for key in REQUIRED_COMPONENTS if key not in self.components]
         if missing:
             raise ValueError(f"components must include every required key; missing: {', '.join(missing)} (PL-046)")
@@ -230,6 +304,12 @@ class ReleaseManifest(ArtifactHeader):
                 )
         elif self.resolved_model_version is not None:
             raise ValueError("resolved_model_version must be null when the model component is omitted")
+        needing_evaluation = [key for key in EVALUATION_DEPENDENT_COMPONENTS if self.components[key].present]
+        if needing_evaluation and not self.components["evaluation"].present:
+            raise ValueError(
+                f"components {', '.join(needing_evaluation)} are present but 'evaluation' is omitted; model promotion "
+                "requires a held-out evaluation and a release requires business scenario evaluation (PL-034, PL-043)"
+            )
         if not self.in_flight_pinning:
             raise ValueError(
                 "in_flight_pinning must be true: in-flight cases stay pinned unless an explicit migration is validated (PL-047)"
@@ -264,9 +344,13 @@ def _require_kind(refs: list[ArtifactRef], kind: ArtifactKind, field_name: str) 
 __all__ = [
     "REQUIRED_COMPONENTS",
     "COMPONENT_KINDS",
+    "EVALUATION_DEPENDENT_COMPONENTS",
     "ROLLOUT_STAGE_ORDER",
     "MODEL_ALIAS_WORDS",
     "RolloutStageState",
+    "MonitorKind",
+    "Monitor",
+    "OperatingPlan",
     "ReleaseComponent",
     "RolloutStage",
     "ReleaseManifest",

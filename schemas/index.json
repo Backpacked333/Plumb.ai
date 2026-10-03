@@ -6,7 +6,7 @@
     {
       "name": "JobEnvelope",
       "path": "supporting/JobEnvelope.json",
-      "sha256": "c5349bcda8f10aba6d8290e7af88fa0538d2489b67b67077391f5679cac172c3"
+      "sha256": "de3305709a7016329d3f17d1b2a014eb558f56e7720a5d5f8457bffb013d021d"
     },
     {
       "name": "ErrorEnvelope",
@@ -16,7 +16,7 @@
     {
       "name": "EventEnvelope",
       "path": "supporting/EventEnvelope.json",
-      "sha256": "d27048df1245f9021467550160cf4987714e5b403395a1f0c43554ad0750c32c"
+      "sha256": "40ade0b032103a0455e56f55ea40d654607eb632e3f20ec9ead82534024d55ed"
     },
     {
       "name": "AgentTask",
@@ -26,7 +26,7 @@
     {
       "name": "StepResult",
       "path": "supporting/StepResult.json",
-      "sha256": "ef5bef1015054b7a3099b4114f3e311d2872bb75fae724b18f14259de1c372b6"
+      "sha256": "82485bd823fa7988a335930fa407c018d1bf5f0243acb1bb23a29d3d6aa4173d"
     }
   ],
   "top_level": [
@@ -34,103 +34,103 @@
       "kind": "AutonomyEnvelope",
       "name": "AutonomyEnvelope",
       "path": "AutonomyEnvelope.json",
-      "sha256": "c805a8e3835b5af3b1dd3a71283ee737b1c08777bb1d15173a2d563fda5b44f7"
+      "sha256": "49b4d56b3b63f705f70760db7a7bce7fe38b8a67274174b669f791d9c748dbfd"
     },
     {
       "kind": "CapabilityRecord",
       "name": "CapabilityRecord",
       "path": "CapabilityRecord.json",
-      "sha256": "e8d062e9493d469494369fa9dd60d807308fc3bda5819d9375117d832286cabd"
+      "sha256": "b81ce4719b42ae398e850165e2f9fa04cd77ebc9d098bd0e6f440b5efdc5121a"
     },
     {
       "kind": "EnvironmentInventory",
       "name": "EnvironmentInventory",
       "path": "EnvironmentInventory.json",
-      "sha256": "ac2bad6bef5c67bb8b7bdf55be2f827e85472451909eca2783ad0f3cca83a8e1"
+      "sha256": "e4c51395cc422b4929beb0b82dc16e5318d42b4339afa91a16689fd9ec6df46e"
     },
     {
       "kind": "EvidencePacket",
       "name": "EvidencePacket",
       "path": "EvidencePacket.json",
-      "sha256": "0c62daedd48cb6958b2bcf42cfc6465a7dda326b582fe84d54bca14ee0ff83ec"
+      "sha256": "4d4ad76e097ce479ec94f89fd3abbbbbe3a7cd904b7bcd6c5ac2fca639997b2a"
     },
     {
       "kind": "OpportunitySpec",
       "name": "OpportunitySpec",
       "path": "OpportunitySpec.json",
-      "sha256": "5f98e998c90c499212df794853ea70c0a5d5d6bf27740b03230baf47fbf76185"
+      "sha256": "9f10bd16ac68bf2495322ebd4983cb40d9f66dbc6b28e3d9b990a69a4108432e"
     },
     {
       "kind": "BuildPlan",
       "name": "BuildPlan",
       "path": "BuildPlan.json",
-      "sha256": "86bb59e86bcbcf98a1ea880e8de5a54a90b2b85ada3984473ed21519a7f890d1"
+      "sha256": "283343c4178547f6f972ba08f0b7defbf47617512132da548120d35ff3cf6df4"
     },
     {
       "kind": "IntegrationSpec",
       "name": "IntegrationSpec",
       "path": "IntegrationSpec.json",
-      "sha256": "675c6dc328a3ccd88c2697f26c62a89d0612bf0433d4d8d3f5c3a08ca93615fc"
+      "sha256": "496aef74eaaecbe32f5906f13f887e2921e7e5464d54497b7c53608ba6b48118"
     },
     {
       "kind": "CollectionSpec",
       "name": "CollectionSpec",
       "path": "CollectionSpec.json",
-      "sha256": "e49d4b49875dc977f1a9ea8a8132cba564935972d2cd5c9641cb01e266a3a154"
+      "sha256": "2e5edb34edfa618f3cca5445f5ebcfe07fb82a2936f6693c1bf2777ed724e838"
     },
     {
       "kind": "DatasetManifest",
       "name": "DatasetManifest",
       "path": "DatasetManifest.json",
-      "sha256": "4b1068e613b451037bd2f8aa25623a8a79ed8d1d08041cd3b779e7a1cdd7ee82"
+      "sha256": "da7769d30f30ed96a3422c21c8fcc0f88650f03af199302669bfb56825a0bdf2"
     },
     {
       "kind": "TrainingSpec",
       "name": "TrainingSpec",
       "path": "TrainingSpec.json",
-      "sha256": "e6179df184a1ffe6626e4fda0d3891d3cc4cc66b16a1bce2e96dc033da0954f0"
+      "sha256": "7d104612ebceb1b45d66f189971e4279a24868340e871de04f551cf99cb2dd91"
     },
     {
       "kind": "WorkflowSpec",
       "name": "WorkflowSpec",
       "path": "WorkflowSpec.json",
-      "sha256": "1a11b9a3f381e0c1fce3ede9661b1471d15e573424978ea84d0fc2c4c3b0c81a"
+      "sha256": "ddd76c3220a5f979e5567e759ca88941a92b40357736c53c06454f5f397e844d"
     },
     {
       "kind": "EvaluationReport",
       "name": "EvaluationReport",
       "path": "EvaluationReport.json",
-      "sha256": "3ef49ac67114b2d5002c0bc2e5bc3e176723f096b32df7a2bf721c02894a585a"
+      "sha256": "5bf19df9079c61e86933a00551a2c51de0e86e75500147601b88a1bed81849c5"
     },
     {
       "kind": "InfrastructurePlan",
       "name": "InfrastructurePlan",
       "path": "InfrastructurePlan.json",
-      "sha256": "23eb0a537cf2acca61694116b188f312a02c3ada8c6efcd44b661ed94d508fa6"
+      "sha256": "60c0de8703435eb4a935ce52302df27dff15be1ef95ba268f737ac9272207703"
     },
     {
       "kind": "ReleaseManifest",
       "name": "ReleaseManifest",
       "path": "ReleaseManifest.json",
-      "sha256": "c4485897af49d8bbbb2fbf05daea483d77b3ee23ee6bb9f3c373873cac519170"
+      "sha256": "aa1311b4ea7c946128f18a8c877cab4e8608b31d544e9dfbd0d568b7666a4be2"
     },
     {
       "kind": "ActionIntent",
       "name": "ActionIntent",
       "path": "ActionIntent.json",
-      "sha256": "2a60a6122f2daa36fa7973f8dde7bb9456fba8088d342b623c269372175ceefa"
+      "sha256": "b046370630b1fef9b5d62459009035812fcc6161bca4ea08a586fbc1e77129fb"
     },
     {
       "kind": "ApprovalRecord",
       "name": "ApprovalRecord",
       "path": "ApprovalRecord.json",
-      "sha256": "00423943287e7f36db09e6a6bed9dc2ed132634d34d37d23bd5fda471cf9afb6"
+      "sha256": "9c35a73767a5314b07c22a87a5fa3679977b32db3dc2aca9d06ea1911f4e9d96"
     },
     {
       "kind": "VerificationAttestation",
       "name": "VerificationAttestation",
       "path": "VerificationAttestation.json",
-      "sha256": "7e2d3d89f28256325d7cd3dfcc5f3fa95307eef864f80c7b7804f75e8b5b8e80"
+      "sha256": "5f37d710bf551a63fb0b58c8210bfc8c5a0d086a26198f30babe3aa4a062d00c"
     }
   ]
 }

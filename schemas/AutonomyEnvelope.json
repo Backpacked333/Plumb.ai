@@ -111,9 +111,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -164,6 +165,20 @@
           ],
           "default": null,
           "title": "Expires At"
+        },
+        "grant_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stable identity datasets cite as their authorization; defaults to grant:<source_id>:<policy_version>.",
+          "title": "Grant Id"
         },
         "granted_at": {
           "format": "date-time",

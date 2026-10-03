@@ -15,6 +15,9 @@ package does not implement the distributed protocol.
   usage and unresolved dependencies. Verifier attestations are separate records
   issued by the verifier, never fields the builder may fill; any field whose
   name suggests verification is rejected (:data:`FORBIDDEN_RESULT_FIELD_MARKERS`).
+* PL-019: an :class:`AgentTask` is what the disposable build environment receives, so a
+  field whose *name* looks like a credential (:data:`FORBIDDEN_TASK_FIELD_MARKERS`) is rejected
+  before any value is looked at; credentials are reached only through references.
 * Appendix A §2: :func:`check_result_against_task` lists why a result cannot be
   committed against its task (fencing token, attempt and spend budget), so the
   scheduler's compare-and-set has an explicit reason.
@@ -33,15 +36,31 @@ from plumb.contracts.common import (
     Identifier,
     Money,
     NonEmptyStr,
+    NonSecretIdentifier,
     ResourceScope,
     Sha256Digest,
     StrictModel,
     TenantId,
 )
-from plumb.contracts.inventory import NonSecretIdentifier
 
 FORBIDDEN_RESULT_FIELD_MARKERS: tuple[str, ...] = ("verif", "attest", "trusted", "production_ready")
 """Name fragments a worker result may never carry: those records come from the verifier."""
+
+FORBIDDEN_TASK_FIELD_MARKERS: tuple[str, ...] = (
+    "secret",
+    "password",
+    "credential",
+    "api_key",
+    "apikey",
+    "private_key",
+    "access_key",
+    "access_token",
+    "auth_token",
+    "bearer",
+)
+"""Name fragments a task may never carry (PL-019): the build environment holds no unmediated
+production credentials, so a task names *references* (``credential_ref`` on the IntegrationSpec it
+points to) and never a credential field, whatever its value."""
 
 
 class AgentTask(StrictModel):
@@ -63,6 +82,23 @@ class AgentTask(StrictModel):
     remaining_budget: Budget
     workspace_base_digest: Sha256Digest
     fencing_token: int = Field(ge=1, description="Monotonic lease epoch; a stale token cannot commit.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_credential_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            offending = sorted(
+                str(name)
+                for name in data
+                if any(marker in str(name).lower() for marker in FORBIDDEN_TASK_FIELD_MARKERS)
+            )
+            if offending:
+                raise ValueError(
+                    f"an AgentTask cannot carry {', '.join(offending)}: the build environment receives no "
+                    "unmediated production credentials (PL-019); reference a credential through the "
+                    "IntegrationSpec's credential_ref instead"
+                )
+        return data
 
     @model_validator(mode="after")
     def _distinct_references(self) -> "AgentTask":
@@ -87,7 +123,7 @@ class StepResult(StrictModel):
     output_digests: list[Sha256Digest] = Field(default_factory=list)
     execution_environment_digest: Sha256Digest
     tool_call_refs: list[NonSecretIdentifier] = Field(default_factory=list)
-    effect_refs: list[Identifier] = Field(default_factory=list, description="Action ids recorded before external writes.")
+    effect_refs: list[NonSecretIdentifier] = Field(default_factory=list, description="Action ids recorded before external writes.")
     test_log_refs: list[NonSecretIdentifier] = Field(default_factory=list)
     claimed_postconditions: list[NonEmptyStr] = Field(
         default_factory=list, description="Claims to be checked by the verifier; never verified state."
@@ -142,6 +178,7 @@ def check_result_against_task(task: AgentTask, result: StepResult) -> list[str]:
 
 __all__ = [
     "FORBIDDEN_RESULT_FIELD_MARKERS",
+    "FORBIDDEN_TASK_FIELD_MARKERS",
     "AgentTask",
     "StepResult",
     "check_result_against_task",

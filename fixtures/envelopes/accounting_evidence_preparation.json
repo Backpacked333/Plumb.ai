@@ -4,7 +4,7 @@
   "kind": "AutonomyEnvelope",
   "schema_version": "0.2.0",
   "version": 1,
-  "content_digest": "sha256:01e3239779de4ab5f8c23273e4045e9148de3c3afd8e2fd5c8fddb58cb29afa2",
+  "content_digest": "sha256:7d00ce266fe06adedd972d0916e4079cae4cb7d163e01ba7940beac5bfa6b483",
   "producer": {
     "principal_id": "owner-acct-finance-controller",
     "principal_type": "HUMAN_OWNER",

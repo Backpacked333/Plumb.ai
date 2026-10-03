@@ -284,9 +284,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -463,16 +464,16 @@
           "type": "array"
         },
         "after_state_ref": {
-          "maxLength": 512,
+          "maxLength": 256,
           "minLength": 1,
-          "pattern": "^\\S+$",
+          "pattern": "^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$",
           "title": "After State Ref",
           "type": "string"
         },
         "before_state_ref": {
-          "maxLength": 512,
+          "maxLength": 256,
           "minLength": 1,
-          "pattern": "^\\S+$",
+          "pattern": "^[a-z][a-z0-9+.-]*:(//)?[A-Za-z0-9._~/:@-]+$",
           "title": "Before State Ref",
           "type": "string"
         },
@@ -588,7 +589,7 @@
     },
     "authentication_ref": {
       "description": "Reference resolved by the gateway; never a credential.",
-      "maxLength": 512,
+      "maxLength": 256,
       "minLength": 1,
       "pattern": "^\\S+$",
       "title": "Authentication Ref",

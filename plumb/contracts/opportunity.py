@@ -16,8 +16,11 @@ Implements:
 * Section 7 (portfolio economics): failed feasibility checks remain backlog
   entries with explicit ``blocking_conditions``; ``overlap_refs`` record other
   opportunities claiming the same labor or revenue so benefits are not double
-  counted; an opportunity whose expected net value cannot be positive must be
-  ``REJECTED_NEGATIVE_VALUE``.
+  counted. An opportunity whose expected net value cannot be positive cannot be
+  ``CANDIDATE``, ``FEASIBLE`` or ``SELECTED``: it is ``REJECTED_NEGATIVE_VALUE``,
+  or ``BLOCKED`` when a blocking condition (not the economics alone) is what
+  keeps it in the backlog. The spec states the rejection as a SHOULD;
+  :meth:`OpportunitySpec.should_reject` is the advisory the planner consults.
 """
 
 from __future__ import annotations
@@ -34,6 +37,8 @@ from plumb.contracts.common import (
     Identifier,
     Money,
     NonEmptyStr,
+    NonSecretIdentifier,
+    NonSecretText,
     ShortStr,
     StrictModel,
 )
@@ -169,7 +174,9 @@ class BlockingCondition(StrictModel):
     condition_id: Identifier
     failure_class: FailureClass
     description: NonEmptyStr
-    missing_authority: list[ShortStr] = Field(default_factory=list)
+    missing_authority: list[NonSecretText] = Field(
+        default_factory=list, description="Exact grants, consents or decisions required; names, never values."
+    )
 
 
 class OpportunitySpec(ArtifactHeader):
@@ -195,7 +202,7 @@ class OpportunitySpec(ArtifactHeader):
     measurement_plan: MeasurementPlan
     candidate_comparison: list[CandidateSystem] = Field(min_length=2)
     blocking_conditions: list[BlockingCondition] = Field(default_factory=list)
-    overlap_refs: list[Identifier] = Field(
+    overlap_refs: list[NonSecretIdentifier] = Field(
         default_factory=list, description="Other opportunity ids claiming the same labor or revenue."
     )
     status: OpportunityStatus
@@ -218,12 +225,17 @@ class OpportunitySpec(ArtifactHeader):
             raise ValueError("a BLOCKED opportunity must record its blocking conditions")
         if self.blocking_conditions and self.status not in BLOCKED_STATUSES:
             raise ValueError("an opportunity with blocking conditions cannot be FEASIBLE, SELECTED or CANDIDATE")
-        _, upper = self.expected_net_value_range()
-        if upper <= 0 and self.status is not OpportunityStatus.REJECTED_NEGATIVE_VALUE:
+        if self.should_reject() and self.status not in BLOCKED_STATUSES:
             raise ValueError(
-                "expected net value upper bound is not positive; status must be REJECTED_NEGATIVE_VALUE"
+                "expected net value upper bound is not positive; status must be REJECTED_NEGATIVE_VALUE "
+                "(or BLOCKED when a blocking condition keeps the entry in the backlog)"
             )
         return self
+
+    def should_reject(self) -> bool:
+        """Section 7 advisory: the upper bound of the expected net value is not positive."""
+        _, upper = self.expected_net_value_range()
+        return upper <= 0
 
     def _cost_fields(self) -> list[tuple[str, Money]]:
         costs = [("failure_cost", self.failure_cost), ("review_cost", self.review_cost)]

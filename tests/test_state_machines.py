@@ -409,8 +409,20 @@ def test_effect_happy_paths() -> None:
     compensated = EFFECT.transition(E.CONFIRMED, E.COMPENSATED, {"compensation_receipt": receipt}, "compensated", at=T0)
     assert compensated.guard == "compensation_receipt"
     assert EFFECT.transition(E.RESERVED, E.FAILED_FINAL, {}, "released without dispatch", at=T0).to_state == "FAILED_FINAL"
-    assert EFFECT.transition(E.DISPATCHED, E.FAILED_FINAL, {}, "provider rejected synchronously", at=T0).to_state == "FAILED_FINAL"
+    rejection = {"provider_request_id": "req-synthetic-1", "detail": "400 invalid recipient"}
+    rejected = EFFECT.transition(E.DISPATCHED, E.FAILED_FINAL, {"rejection_evidence": rejection}, "provider rejected synchronously", at=T0)
+    assert rejected.to_state == "FAILED_FINAL" and rejected.guard == "rejection_evidence"
     assert EFFECT.transition(E.DISPATCHED, E.UNKNOWN, {}, "timeout after send", at=T0).to_state == "UNKNOWN"
+
+
+@pytest.mark.requirements("PL-038")
+def test_effect_dispatched_failed_final_requires_rejection_evidence() -> None:
+    """A timeout can never be settled as FAILED_FINAL: only the provider's own rejection can (PL-038)."""
+    E = EffectState
+    assert_guard_fails(EFFECT, E.DISPATCHED, E.FAILED_FINAL, {}, "rejection_evidence")
+    assert_guard_fails(EFFECT, E.DISPATCHED, E.FAILED_FINAL, {"rejection_evidence": None}, "rejection_evidence")
+    assert_guard_fails(EFFECT, E.DISPATCHED, E.FAILED_FINAL, {"worker_assumes_never_arrived": True}, "rejection_evidence")
+    assert EFFECT.guard_for(E.RESERVED, E.FAILED_FINAL) is None, "releasing an undispatched reservation needs no evidence"
 
 
 @pytest.mark.requirements("PL-038")
@@ -426,7 +438,7 @@ def test_effect_confirmed_requires_external_receipt() -> None:
 def test_effect_unknown_exits_only_through_matching_reconciliation_result() -> None:
     E = EffectState
     confirm_guard = "reconciliation_result == 'CONFIRMED' and external_receipt"
-    fail_guard = "reconciliation_result == 'FAILED_FINAL'"
+    fail_guard = "reconciliation_result == 'FAILED_FINAL' and provider_confirmed_absent"
     assert_guard_fails(EFFECT, E.UNKNOWN, E.CONFIRMED, {}, confirm_guard)
     assert_guard_fails(EFFECT, E.UNKNOWN, E.CONFIRMED, {"external_receipt": {"id": "x"}}, confirm_guard)
     assert_guard_fails(EFFECT, E.UNKNOWN, E.CONFIRMED, {"reconciliation_result": "CONFIRMED"}, confirm_guard)
@@ -436,11 +448,17 @@ def test_effect_unknown_exits_only_through_matching_reconciliation_result() -> N
     assert_guard_fails(EFFECT, E.UNKNOWN, E.FAILED_FINAL, {}, fail_guard)
     assert_guard_fails(EFFECT, E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "CONFIRMED"}, fail_guard)
     assert_guard_fails(EFFECT, E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "STILL_UNKNOWN"}, fail_guard)
+    assert_guard_fails(EFFECT, E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "FAILED_FINAL"}, fail_guard)
+    assert_guard_fails(
+        EFFECT, E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "FAILED_FINAL", "provider_confirmed_absent": False}, fail_guard
+    )
     ok = EFFECT.transition(
         E.UNKNOWN, E.CONFIRMED, {"reconciliation_result": "CONFIRMED", "external_receipt": {"id": "x"}}, "provider lookup found it", at=T0
     )
     assert ok.guard == confirm_guard
-    failed = EFFECT.transition(E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "FAILED_FINAL"}, "provider confirmed absence", at=T0)
+    failed = EFFECT.transition(
+        E.UNKNOWN, E.FAILED_FINAL, {"reconciliation_result": "FAILED_FINAL", "provider_confirmed_absent": True}, "provider confirmed absence", at=T0
+    )
     assert failed.guard == fail_guard
 
 

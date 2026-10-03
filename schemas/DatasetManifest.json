@@ -167,7 +167,7 @@
           "$ref": "#/$defs/LabelStatus"
         },
         "purpose_authorization_ref": {
-          "description": "Grant that permits this row's source to be used for the dataset's purpose.",
+          "description": "Grant (SourceGrant.effective_grant_id) that permits this row's source to be used for the dataset's purpose.",
           "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
           "title": "Purpose Authorization Ref",
           "type": "string"
@@ -283,9 +283,10 @@
       "description": "An authenticated acting principal.",
       "properties": {
         "authenticated_via": {
-          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret (PL-054).",
           "maxLength": 256,
           "minLength": 1,
+          "pattern": "^\\S+$",
           "title": "Authenticated Via",
           "type": "string"
         },
@@ -475,8 +476,17 @@
       "title": "Schema Version",
       "type": "string"
     },
+    "source_ids": {
+      "description": "Envelope source ids the rows derive from (the sources the grants must cover).",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Source Ids",
+      "type": "array"
+    },
     "source_rights_refs": {
-      "description": "Grants authorising the sources for the dataset's purpose.",
+      "description": "Grant ids (SourceGrant.effective_grant_id) authorising the sources for the dataset's purpose.",
       "items": {
         "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
         "type": "string"

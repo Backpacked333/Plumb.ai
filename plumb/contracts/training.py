@@ -26,21 +26,24 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import AfterValidator, AwareDatetime, Field, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from plumb.contracts.common import (
+    MODEL_ALIAS_WORDS,
     ArtifactHeader,
     ArtifactKind,
     ArtifactRef,
     Budget,
     Identifier,
     NonEmptyStr,
+    NonSecretRef,
     Region,
     ShortStr,
     StrictModel,
     TrainingState,
+    reject_secret_like,
 )
 
 
@@ -52,36 +55,32 @@ class TrainingMethod(str, Enum):
     NONE = "NONE"
 
 
-_SECRET_MARKERS: tuple[str, ...] = ("secret", "password", "token=")
-_BASE64_RUN = re.compile(r"[A-Za-z0-9+/=_-]{40,}")
-
-
-def reject_secret_like(value: str) -> str:
-    """Reject strings that look like a secret value rather than a reference to one.
-
-    A reference contains none of ``secret``, ``password`` or ``token=`` and no
-    run of 40+ base64-like characters with mixed case and digits.
-    """
-    lowered = value.lower()
-    for marker in _SECRET_MARKERS:
-        if marker in lowered:
-            raise ValueError(f"value looks like a secret (contains {marker!r}); store a reference, not a value")
-    for run in _BASE64_RUN.findall(value):
-        if any(c.isupper() for c in run) and any(c.islower() for c in run) and any(c.isdigit() for c in run):
-            raise ValueError("value looks like a secret (40+ characters of base64-like text)")
-    return value
-
-
-NonSecretRef = Annotated[ShortStr, AfterValidator(reject_secret_like)]
-"""A short reference string that is rejected when it looks like a credential value."""
+_ALIAS_SEGMENT = re.compile(r"[:@/-]")
 
 
 class BaseModelRef(StrictModel):
-    """Pinned base model: provider, capability and exact version (PL-032)."""
+    """Pinned base model: provider, capability and exact version (PL-032).
+
+    ``version`` must be an exact provider version. A mutable alias such as
+    ``latest``, ``prod`` or ``champion`` (as a whole, or as the last segment
+    after ``:``, ``@``, ``/`` or ``-``) is rejected, so the job a TrainingSpec
+    submits is reproducible and a ReleaseManifest never has to resolve an alias
+    the training stage already let through (PL-032, ADR-008).
+    """
 
     provider: ShortStr
     capability: ShortStr = Field(description="Provider capability used, e.g. 'text-classification-tuning'.")
     version: ShortStr = Field(description="Exact provider model version; never a mutable alias.")
+
+    @field_validator("version")
+    @classmethod
+    def _pinned_version(cls, value: str) -> str:
+        tail = _ALIAS_SEGMENT.split(value)[-1].lower()
+        if value.lower() in MODEL_ALIAS_WORDS or tail in MODEL_ALIAS_WORDS:
+            raise ValueError(
+                f"base_model.version {value!r} is a mutable alias; pin an exact provider version (PL-032, ADR-008)"
+            )
+        return value
 
 
 class StoppingCondition(StrictModel):

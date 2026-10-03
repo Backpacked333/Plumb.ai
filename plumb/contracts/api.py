@@ -9,10 +9,15 @@ Implements:
   same key arriving with a different payload (a conflict).
 * Section 22 (errors): :class:`ErrorEnvelope` uses the closed
   :class:`~plumb.contracts.common.ErrorClass` vocabulary and records
-  retryability, dependency identity and operator action. Messages must not
-  contain raw secrets or another tenant's identifier. Authority errors are not
-  retryable and must name what resolves them; an unknown effect is not
-  retried.
+  retryability, dependency identity and operator action. Neither ``message``
+  nor ``operator_action`` may carry a secret-looking value (the package's one
+  heuristic, :func:`plumb.contracts.common.reject_secret_like`) or another
+  tenant's identifier. Authority errors are not retryable and must name what
+  resolves them; an unknown effect is not retried.
+* PL-055: ``JobEnvelope.idempotency_key`` is at most 255 characters, the same
+  limit as the ``Idempotency-Key`` header and the ``jobs`` table, so a valid
+  envelope can always be sent and stored; ``operation`` is the OpenAPI
+  ``operationId`` that started the job (camelCase, :data:`OperationId`).
 * Section 22 (events): :class:`EventEnvelope` carries exactly the fields the
   spec lists; ``recorded_at`` cannot precede ``occurred_at`` and the aggregate
   version is per aggregate (ordering is never global).
@@ -22,24 +27,30 @@ from __future__ import annotations
 
 import re
 from enum import Enum
+from typing import Annotated
 
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
 from plumb.contracts.common import (
     ArtifactRef,
     ErrorClass,
     Identifier,
     NonEmptyStr,
+    OperationId,
     SemVer,
     Sha256Digest,
-    ShortStr,
+    StorageRef,
     StrictModel,
     TenantId,
+    reject_secret_like,
 )
-from plumb.contracts.inventory import NonSecretRef
 
 _TENANT_ID_PATTERN = re.compile(r"tnt_[a-z0-9]{4,32}")
-_SECRET_FRAGMENTS: tuple[str, ...] = ("password", "secret=", "token=")
+
+IDEMPOTENCY_KEY_MAX_LENGTH = 255
+"""One limit for the Idempotency-Key header, JobEnvelope.idempotency_key and the jobs table (PL-055)."""
+
+IdempotencyKeyStr = Annotated[str, StringConstraints(min_length=1, max_length=IDEMPOTENCY_KEY_MAX_LENGTH)]
 
 NON_RETRYABLE_ERROR_CLASSES: frozenset[ErrorClass] = frozenset(
     {
@@ -81,13 +92,19 @@ class ErrorEnvelope(StrictModel):
 
     @model_validator(mode="after")
     def _safe_and_actionable(self) -> "ErrorEnvelope":
-        lowered = self.message.lower()
-        for fragment in _SECRET_FRAGMENTS:
-            if fragment in lowered:
-                raise ValueError(f"error message looks like it carries a secret (contains {fragment!r})")
-        foreign = sorted(set(_TENANT_ID_PATTERN.findall(self.message)) - {self.tenant_id})
-        if foreign:
-            raise ValueError(f"error message must not mention other tenants' identifiers: {', '.join(foreign)}")
+        for field_name in ("message", "operator_action"):
+            text = getattr(self, field_name)
+            if text is None:
+                continue
+            try:
+                reject_secret_like(text)
+            except ValueError as exc:
+                raise ValueError(f"error {field_name} looks like it carries a secret: {exc}") from None
+            foreign = sorted(set(_TENANT_ID_PATTERN.findall(text)) - {self.tenant_id})
+            if foreign:
+                raise ValueError(
+                    f"error {field_name} must not mention other tenants' identifiers: {', '.join(foreign)}"
+                )
         if self.retryable and self.error_class in NON_RETRYABLE_ERROR_CLASSES:
             raise ValueError(f"{self.error_class.value} cannot be retryable; missing authority is not a generic retry")
         if self.error_class in AUTHORITY_ERROR_CLASSES and self.dependency_id is None and self.operator_action is None:
@@ -101,8 +118,8 @@ class JobEnvelope(StrictModel):
     job_id: Identifier
     tenant_id: TenantId
     status: JobStatus
-    idempotency_key: ShortStr = Field(description="Client key, scoped to the tenant by the server.")
-    operation: Identifier = Field(description="OpenAPI operationId that started the job.")
+    idempotency_key: IdempotencyKeyStr = Field(description="Client key, scoped to the tenant by the server; at most 255 characters.")
+    operation: OperationId = Field(description="OpenAPI operationId that started the job, e.g. createBuild.")
     created_at: AwareDatetime
     updated_at: AwareDatetime
     result_ref: ArtifactRef | None = None
@@ -146,7 +163,7 @@ class EventEnvelope(StrictModel):
     correlation_id: Identifier
     causation_id: Identifier | None = Field(default=None, description="Event or command that caused this one.")
     schema_version: SemVer
-    payload_ref: NonSecretRef
+    payload_ref: StorageRef = Field(description="Locator of the stored payload (scheme://path); never the payload itself.")
 
     @model_validator(mode="after")
     def _times_and_causes(self) -> "EventEnvelope":
@@ -158,6 +175,8 @@ class EventEnvelope(StrictModel):
 
 
 __all__ = [
+    "IDEMPOTENCY_KEY_MAX_LENGTH",
+    "IdempotencyKeyStr",
     "NON_RETRYABLE_ERROR_CLASSES",
     "AUTHORITY_ERROR_CLASSES",
     "JobStatus",

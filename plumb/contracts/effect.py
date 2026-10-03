@@ -15,6 +15,10 @@ Implements:
   possible outcomes of a reconciliation explicit and refuses a ``CONFIRMED``
   without a receipt and a ``FAILED_FINAL`` without provider-confirmed
   non-occurrence, so a timeout can never be recorded as "nothing happened".
+  :class:`RejectionEvidence` is the same asymmetry for a *synchronous*
+  rejection: a dispatched action may be settled as ``FAILED_FINAL`` only with
+  the provider's own answer (its response digest and confirmed non-occurrence);
+  a timeout is never rejection evidence and goes through ``UNKNOWN``.
 * PL-039: ``idempotency_key`` is derived from the logical action identity by
   :func:`derive_idempotency_key`, never from the payload and never from the
   release, so deduplication survives worker restarts and workflow releases.
@@ -25,7 +29,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, AwareDatetime, Field, StringConstraints, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
 from plumb.contracts.common import (
     ArtifactHeader,
@@ -33,12 +37,14 @@ from plumb.contracts.common import (
     EffectClass,
     Identifier,
     NonEmptyStr,
+    NonSecretIdentifier,
     Sha256Digest,
     ShortStr,
     SourceRef,
     StrictModel,
     TenantId,
     digest_json,
+    reject_secret_like,
 )
 
 SLOT_KEY_SEPARATOR = "|"
@@ -47,20 +53,8 @@ SLOT_KEY_SEPARATOR = "|"
 IdempotencyKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 """Provider idempotency key: the hex SHA-256 of the logical action identity."""
 
-_SECRET_MARKERS: tuple[str, ...] = ("secret", "password", "token=")
-
-
-def reject_secret_marker(value: str) -> str:
-    """Reject a reference that looks like it carries a credential value (design section 2)."""
-    lowered = value.lower()
-    for marker in _SECRET_MARKERS:
-        if marker in lowered:
-            raise ValueError(f"reference looks like a secret (contains {marker!r}); store a reference, not a value")
-    return value
-
-
-NonSecretIdentifier = Annotated[Identifier, AfterValidator(reject_secret_marker)]
-"""An :data:`Identifier` used as a ``*_ref`` field; rejected when it looks like a secret."""
+reject_secret_marker = reject_secret_like
+"""Former name of :func:`plumb.contracts.common.reject_secret_like`; kept for existing imports."""
 
 
 class EffectSlot(StrictModel):
@@ -112,7 +106,7 @@ class ActionIntent(ArtifactHeader):
     slot: EffectSlot
     payload_digest: Sha256Digest = Field(description="Digest of the exact payload to be sent; stored apart from the slot.")
     expected_state_version: int = Field(
-        ge=0, description="Case state version the action was prepared/approved against (section 15)."
+        ge=1, description="Case state version the action was prepared/approved against (section 15); cases start at 1."
     )
     authority_ref: NonSecretIdentifier = Field(description="Approval or envelope that authorizes this effect.")
     deployment_version: Identifier = Field(description="Release id that prepared the action; not part of the identity.")
@@ -166,6 +160,37 @@ class ActionReceipt(StrictModel):
             raise ValueError(
                 "a receipt must carry an external id or a read-after-write probe result; "
                 "a request id alone does not prove the effect occurred"
+            )
+        return self
+
+
+class RejectionEvidence(StrictModel):
+    """The provider's synchronous, definitive rejection of a dispatched request (PL-038).
+
+    Settling a ``DISPATCHED`` effect as ``FAILED_FINAL`` needs this record, the
+    way ``CONFIRMED`` needs an :class:`ActionReceipt`. The provider must have
+    positively confirmed that nothing happened (``provider_confirmed_absent``
+    is always true here; a record saying otherwise is not rejection evidence),
+    and its raw response is kept by digest. A timeout, a dropped connection or
+    a missing answer is not a rejection: it is ``UNKNOWN``.
+    """
+
+    provider_request_id: ShortStr | None = Field(
+        default=None, description="Provider's identity for the rejected request, when the provider assigned one."
+    )
+    raw_response_digest: Sha256Digest = Field(description="Digest of the raw provider response kept in the artifact store.")
+    provider_confirmed_absent: bool = Field(
+        default=True, description="Must be true: the provider itself stated the action did not occur."
+    )
+    detail: NonEmptyStr = Field(description="What the provider answered, e.g. '400 invalid recipient'.")
+    observed_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def _is_a_rejection(self) -> "RejectionEvidence":
+        if not self.provider_confirmed_absent:
+            raise ValueError(
+                "rejection evidence requires the provider to have confirmed non-occurrence; "
+                "a timeout or missing answer is UNKNOWN, not a rejection"
             )
         return self
 
@@ -226,6 +251,7 @@ __all__ = [
     "derive_idempotency_key",
     "ActionIntent",
     "ActionReceipt",
+    "RejectionEvidence",
     "ReconciliationOutcome",
     "ReconciliationResult",
 ]

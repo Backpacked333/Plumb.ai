@@ -545,10 +545,17 @@ def test_held_out_dataset_is_required_and_never_the_train_split() -> None:
         make_evaluation(held_out_split="train")
 
 
-@pytest.mark.requirements("PL-031")
+@pytest.mark.requirements("PL-031", "PL-050")
 def test_cost_comparison_is_complete_and_consistent() -> None:
+    """A candidate is compared on total operating cost, task performance and review time together,
+    never on an advertised inference price alone (PL-031, PL-050)."""
     with pytest.raises(ValidationError, match="min_length|at least 1"):
         make_evaluation(cost_comparison=[])
+    for missing in ("total_operating_cost", "task_performance", "review_time_minutes"):
+        data = comparison(CandidateKind.TRAINED, 1, 1).model_dump(mode="json")
+        del data[missing]
+        with pytest.raises(ValidationError, match=missing):
+            CandidateComparison.model_validate(data)
     with pytest.raises(ValidationError, match="appears once"):
         make_evaluation(
             cost_comparison=[
@@ -579,3 +586,23 @@ def test_exclusions_must_be_explained_and_metric_names_unique() -> None:
                 Metric(name="category_correct", numerator=2, denominator=2),
             ]
         )
+
+
+# ---------------------------------------------------------------------------
+# Review regressions (contracts fidelity lens)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.requirements("PL-032", "PL-034")
+@pytest.mark.parametrize("alias", ["latest", "champion", "prod", "current", "stable", "text-tuner:latest", "models/inv@prod", "tuner-v2-latest"])
+def test_training_spec_rejects_a_mutable_base_model_alias(alias: str) -> None:
+    """The base model must be pinned the way a release's resolved_model_version is (F2)."""
+    with pytest.raises(ValidationError, match="mutable alias"):
+        make_training_spec(base_model=BaseModelRef(provider="synthetic-model-cloud", capability="text-classification-tuning", version=alias))
+
+
+@pytest.mark.requirements("PL-032")
+@pytest.mark.parametrize("version", ["2026-02-15", "text-tuner:12", "v3.1.0", "inv@sha256:" + "ab" * 32, "latest-fixes-2026-02"])
+def test_training_spec_accepts_pinned_base_model_versions(version: str) -> None:
+    spec = make_training_spec(base_model=BaseModelRef(provider="synthetic-model-cloud", capability="text-classification-tuning", version=version))
+    assert spec.base_model is not None and spec.base_model.version == version

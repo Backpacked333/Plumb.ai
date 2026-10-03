@@ -43,6 +43,7 @@ from plumb.contracts.common import (
     PrincipalType,
     ResourceScope,
     VerificationLevel,
+    compute_artifact_digest,
 )
 from plumb.contracts.envelope import AutonomyEnvelope, Goal, SourceGrant
 from plumb.registry.registry import CapabilityRegistry
@@ -64,6 +65,7 @@ PROCESSOR = "proc-plumb-eu"
 REGION = "eu-west-1"
 ENVIRONMENT = "staging"
 DIGEST = "sha256:" + "ab" * 32
+APPROVAL_ID = "apr-fixture-implement-operate"
 
 INVALID_FIXTURE_PATHS = sorted((FIXTURES_DIR / "invalid").glob("*.json"))
 
@@ -238,8 +240,8 @@ def release_step(**overrides: Any) -> BuildStep:
         "step_id": "create-release",
         "step_type": "release.create",
         "description": "Assemble the release manifest for the staging environment.",
-        "depends_on": ["build-dataset"],
-        "inputs": [StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="build-dataset")],
+        "depends_on": ["configure-integration"],
+        "inputs": [StepInput(name="integration", kind=ArtifactKind.INTEGRATION_SPEC, from_step="configure-integration")],
         "outputs": [StepOutput(name="release", kind=ArtifactKind.RELEASE_MANIFEST)],
         "required_capabilities": ["cap.release.create.executor"],
         "effect_class": EffectClass.INTERNAL_WRITE,
@@ -252,13 +254,36 @@ def release_step(**overrides: Any) -> BuildStep:
     return step(**data)
 
 
+def preview_step(**overrides: Any) -> BuildStep:
+    data: dict[str, Any] = {
+        "step_id": "preview-infrastructure",
+        "step_type": "infrastructure.preview",
+        "description": "Preview the infrastructure change (plan/diff and cost estimate).",
+        "depends_on": [],
+        "inputs": [],
+        "outputs": [StepOutput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW)],
+        "required_capabilities": ["cap.infrastructure.preview.automation-api"],
+        "effect_class": EffectClass.READ,
+        "purposes": [],
+        "scope": scope(sources=[]),
+        "verification": [obligation(check="preview_digest")],
+        "environment": ENVIRONMENT,
+    }
+    data.update(overrides)
+    return step(**data)
+
+
 def apply_step(**overrides: Any) -> BuildStep:
+    """An infrastructure.apply step that consumes the preview of ``preview_step()`` and the plan's approval (PL-045)."""
     data: dict[str, Any] = {
         "step_id": "apply-infrastructure",
         "step_type": "infrastructure.apply",
         "description": "Apply the previewed infrastructure change.",
-        "depends_on": [],
-        "inputs": [],
+        "depends_on": ["preview-infrastructure"],
+        "inputs": [
+            StepInput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW, from_step="preview-infrastructure"),
+            StepInput(name="approval", kind=ArtifactKind.APPROVAL_RECORD, plan_input=APPROVAL_ID),
+        ],
         "outputs": [StepOutput(name="receipt", kind=ArtifactKind.VERIFICATION_RECEIPT)],
         "required_capabilities": ["cap.infrastructure.apply.automation-api"],
         "effect_class": EffectClass.INFRASTRUCTURE_CHANGE,
@@ -283,7 +308,10 @@ def plan(**overrides: Any) -> BuildPlan:
         "opportunity_ref": None,
         "envelope_id": ENVELOPE_ID,
         "envelope_version": 1,
-        "inputs": [ArtifactRef(artifact_id=ENVELOPE_ID, kind=ArtifactKind.AUTONOMY_ENVELOPE, digest=DIGEST)],
+        "inputs": [
+            ArtifactRef(artifact_id=ENVELOPE_ID, kind=ArtifactKind.AUTONOMY_ENVELOPE, digest=compute_artifact_digest(envelope())),
+            ArtifactRef(artifact_id=APPROVAL_ID, kind=ArtifactKind.APPROVAL_RECORD, digest=DIGEST),
+        ],
         "steps": baseline_steps(),
         "total_budget": budget(minor_units=100_000),
         "planned_at": PLANNED_AT,
@@ -347,8 +375,28 @@ def bypass(model: BaseModel, **overrides: Any) -> Any:
     return type(model).model_construct(**fields)
 
 
-def check(plan_: BuildPlan, envelope_: AutonomyEnvelope | None = None, **kwargs: Any) -> CheckReport:
-    return check_plan(plan_, envelope_ if envelope_ is not None else envelope(), **kwargs)
+def pinned_to(plan_: BuildPlan, envelope_: AutonomyEnvelope) -> BuildPlan:
+    """``plan_`` with its envelope input re-pinned to ``envelope_``'s digest (as a planner compiling against it would)."""
+    inputs = [
+        ArtifactRef(artifact_id=ref.artifact_id, kind=ref.kind, digest=compute_artifact_digest(envelope_))
+        if ref.artifact_id == envelope_.envelope_id and ref.kind is ArtifactKind.AUTONOMY_ENVELOPE
+        else ref
+        for ref in plan_.inputs
+    ]
+    return plan_.model_copy(update={"inputs": inputs})
+
+
+def check(plan_: BuildPlan, envelope_: AutonomyEnvelope | None = None, *, repin: bool = True, **kwargs: Any) -> CheckReport:
+    """Check ``plan_`` against ``envelope_`` (default: the baseline envelope).
+
+    Most tests mutate the envelope to provoke one rule; the plan is then re-pinned
+    to that envelope's digest so that only the rule under test fires. Pass
+    ``repin=False`` to keep the plan's own envelope digest (the digest-binding tests).
+    """
+    target = envelope_ if envelope_ is not None else envelope()
+    if repin:
+        plan_ = pinned_to(plan_, target)
+    return check_plan(plan_, target, **kwargs)
 
 
 def only(report: CheckReport, code: str) -> list[Finding]:
@@ -415,12 +463,16 @@ def test_every_finding_code_has_the_designed_error_class() -> None:
         "UNSUPPORTED_STEP_TYPE": ErrorClass.CAPABILITY_UNSUPPORTED,
         "UNKNOWN_CAPABILITY": ErrorClass.CAPABILITY_UNSUPPORTED,
         "CAPABILITY_MATURITY_INSUFFICIENT": ErrorClass.CAPABILITY_UNSUPPORTED,
+        "ARTIFACT_KIND_UNSUPPORTED": ErrorClass.CAPABILITY_UNSUPPORTED,
         "INPUT_UNRESOLVED": ErrorClass.STATE_CONFLICT,
         "INPUT_KIND_MISMATCH": ErrorClass.STATE_CONFLICT,
         "MISSING_ARTIFACT": ErrorClass.STATE_CONFLICT,
+        "PRECONDITION_MISSING": ErrorClass.STATE_CONFLICT,
+        "UNVERIFIABLE_PREREQUISITE": ErrorClass.VERIFICATION_FAILED,
         "TENANT_MISMATCH": ErrorClass.SCOPE_DENIED,
         "ENVELOPE_MISMATCH": ErrorClass.POLICY_STALE,
         "ENVELOPE_INACTIVE": ErrorClass.POLICY_STALE,
+        "GOAL_NOT_AUTHORIZED": ErrorClass.SCOPE_DENIED,
         "SCOPE_EXCEEDED": ErrorClass.SCOPE_DENIED,
         "EFFECT_CLASS_DENIED": ErrorClass.SCOPE_DENIED,
         "PURPOSE_DENIED": ErrorClass.PURPOSE_DENIED,
@@ -616,8 +668,31 @@ def test_discovered_capability_is_rejected_even_for_read_only_probe() -> None:
 def test_production_step_without_any_capability_cannot_establish_maturity() -> None:
     report = check(plan(steps=replace(baseline_steps(), "build-dataset", required_capabilities=[])))
     assert single(report, "CAPABILITY_MATURITY_INSUFFICIENT").details == {"required": "SANDBOX_TESTED"}
+    assert single(report, "UNKNOWN_CAPABILITY").details["registered_capabilities"] == ["cap.dataset.build.builder"]
+    # A read-only step without a capability is rejected too: nothing establishes what it does (PL-014).
     read_only = check(plan(steps=[step(required_capabilities=[])]))
-    assert read_only.ok
+    assert not read_only.ok
+    assert single(read_only, "UNKNOWN_CAPABILITY").step_id == "probe-sources"
+    assert not read_only.has("CAPABILITY_MATURITY_INSUFFICIENT"), "DOCUMENTED needs no maturity finding; the binding itself is missing"
+
+
+@pytest.mark.requirements("PL-005", "PL-008", "PL-014", "PL-015")
+def test_write_only_step_type_cannot_hide_behind_read_with_no_capability() -> None:
+    """An integration.configure step declared READ with no capability must not pass a READ-only envelope (PC-02)."""
+    narrow = envelope(allowed_effect_classes=[EffectClass.READ, EffectClass.INTERNAL_WRITE])
+    disguised = replace(
+        baseline_steps(),
+        "configure-integration",
+        effect_class=EffectClass.READ,
+        required_capabilities=[],
+        purposes=[DataPurpose.INSPECT],
+        verification=[obligation(check="config_digest")],
+    )
+    report = check(plan(steps=disguised), narrow)
+    assert not report.ok
+    assert single(report, "UNKNOWN_CAPABILITY").step_id == "configure-integration"
+    honest = check(plan(steps=baseline_steps()), narrow)
+    assert single(honest, "EFFECT_CLASS_DENIED").step_id == "configure-integration"
 
 
 # ---------------------------------------------------------------------------
@@ -774,9 +849,14 @@ def test_capability_wider_than_envelope_is_a_warning_not_an_error() -> None:
         step_type="release.canary",
         required_capabilities=["cap.release.canary.executor"],
         effect_class=EffectClass.EXTERNAL_WRITE_REVERSIBLE,
+        depends_on=["create-release"],
+        inputs=[
+            StepInput(name="release", kind=ArtifactKind.RELEASE_MANIFEST, from_step="create-release"),
+            StepInput(name="approval", kind=ArtifactKind.APPROVAL_RECORD, plan_input=APPROVAL_ID),
+        ],
         outputs=[StepOutput(name="canary", kind=ArtifactKind.CANARY_REPORT)],
     )
-    report = check(plan(steps=[*baseline_steps(), canary]))
+    report = check(plan(steps=[*baseline_steps(), release_step(), canary]))
     finding = single(report, "EFFECT_CLASS_DENIED")
     assert finding.severity is Severity.WARNING
     assert finding.details["undeclared_effect_classes"] == ["EXTERNAL_COMMUNICATION"]
@@ -933,18 +1013,59 @@ def test_deployment_environment_must_be_declared_and_allowed() -> None:
     assert single(check(plan(steps=[*baseline_steps(), release_step()]), nowhere), "DEPLOYMENT_ENV_DENIED").details["allowed_environments"] == []
 
 
+def infra_envelope() -> AutonomyEnvelope:
+    return envelope(allowed_effect_classes=[EffectClass.READ, EffectClass.INTERNAL_WRITE, EffectClass.EXTERNAL_WRITE_REVERSIBLE, EffectClass.INFRASTRUCTURE_CHANGE])
+
+
 @pytest.mark.requirements("PL-005", "PL-045")
 def test_infrastructure_apply_needs_an_environment_but_preview_only_warns() -> None:
-    infra_envelope = envelope(allowed_effect_classes=[EffectClass.READ, EffectClass.INTERNAL_WRITE, EffectClass.EXTERNAL_WRITE_REVERSIBLE, EffectClass.INFRASTRUCTURE_CHANGE])
-    assert check(plan(steps=[apply_step()]), infra_envelope).ok
+    assert check(plan(steps=[preview_step(), apply_step()]), infra_envelope()).ok
 
-    silent_apply = single(check(plan(steps=[apply_step(environment=None)]), infra_envelope), "DEPLOYMENT_ENV_DENIED")
+    silent_apply = single(check(plan(steps=[preview_step(), apply_step(environment=None)]), infra_envelope()), "DEPLOYMENT_ENV_DENIED")
     assert silent_apply.severity is Severity.ERROR
 
-    preview = step(step_id="preview-infrastructure", step_type="infrastructure.preview", inputs=[], outputs=[StepOutput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW)], required_capabilities=["cap.infrastructure.preview.automation-api"], purposes=[], scope=scope(sources=[]))
-    report = check(plan(steps=[preview]), infra_envelope)
+    report = check(plan(steps=[preview_step(environment=None)]), infra_envelope())
     assert single(report, "DEPLOYMENT_ENV_DENIED").severity is Severity.WARNING
     assert report.ok
+
+
+@pytest.mark.requirements("PL-045", "PL-015")
+def test_infrastructure_apply_requires_a_preview_and_an_approval_before_application() -> None:
+    """PL-045: a preview/diff and approval MUST precede application; an apply step with neither is rejected (PC-01)."""
+    lone_apply = apply_step(depends_on=[], inputs=[])
+    report = check(plan(steps=[lone_apply]), infra_envelope())
+    assert not report.ok
+    findings = only(report, "PRECONDITION_MISSING")
+    assert sorted(finding.details["required_kind"] for finding in findings) == ["ApprovalRecord", "InfrastructurePreview"]
+    assert all(finding.error_class is ErrorClass.STATE_CONFLICT and finding.step_id == "apply-infrastructure" for finding in findings)
+    assert {finding.code for finding in report.errors} == {"PRECONDITION_MISSING"}
+
+    # A preview that merely exists is not enough: apply must consume it from a preview step it depends on.
+    no_preview_input = apply_step(inputs=[StepInput(name="approval", kind=ArtifactKind.APPROVAL_RECORD, plan_input=APPROVAL_ID)])
+    report = check(plan(steps=[preview_step(), no_preview_input]), infra_envelope())
+    assert [finding.details["required_kind"] for finding in only(report, "PRECONDITION_MISSING")] == ["InfrastructurePreview"]
+
+    # The preview must come from an infrastructure.preview step, not from any step that emits the kind.
+    forged_preview = step(
+        step_id="fake-preview",
+        step_type="inventory.probe",
+        outputs=[StepOutput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW)],
+        scope=scope(sources=[LEDGER, MAILBOX]),
+    )
+    forged_apply = apply_step(
+        depends_on=["fake-preview"],
+        inputs=[
+            StepInput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW, from_step="fake-preview"),
+            StepInput(name="approval", kind=ArtifactKind.APPROVAL_RECORD, plan_input=APPROVAL_ID),
+        ],
+    )
+    report = check(plan(steps=[forged_preview, forged_apply]), infra_envelope())
+    assert [finding.details["required_producer_step_type"] for finding in only(report, "PRECONDITION_MISSING")] == ["infrastructure.preview"]
+    assert report.has("ARTIFACT_KIND_UNSUPPORTED"), "a probe cannot produce an InfrastructurePreview either"
+    # Without an approval the apply is rejected even when the preview is genuine.
+    unapproved = apply_step(inputs=[StepInput(name="preview", kind=ArtifactKind.INFRASTRUCTURE_PREVIEW, from_step="preview-infrastructure")])
+    report = check(plan(steps=[preview_step(), unapproved]), infra_envelope())
+    assert [finding.details["required_kind"] for finding in only(report, "PRECONDITION_MISSING")] == ["ApprovalRecord"]
 
 
 @pytest.mark.requirements("PL-005")
@@ -1036,3 +1157,224 @@ def test_cli_dataset_subcommand_exits_2_on_unreadable_manifest(tmp_path: Path) -
     completed = run_cli("dataset", str(tmp_path / "absent.json"))
     assert completed.returncode == EXIT_USAGE
     assert "absent.json" in completed.stderr
+
+
+# ---------------------------------------------------------------------------
+# Review regressions: authority rules a planner could previously route around
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.requirements("PL-053", "PL-004")
+def test_training_on_derived_data_inherits_the_source_restrictions() -> None:
+    """A training step that omits scope.source_ids still trains on the dataset's sources (PC-03, SEC-04)."""
+    no_train_anywhere = envelope()
+    assert all(DataPurpose.TRAIN not in g.purposes for g in no_train_anywhere.source_grants)
+    hidden = train_step(scope=scope(sources=[], processors=[PROCESSOR]))
+    report = check(plan(steps=[*baseline_steps(), hidden]), no_train_anywhere)
+    assert not report.ok
+    finding = single(report, "PURPOSE_DENIED")
+    assert finding.step_id == "train-model"
+    assert finding.details == {
+        "source_id": LEDGER,
+        "inherited": True,
+        "missing": ["TRAIN"],
+        "granted": ["COLLECT", "INSPECT", "TRANSFORM"],
+        "required_by_capabilities": {"TRAIN": ["cap.training.submit.managed-open-model"]},
+    }
+    assert "derived data inherits its restrictions" in finding.message
+    assert report.summary["inherited_sources"]["train-model"] == [LEDGER]
+    # The same plan is fine once the ledger grant carries TRAIN: inheritance is not a blanket denial.
+    granted = envelope(source_grants=[grant(LEDGER, [DataPurpose.INSPECT, DataPurpose.COLLECT, DataPurpose.TRANSFORM, DataPurpose.TRAIN]), grant(MAILBOX, [DataPurpose.INSPECT])])
+    assert check(plan(steps=[*baseline_steps(), hidden]), granted).ok
+
+
+@pytest.mark.requirements("PL-053")
+def test_export_or_train_without_any_source_is_denied_not_skipped() -> None:
+    exporter = step(
+        step_id="export-dataset",
+        step_type="dataset.build",
+        description="Export the dataset to the approved destination.",
+        depends_on=[],
+        inputs=[],
+        outputs=[StepOutput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST)],
+        required_capabilities=["cap.dataset.build.builder"],
+        effect_class=EffectClass.INTERNAL_WRITE,
+        purposes=[DataPurpose.COLLECT, DataPurpose.TRANSFORM, DataPurpose.EXPORT],
+        scope=scope(sources=[], processors=[PROCESSOR]),
+    )
+    finding = single(check(plan(steps=[exporter])), "PURPOSE_DENIED")
+    assert finding.details == {"purposes": ["EXPORT"]}
+    assert "touches no source" in finding.message
+
+
+@pytest.mark.requirements("PL-053", "PL-015")
+def test_input_lineage_may_be_narrowed_only_to_sources_the_producer_touched() -> None:
+    """``StepInput.source_ids`` declares which of the producer's sources an input carries (SEC-04)."""
+    wide_grants = envelope(source_grants=[grant(LEDGER, [DataPurpose.INSPECT, DataPurpose.COLLECT, DataPurpose.TRANSFORM, DataPurpose.TRAIN]), grant(MAILBOX, [DataPurpose.INSPECT, DataPurpose.COLLECT, DataPurpose.TRANSFORM])])
+    steps = replace(baseline_steps(), "build-dataset", scope=scope(sources=[LEDGER, MAILBOX], processors=[PROCESSOR]))
+    both = train_step(scope=scope(sources=[], processors=[PROCESSOR]))
+    denied = check(plan(steps=[*steps, both]), wide_grants)
+    assert single(denied, "PURPOSE_DENIED").details["source_id"] == MAILBOX
+
+    ledger_only = train_step(
+        scope=scope(sources=[], processors=[PROCESSOR]),
+        inputs=[StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="build-dataset", source_ids=[LEDGER])],
+    )
+    narrowed = check(plan(steps=[*steps, ledger_only]), wide_grants)
+    assert narrowed.ok, narrowed.render()
+    assert narrowed.summary["inherited_sources"]["train-model"] == [LEDGER]
+
+    invented = train_step(
+        scope=scope(sources=[], processors=[PROCESSOR]),
+        inputs=[StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="build-dataset", source_ids=["src-payroll"])],
+    )
+    finding = single(check(plan(steps=[*steps, invented]), wide_grants), "SCOPE_EXCEEDED")
+    assert finding.details["narrowed_to"] == ["src-payroll"] and finding.details["producer_sources"] == [LEDGER, MAILBOX]
+
+
+@pytest.mark.requirements("PL-008")
+def test_shadow_deployment_exemption_does_not_cover_external_writes() -> None:
+    """A collection.deploy_shadow step that writes to the customer's system needs SANDBOX_TESTED (PC-04)."""
+    documented_external = capability(
+        "cap.collection.deploy_shadow.documented-external", "collection.deploy_shadow", CapabilityMaturity.DOCUMENTED,
+        [EffectClass.EXTERNAL_WRITE_REVERSIBLE], [DataPurpose.COLLECT],
+    )
+    shadow = step(
+        step_id="deploy-shadow", step_type="collection.deploy_shadow", description="Register a webhook on the customer system.",
+        inputs=[], outputs=[StepOutput(name="collection", kind=ArtifactKind.COLLECTION_SPEC)],
+        required_capabilities=["cap.collection.deploy_shadow.documented-external"],
+        effect_class=EffectClass.EXTERNAL_WRITE_REVERSIBLE, purposes=[DataPurpose.COLLECT], scope=scope(),
+        verification=[obligation(VerificationLevel.INTEGRATION_BEHAVIOR, "webhook_receipt")],
+    )
+    assert required_maturity(shadow) is CapabilityMaturity.SANDBOX_TESTED
+    assert required_maturity(modified(shadow, effect_class=EffectClass.INTERNAL_WRITE, verification=[obligation(check="shadow_path")])) is CapabilityMaturity.DOCUMENTED
+    finding = single(check(plan(steps=[shadow]), registry=registry_with(documented_external)), "CAPABILITY_MATURITY_INSUFFICIENT")
+    assert finding.details["required"] == "SANDBOX_TESTED"
+
+
+@pytest.mark.requirements("PL-008")
+def test_dependency_raise_bound_to_a_discovered_capability_is_rejected() -> None:
+    """The raise step is exempt from binding, not from maturity once bound (PC-11)."""
+    discovered = capability("cap.dependency.raise.discovered", "dependency.raise", CapabilityMaturity.DISCOVERED, [EffectClass.INTERNAL_WRITE])
+    raise_step = step(
+        step_id="raise", step_type="dependency.raise", inputs=[], outputs=[StepOutput(name="dep", kind=ArtifactKind.DEPENDENCY_RECORD)],
+        required_capabilities=["cap.dependency.raise.discovered"], effect_class=EffectClass.INTERNAL_WRITE, purposes=[], scope=scope(sources=[]), verification=[],
+    )
+    assert required_maturity(raise_step) is CapabilityMaturity.DOCUMENTED
+    finding = single(check(plan(steps=[raise_step]), registry=registry_with(discovered)), "CAPABILITY_MATURITY_INSUFFICIENT")
+    assert finding.details["required"] == "DOCUMENTED"
+    unbound = modified(raise_step, required_capabilities=[])
+    assert check(plan(steps=[unbound])).ok, "the control plane records a dependency itself; no binding is required"
+
+
+@pytest.mark.requirements("PL-005")
+def test_plan_goal_must_be_one_of_the_envelope_goals() -> None:
+    finding = single(check(plan(goal_id="goal-post-journal-entries-automatically")), "GOAL_NOT_AUTHORIZED")
+    assert finding.error_class is ErrorClass.SCOPE_DENIED
+    assert finding.details == {"plan_goal_id": "goal-post-journal-entries-automatically", "envelope_goal_ids": ["goal-fewer-evidence-requests"]}
+    two_goals = envelope(goals=[Goal(goal_id="goal-fewer-evidence-requests", objective="Fewer requests."), Goal(goal_id="goal-faster-close", objective="Faster close.")])
+    assert check(plan(goal_id="goal-faster-close"), two_goals).ok
+
+
+@pytest.mark.requirements("PL-015", "PL-014")
+def test_output_and_input_kinds_must_be_supported_by_the_bound_capability() -> None:
+    """dataset.build cannot emit a ReleaseManifest for release.activate_shadow to consume (PC-06)."""
+    fabricated = replace(baseline_steps(), "build-dataset", outputs=[StepOutput(name="release-manifest", kind=ArtifactKind.RELEASE_MANIFEST)])
+    shadow = release_step(
+        step_id="activate-shadow", step_type="release.activate_shadow", required_capabilities=["cap.release.activate_shadow.executor"],
+        depends_on=["build-dataset"],
+        inputs=[StepInput(name="release-manifest", kind=ArtifactKind.RELEASE_MANIFEST, from_step="build-dataset")],
+        outputs=[StepOutput(name="shadow-manifest", kind=ArtifactKind.RELEASE_MANIFEST)],
+    )
+    report = check(plan(steps=[*fabricated, shadow]))
+    [finding] = only(report, "ARTIFACT_KIND_UNSUPPORTED")
+    assert finding.step_id == "build-dataset" and finding.details["direction"] == "produces" and finding.details["kind"] == "ReleaseManifest"
+    assert finding.error_class is ErrorClass.CAPABILITY_UNSUPPORTED
+
+    unconsumable = replace(baseline_steps(), "profile-sources", inputs=[StepInput(name="inventory", kind=ArtifactKind.ENVIRONMENT_INVENTORY, from_step="probe-sources")])
+    probe_emits_dataset = replace(unconsumable, "probe-sources", outputs=[StepOutput(name="inventory", kind=ArtifactKind.ENVIRONMENT_INVENTORY), StepOutput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST)])
+    consumer = replace(probe_emits_dataset, "profile-sources", inputs=[StepInput(name="dataset", kind=ArtifactKind.DATASET_MANIFEST, from_step="probe-sources")])
+    report = check(plan(steps=consumer))
+    assert {(f.step_id, f.details["direction"]) for f in only(report, "ARTIFACT_KIND_UNSUPPORTED")} == {("probe-sources", "produces"), ("profile-sources", "consumes")}
+
+
+@pytest.mark.requirements("PL-016", "PL-015")
+def test_required_step_cannot_rest_on_an_optional_or_dependency_raise_prerequisite() -> None:
+    """``BuildStep.required`` has semantics (PC-07): optional and raise steps are not verifiable prerequisites."""
+    optional_producer = check(plan(steps=replace(baseline_steps(), "profile-sources", required=False)))
+    finding = single(optional_producer, "UNVERIFIABLE_PREREQUISITE")
+    assert (finding.step_id, finding.details) == ("build-dataset", {"prerequisite": "profile-sources", "reason": "optional_prerequisite"})
+    assert finding.error_class is ErrorClass.VERIFICATION_FAILED
+    # An optional consumer of an optional producer is fine.
+    assert check(plan(steps=replace(replace(baseline_steps(), "profile-sources", required=False), "build-dataset", required=False))).ok
+
+    raise_step = step(
+        step_id="raise-access", step_type="dependency.raise", description="Ask for access.", inputs=[],
+        outputs=[StepOutput(name="dependency", kind=ArtifactKind.DEPENDENCY_RECORD)],
+        required_capabilities=["cap.dependency.raise.control-plane"], effect_class=EffectClass.INTERNAL_WRITE,
+        purposes=[], scope=scope(sources=[]), verification=[],
+    )
+    consumer = replace(
+        baseline_steps(), "configure-integration", depends_on=["probe-sources", "raise-access"],
+        inputs=[
+            StepInput(name="inventory", kind=ArtifactKind.ENVIRONMENT_INVENTORY, from_step="probe-sources"),
+            StepInput(name="dependency", kind=ArtifactKind.DEPENDENCY_RECORD, from_step="raise-access"),
+        ],
+    )
+    report = check(plan(steps=[*consumer, raise_step]))
+    assert single(report, "UNVERIFIABLE_PREREQUISITE").details == {"prerequisite": "raise-access", "reason": "dependency_raise"}
+    assert report.has("ARTIFACT_KIND_UNSUPPORTED"), "integration.configure does not consume a DependencyRecord either"
+
+
+@pytest.mark.requirements("PL-058", "PL-018", "PL-014")
+def test_elapsed_time_model_calls_and_attempts_nest_inside_the_plan_total() -> None:
+    """Only spend used to nest; every dimension of the plan total bounds the steps now (PC-08)."""
+    greedy = replace(baseline_steps(), "build-dataset", budget=budget(max_elapsed_seconds=10**9, max_model_calls=10**9))
+    total = budget(minor_units=100_000, max_elapsed_seconds=3600, max_model_calls=100)
+    report = check(plan(steps=greedy, total_budget=total))
+    assert not report.ok
+    dimensions = {finding.details.get("dimension") for finding in only(report, "BUDGET_EXCEEDED")}
+    assert dimensions == {"max_elapsed_seconds", "max_model_calls"}
+    # Attempts: the plan total bounds a step even when the envelope would allow more.
+    roomy = envelope(per_step_attempt_limit=10)
+    report = check(plan(steps=replace(baseline_steps(), "build-dataset", budget=budget(max_attempts=5)), total_budget=budget(minor_units=100_000, max_attempts=3)), roomy)
+    assert single(report, "ATTEMPTS_EXCEEDED").details == {"max_attempts": 5, "plan_max_attempts": 3}
+    # Model calls sum across steps; an unset plan total imposes no bound.
+    unbounded = check(plan(steps=greedy, total_budget=budget(minor_units=100_000, max_elapsed_seconds=10**9)))
+    assert unbounded.ok
+
+
+@pytest.mark.requirements("PL-005", "PL-016")
+def test_plan_envelope_input_must_pin_the_envelope_it_is_checked_against() -> None:
+    """The plan's envelope ArtifactRef binds by digest, not only by id and version (PC-09)."""
+    forged = ArtifactRef(artifact_id=ENVELOPE_ID, kind=ArtifactKind.AUTONOMY_ENVELOPE, digest="sha256:" + "00" * 32)
+    approval = ArtifactRef(artifact_id=APPROVAL_ID, kind=ArtifactKind.APPROVAL_RECORD, digest=DIGEST)
+    report = check(plan(inputs=[forged, approval]), repin=False)
+    finding = single(report, "ENVELOPE_MISMATCH")
+    assert finding.details["digest"]["plan_input"] == forged.digest
+    assert finding.details["digest"]["envelope"] == compute_artifact_digest(envelope())
+    assert finding.error_class is ErrorClass.POLICY_STALE
+
+    wrong_kind = ArtifactRef(artifact_id=ENVELOPE_ID, kind=ArtifactKind.APPROVAL_RECORD, digest=compute_artifact_digest(envelope()))
+    report = check(plan(inputs=[wrong_kind, approval], steps=[step(inputs=[StepInput(name="envelope", kind=ArtifactKind.APPROVAL_RECORD, plan_input=ENVELOPE_ID)])]), repin=False)
+    assert "kind" in single(report, "ENVELOPE_MISMATCH").details
+
+    # A plan compiled against a different version of the same envelope carries a different digest.
+    revised = envelope(version=2, envelope_version=2)
+    report = check(plan(envelope_version=2), revised, repin=False)
+    assert "digest" in single(report, "ENVELOPE_MISMATCH").details
+    assert check(plan(envelope_version=2), revised).ok, "re-pinned to the revised envelope the plan is fine"
+    assert check(plan()).ok, "the baseline plan pins the baseline envelope"
+
+
+@pytest.mark.requirements("PL-014", "PL-015")
+def test_cli_accepts_a_single_file_embedding_plan_and_envelope() -> None:
+    cycle = FIXTURES_DIR / "invalid" / "cycle.json"
+    completed = run_cli("plan", str(cycle), "--json")
+    assert completed.returncode == EXIT_FINDINGS, completed.stderr
+    payload = json.loads(completed.stdout)
+    assert payload["ok"] is False and "DEPENDENCY_CYCLE" in {f["code"] for f in payload["findings"]}
+    bare_plan = FIXTURES_DIR / "plans" / "accounting_evidence_preparation.json"
+    completed = run_cli("plan", str(bare_plan))
+    assert completed.returncode == EXIT_USAGE
+    assert "does not embed an envelope" in completed.stderr

@@ -3,12 +3,16 @@
 Usage::
 
     python -m plumb.checker.cli plan <plan.json> <envelope.json> [--registry PATH] [--now ISO-8601] [--json]
-    python -m plumb.checker.cli dataset <manifest.json> [--json]
+    python -m plumb.checker.cli plan <wrapped.json> [--json]
+    python -m plumb.checker.cli dataset <manifest.json> [--envelope <envelope.json>] [--json]
 
-Exit codes: ``0`` when the report has no ERROR finding, ``1`` when it has at
-least one, ``2`` on a usage error, an unreadable or malformed input file or a
-registry that fails to load. The CLI only parses artifacts and runs a checker;
-it never executes a plan (PL-014, PL-015, PL-028..PL-030).
+The second form takes one JSON document with top-level ``plan`` and
+``envelope`` keys (the format of ``fixtures/invalid/*.json``); the envelope
+argument is then omitted. Exit codes: ``0`` when the report has no ERROR
+finding, ``1`` when it has at least one, ``2`` on a usage error, an unreadable
+or malformed input file or a registry that fails to load. The CLI only parses
+artifacts and runs a checker; it never executes a plan (PL-014, PL-015,
+PL-028..PL-030, PL-053).
 
 The ``dataset`` subcommand imports ``plumb.checker.dataset_checker`` lazily so
 that the ``plan`` subcommand works even when that module is unavailable.
@@ -47,8 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True, metavar="{plan,dataset}")
 
     plan = subparsers.add_parser("plan", help="check a BuildPlan against an AutonomyEnvelope")
-    plan.add_argument("plan", type=Path, help="BuildPlan JSON file")
-    plan.add_argument("envelope", type=Path, help="AutonomyEnvelope JSON file")
+    plan.add_argument("plan", type=Path, help="BuildPlan JSON file, or a document with top-level 'plan' and 'envelope' keys")
+    plan.add_argument(
+        "envelope", type=Path, nargs="?", default=None, help="AutonomyEnvelope JSON file (omit when the plan file embeds it)"
+    )
     plan.add_argument("--registry", type=Path, default=None, help="capability registry JSON (default: packaged)")
     plan.add_argument(
         "--now",
@@ -59,6 +65,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     dataset = subparsers.add_parser("dataset", help="check a DatasetManifest")
     dataset.add_argument("manifest", type=Path, help="DatasetManifest JSON file")
+    dataset.add_argument(
+        "--envelope", type=Path, default=None, help="AutonomyEnvelope JSON file whose grants the manifest's authorizations are resolved against (PL-053)"
+    )
     dataset.add_argument("--json", action="store_true", help="print the report as JSON instead of text")
     return parser
 
@@ -87,8 +96,18 @@ def _run_plan(args: argparse.Namespace) -> CheckReport:
     from plumb.contracts.envelope import AutonomyEnvelope
     from plumb.registry.registry import RegistryError, load_registry
 
-    plan = _parse(BuildPlan, args.plan)
-    envelope = _parse(AutonomyEnvelope, args.envelope)
+    if args.envelope is None:
+        document = _read_json(args.plan)
+        if not isinstance(document, dict) or "plan" not in document or "envelope" not in document:
+            raise CliError(
+                f"{args.plan} does not embed an envelope: pass the envelope file as the second argument, or give a "
+                "document with top-level 'plan' and 'envelope' keys"
+            )
+        plan = _validate(BuildPlan, document["plan"], f"{args.plan}#plan")
+        envelope = _validate(AutonomyEnvelope, document["envelope"], f"{args.plan}#envelope")
+    else:
+        plan = _parse(BuildPlan, args.plan)
+        envelope = _parse(AutonomyEnvelope, args.envelope)
     try:
         registry = load_registry(args.registry)
     except RegistryError as exc:
@@ -106,22 +125,34 @@ def _run_dataset(args: argparse.Namespace) -> CheckReport:
         from plumb.contracts.dataset import DatasetManifest
     except ImportError as exc:
         raise CliError(f"the dataset checker is not available in this installation: {exc}") from exc
-    return check_dataset(_parse(DatasetManifest, args.manifest))
+    manifest = _parse(DatasetManifest, args.manifest)
+    if args.envelope is None:
+        return check_dataset(manifest)
+    from plumb.contracts.envelope import AutonomyEnvelope
+
+    return check_dataset(manifest, _parse(AutonomyEnvelope, args.envelope))
 
 
-def _parse(model: type[_ModelT], path: Path) -> _ModelT:
+def _read_json(path: Path) -> Any:
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise CliError(f"cannot read {path}: {exc.strerror or exc}") from exc
     try:
-        data: Any = json.loads(raw)
+        return json.loads(raw)
     except json.JSONDecodeError as exc:
         raise CliError(f"{path} is not valid JSON: {exc}") from exc
+
+
+def _validate(model: type[_ModelT], data: Any, label: str) -> _ModelT:
     try:
         return model.model_validate(data)
     except ValidationError as exc:
-        raise CliError(f"{path} is not a valid {model.__name__}:\n{exc}") from exc
+        raise CliError(f"{label} is not a valid {model.__name__}:\n{exc}") from exc
+
+
+def _parse(model: type[_ModelT], path: Path) -> _ModelT:
+    return _validate(model, _read_json(path), str(path))
 
 
 def _parse_instant(text: str) -> datetime:

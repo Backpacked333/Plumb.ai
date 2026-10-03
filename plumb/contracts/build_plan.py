@@ -104,11 +104,24 @@ class StepInput(StrictModel):
     plan_input: Identifier | None = Field(
         default=None, description="artifact_id of a BuildPlan.inputs entry."
     )
+    source_ids: list[Identifier] | None = Field(
+        default=None,
+        description=(
+            "Lineage narrowing (PL-053): the subset of the producer's sources this input actually carries. "
+            "None means all of them. Only meaningful on a from_step input of a data-bearing kind; the checker "
+            "rejects a narrowing that names a source the producer never touched."
+        ),
+    )
 
     @model_validator(mode="after")
     def _exactly_one_origin(self) -> "StepInput":
         if (self.from_step is None) == (self.plan_input is None):
             raise ValueError("StepInput must set exactly one of from_step or plan_input")
+        if self.source_ids is not None:
+            if self.from_step is None:
+                raise ValueError("source_ids narrows the lineage of a from_step input; a plan input carries none")
+            if len(set(self.source_ids)) != len(self.source_ids):
+                raise ValueError("source_ids must not contain duplicates")
         return self
 
 
