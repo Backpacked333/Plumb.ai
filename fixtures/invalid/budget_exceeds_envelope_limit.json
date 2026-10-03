@@ -1,0 +1,362 @@
+{
+  "description": "The plan total of 600,000 exceeds the envelope spending limit of 500,000.",
+  "expected_codes": [
+    "BUDGET_EXCEEDED"
+  ],
+  "envelope": {
+    "artifact_id": "env-fixture-baseline",
+    "tenant_id": "tnt_fixture01",
+    "kind": "AutonomyEnvelope",
+    "schema_version": "0.2.0",
+    "version": 1,
+    "producer": {
+      "principal_id": "owner-01",
+      "principal_type": "HUMAN_OWNER",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "created_at": "2026-10-01T00:00:00Z",
+    "evidence_links": [],
+    "envelope_id": "env-fixture-baseline",
+    "envelope_version": 1,
+    "owner": {
+      "principal_id": "owner-01",
+      "principal_type": "HUMAN_OWNER",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "goals": [
+      {
+        "goal_id": "goal-fewer-evidence-requests",
+        "objective": "Reduce duplicated evidence requests."
+      }
+    ],
+    "source_grants": [
+      {
+        "source_id": "src-ledger",
+        "purposes": [
+          "INSPECT",
+          "COLLECT",
+          "TRANSFORM"
+        ],
+        "granted_by": {
+          "principal_id": "owner-01",
+          "principal_type": "HUMAN_OWNER",
+          "authenticated_via": "oidc:test-issuer"
+        },
+        "granted_at": "2026-09-30T00:00:00Z",
+        "policy_version": "1.0.0"
+      },
+      {
+        "source_id": "src-mailbox",
+        "purposes": [
+          "INSPECT"
+        ],
+        "granted_by": {
+          "principal_id": "owner-01",
+          "principal_type": "HUMAN_OWNER",
+          "authenticated_via": "oidc:test-issuer"
+        },
+        "granted_at": "2026-09-30T00:00:00Z",
+        "policy_version": "1.0.0"
+      }
+    ],
+    "approved_destinations": [
+      "dst-tenant-storage"
+    ],
+    "approved_processors": [
+      "proc-plumb-eu"
+    ],
+    "allowed_effect_classes": [
+      "READ",
+      "INTERNAL_WRITE",
+      "EXTERNAL_WRITE_REVERSIBLE"
+    ],
+    "spending_limit": {
+      "minor_units": 500000,
+      "currency": "USD"
+    },
+    "per_step_attempt_limit": 3,
+    "deployment_environments": [
+      "staging"
+    ],
+    "allowed_regions": [
+      "eu-west-1"
+    ],
+    "expires_at": "2027-01-01T00:00:00Z",
+    "escalation_conditions": [
+      "a new processor is requested"
+    ],
+    "policy_version": "1.0.0"
+  },
+  "plan": {
+    "artifact_id": "plan-fixture-baseline",
+    "tenant_id": "tnt_fixture01",
+    "kind": "BuildPlan",
+    "schema_version": "0.2.0",
+    "version": 1,
+    "producer": {
+      "principal_id": "planner-01",
+      "principal_type": "BUILD_AGENT",
+      "authenticated_via": "oidc:test-issuer"
+    },
+    "created_at": "2026-10-02T00:00:00Z",
+    "evidence_links": [],
+    "plan_id": "plan-fixture-baseline",
+    "goal_id": "goal-fewer-evidence-requests",
+    "envelope_id": "env-fixture-baseline",
+    "envelope_version": 1,
+    "inputs": [
+      {
+        "artifact_id": "env-fixture-baseline",
+        "kind": "AutonomyEnvelope",
+        "digest": "sha256:abababababababababababababababababababababababababababababababab",
+        "schema_version": "0.2.0"
+      }
+    ],
+    "steps": [
+      {
+        "step_id": "probe-sources",
+        "step_type": "inventory.probe",
+        "description": "Probe the authorized ledger and mailbox accounts.",
+        "depends_on": [],
+        "inputs": [
+          {
+            "name": "envelope",
+            "kind": "AutonomyEnvelope",
+            "plan_input": "env-fixture-baseline"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "inventory",
+            "kind": "EnvironmentInventory"
+          }
+        ],
+        "required_capabilities": [
+          "cap.inventory.probe.management-api"
+        ],
+        "effect_class": "READ",
+        "purposes": [
+          "INSPECT"
+        ],
+        "scope": {
+          "source_ids": [
+            "src-ledger",
+            "src-mailbox"
+          ],
+          "destination_ids": [
+            "dst-tenant-storage"
+          ],
+          "processor_ids": [],
+          "regions": [
+            "eu-west-1"
+          ]
+        },
+        "budget": {
+          "spend": {
+            "minor_units": 10000,
+            "currency": "USD"
+          },
+          "max_attempts": 3,
+          "max_elapsed_seconds": 3600
+        },
+        "verification": [
+          {
+            "check": "probe_receipt",
+            "level": "ARTIFACT_INTEGRITY",
+            "description": "probe_receipt confirmed by the verifier."
+          }
+        ],
+        "required": true
+      },
+      {
+        "step_id": "profile-sources",
+        "step_type": "source.profile",
+        "description": "Profile the ledger schema and sample permitted records.",
+        "depends_on": [
+          "probe-sources"
+        ],
+        "inputs": [
+          {
+            "name": "inventory",
+            "kind": "EnvironmentInventory",
+            "from_step": "probe-sources"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "profile",
+            "kind": "QualityReport"
+          }
+        ],
+        "required_capabilities": [
+          "cap.source.profile.sampler"
+        ],
+        "effect_class": "READ",
+        "purposes": [
+          "INSPECT"
+        ],
+        "scope": {
+          "source_ids": [
+            "src-ledger"
+          ],
+          "destination_ids": [
+            "dst-tenant-storage"
+          ],
+          "processor_ids": [],
+          "regions": [
+            "eu-west-1"
+          ]
+        },
+        "budget": {
+          "spend": {
+            "minor_units": 10000,
+            "currency": "USD"
+          },
+          "max_attempts": 3,
+          "max_elapsed_seconds": 3600
+        },
+        "verification": [
+          {
+            "check": "probe_receipt",
+            "level": "ARTIFACT_INTEGRITY",
+            "description": "probe_receipt confirmed by the verifier."
+          }
+        ],
+        "required": true
+      },
+      {
+        "step_id": "configure-integration",
+        "step_type": "integration.configure",
+        "description": "Configure the managed ledger connection.",
+        "depends_on": [
+          "probe-sources"
+        ],
+        "inputs": [
+          {
+            "name": "inventory",
+            "kind": "EnvironmentInventory",
+            "from_step": "probe-sources"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "integration",
+            "kind": "IntegrationSpec"
+          }
+        ],
+        "required_capabilities": [
+          "cap.integration.configure.management-api"
+        ],
+        "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+        "purposes": [
+          "INSPECT",
+          "COLLECT"
+        ],
+        "scope": {
+          "source_ids": [
+            "src-ledger"
+          ],
+          "destination_ids": [
+            "dst-tenant-storage"
+          ],
+          "processor_ids": [
+            "proc-plumb-eu"
+          ],
+          "regions": [
+            "eu-west-1"
+          ]
+        },
+        "budget": {
+          "spend": {
+            "minor_units": 10000,
+            "currency": "USD"
+          },
+          "max_attempts": 3,
+          "max_elapsed_seconds": 3600
+        },
+        "verification": [
+          {
+            "check": "contract_tests",
+            "level": "INTEGRATION_BEHAVIOR",
+            "description": "contract_tests confirmed by the verifier."
+          }
+        ],
+        "required": true
+      },
+      {
+        "step_id": "build-dataset",
+        "step_type": "dataset.build",
+        "description": "Assemble the evidence dataset from collected ledger records.",
+        "depends_on": [
+          "profile-sources",
+          "configure-integration"
+        ],
+        "inputs": [
+          {
+            "name": "profile",
+            "kind": "QualityReport",
+            "from_step": "profile-sources"
+          },
+          {
+            "name": "integration",
+            "kind": "IntegrationSpec",
+            "from_step": "configure-integration"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "dataset",
+            "kind": "DatasetManifest"
+          }
+        ],
+        "required_capabilities": [
+          "cap.dataset.build.builder"
+        ],
+        "effect_class": "INTERNAL_WRITE",
+        "purposes": [
+          "COLLECT",
+          "TRANSFORM"
+        ],
+        "scope": {
+          "source_ids": [
+            "src-ledger"
+          ],
+          "destination_ids": [
+            "dst-tenant-storage"
+          ],
+          "processor_ids": [
+            "proc-plumb-eu"
+          ],
+          "regions": [
+            "eu-west-1"
+          ]
+        },
+        "budget": {
+          "spend": {
+            "minor_units": 10000,
+            "currency": "USD"
+          },
+          "max_attempts": 3,
+          "max_elapsed_seconds": 3600
+        },
+        "verification": [
+          {
+            "check": "dataset_counts",
+            "level": "ARTIFACT_INTEGRITY",
+            "description": "dataset_counts confirmed by the verifier."
+          }
+        ],
+        "required": true
+      }
+    ],
+    "total_budget": {
+      "spend": {
+        "minor_units": 600000,
+        "currency": "USD"
+      },
+      "max_attempts": 3,
+      "max_elapsed_seconds": 3600
+    },
+    "planned_at": "2026-10-02T00:00:00Z"
+  }
+}
