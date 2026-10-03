@@ -1,0 +1,32 @@
+machine: Effect
+aggregate: effect
+initial: RESERVED
+terminal: [CANCELLED, SUPERSEDED, FAILED_FINAL, COMPENSATED]
+states: [RESERVED, DISPATCHING, DISPATCHED, UNKNOWN, CONFIRMED, NOT_OCCURRED, CONFLICT, NEEDS_HUMAN, CANCEL_REQUESTED, CANCELLED, SUPERSEDED, FAILED_FINAL, COMPENSATION_PENDING, COMPENSATED]
+transitions:
+  - {from: RESERVED, event: claim, to: DISPATCHING, guards: [release_active_or_canary, authority_current_not_revoked, expected_state_versions_match, cost_reserved, lease_cas_succeeded, outbox_row_claimed], writes: [effect.state, attempt.row, lease.row], emits: [effect.dispatching], external_effects: provider_call_begins, retryable: true}
+  - {from: DISPATCHING, event: provider_accepted, to: DISPATCHED, guards: [fencing_token_current, receipt_recorded], writes: [effect.state, receipt.row, attempt.result], emits: [effect.dispatched], external_effects: none, retryable: false}
+  - {from: DISPATCHING, event: provider_rejected, to: RESERVED, guards: [fencing_token_current, rejection_is_non_terminal, attempts_remaining], writes: [effect.state, attempt.result], emits: [effect.retry_scheduled], external_effects: none, retryable: true}
+  - {from: DISPATCHING, event: provider_rejected, to: FAILED_FINAL, guards: [rejection_is_terminal_or_attempts_exhausted], writes: [effect.state, effect.reason, reservation.released], emits: [effect.failed], external_effects: none, retryable: false}
+  - {from: DISPATCHING, event: ambiguous, to: UNKNOWN, guards: [], writes: [effect.state, attempt.result], emits: [effect.unknown], external_effects: none, retryable: false}
+  - {from: DISPATCHED, event: postcondition_verified, to: CONFIRMED, guards: [postcondition_read_from_provider_or_verified_receipt, reservation_settled], writes: [effect.state, effect.confirmed_at, reservation.settled], emits: [effect.confirmed], external_effects: none, retryable: false}
+  - {from: DISPATCHED, event: postcondition_failed, to: UNKNOWN, guards: [], writes: [effect.state], emits: [effect.unknown], external_effects: none, retryable: false}
+  - {from: UNKNOWN, event: reconcile, to: CONFIRMED, guards: [provider_lookup_confirms_occurrence], writes: [effect.state, effect.reconciliation, receipt.row, reservation.settled], emits: [effect.confirmed], external_effects: none, retryable: false}
+  - {from: UNKNOWN, event: reconcile, to: NOT_OCCURRED, guards: [provider_lookup_establishes_non_occurrence], writes: [effect.state, effect.reconciliation], emits: [effect.not_occurred], external_effects: none, retryable: true}
+  - {from: UNKNOWN, event: reconcile, to: CONFLICT, guards: [provider_state_conflicts_with_expected], writes: [effect.state, effect.reconciliation], emits: [effect.conflict], external_effects: none, retryable: false}
+  - {from: UNKNOWN, event: reconcile, to: NEEDS_HUMAN, guards: [non_occurrence_unprovable_and_retry_class_forbids], writes: [effect.state, effect.reconciliation], emits: [effect.needs_human], external_effects: none, retryable: false}
+  - {from: UNKNOWN, event: reconcile, to: UNKNOWN, guards: [still_uncertain_within_reconcile_budget], writes: [effect.reconciliation], emits: [effect.still_unknown], external_effects: none, retryable: true}
+  - {from: NOT_OCCURRED, event: requeue, to: RESERVED, guards: [retry_class_permits, attempts_remaining, authority_current_not_revoked], writes: [effect.state], emits: [effect.requeued], external_effects: none, retryable: true}
+  - {from: NOT_OCCURRED, event: give_up, to: FAILED_FINAL, guards: [attempts_exhausted_or_retry_forbidden], writes: [effect.state, effect.reason, reservation.released], emits: [effect.failed], external_effects: none, retryable: false}
+  - {from: CONFLICT, event: human_resolution, to: NEEDS_HUMAN, guards: [], writes: [effect.state], emits: [effect.needs_human], external_effects: none, retryable: false}
+  - {from: NEEDS_HUMAN, event: human_confirms_occurred, to: CONFIRMED, guards: [resolver_authorized, resolution_recorded], writes: [effect.state, effect.reconciliation, reservation.settled], emits: [effect.confirmed], external_effects: none, retryable: false}
+  - {from: NEEDS_HUMAN, event: human_confirms_absent, to: NOT_OCCURRED, guards: [resolver_authorized, resolution_recorded], writes: [effect.state, effect.reconciliation], emits: [effect.not_occurred], external_effects: none, retryable: true}
+  - {from: RESERVED, event: cancel, to: CANCELLED, guards: [cancel_or_revocation_recorded], writes: [effect.state, effect.reason, reservation.released], emits: [effect.cancelled], external_effects: none, retryable: false}
+  - {from: DISPATCHING, event: cancel, to: CANCEL_REQUESTED, guards: [cancel_or_revocation_recorded], writes: [effect.state, effect.reason], emits: [effect.cancel_requested], external_effects: provider_cancel_attempted, retryable: true}
+  - {from: CANCEL_REQUESTED, event: provider_accepted, to: DISPATCHED, guards: [receipt_recorded], writes: [effect.state, receipt.row], emits: [effect.dispatched_after_cancel], external_effects: none, retryable: false}
+  - {from: CANCEL_REQUESTED, event: provider_rejected, to: CANCELLED, guards: [], writes: [effect.state, reservation.released], emits: [effect.cancelled], external_effects: none, retryable: false}
+  - {from: CANCEL_REQUESTED, event: ambiguous, to: UNKNOWN, guards: [], writes: [effect.state], emits: [effect.unknown], external_effects: none, retryable: false}
+  - {from: RESERVED, event: supersede, to: SUPERSEDED, guards: [supersession_authorized, successor_intent_recorded], writes: [effect.state, effect.successor, reservation.released], emits: [effect.superseded], external_effects: none, retryable: false}
+  - {from: CONFIRMED, event: compensate, to: COMPENSATION_PENDING, guards: [compensation_authorized, compensation_class_permits], writes: [effect.state, compensation.intent_row], emits: [effect.compensation_pending], external_effects: none, retryable: true}
+  - {from: COMPENSATION_PENDING, event: compensation_confirmed, to: COMPENSATED, guards: [compensation_effect_confirmed], writes: [effect.state, effect.compensation_effect_id], emits: [effect.compensated], external_effects: none, retryable: false}
+  - {from: COMPENSATION_PENDING, event: compensation_failed, to: NEEDS_HUMAN, guards: [], writes: [effect.state, effect.reason], emits: [effect.needs_human], external_effects: none, retryable: false}

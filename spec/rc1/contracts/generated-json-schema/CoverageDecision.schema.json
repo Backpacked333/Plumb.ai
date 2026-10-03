@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "CoverageTier": {
+      "enum": [
+        "exact_template",
+        "new_composition",
+        "agent_adaptation",
+        "agent_new_capability",
+        "unsupported"
+      ],
+      "title": "CoverageTier",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/CoverageDecision.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Eligibility is decided before the outcome is known (PR-016).",
+  "properties": {
+    "criteria_version": {
+      "title": "Criteria Version",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "opportunity_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "rationale": {
+      "title": "Rationale",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "tier": {
+      "$ref": "#/$defs/CoverageTier"
+    }
+  },
+  "required": [
+    "decision_id",
+    "tenant_id",
+    "opportunity_ref",
+    "tier",
+    "criteria_version",
+    "decided_at",
+    "rationale"
+  ],
+  "title": "CoverageDecision",
+  "type": "object"
+}

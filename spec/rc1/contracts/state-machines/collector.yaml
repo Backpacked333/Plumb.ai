@@ -1,0 +1,21 @@
+machine: Collector
+aggregate: collector
+initial: PLANNED
+terminal: [RETIRED]
+states: [PLANNED, SHADOW, BACKFILLING, RECONCILING, ACTIVE, DEGRADED, PAUSED, RETIRED]
+transitions:
+  - {from: PLANNED, event: deploy_shadow, to: SHADOW, guards: [collection_spec_validated, source_grant_active, destination_provisioned], writes: [collector.state, collector.deployment_ref], emits: [collector.shadow], external_effects: subscription_or_schedule_created, retryable: true}
+  - {from: SHADOW, event: start_backfill, to: BACKFILLING, guards: [shadow_events_observed_or_source_quiet, watermark_agreed], writes: [collector.state, collector.backfill_from], emits: [collector.backfilling], external_effects: source_reads, retryable: true}
+  - {from: BACKFILLING, event: backfill_complete, to: RECONCILING, guards: [backfill_cursor_reached_live_watermark], writes: [collector.state], emits: [collector.reconciling], external_effects: none, retryable: true}
+  - {from: RECONCILING, event: reconciliation_passed, to: ACTIVE, guards: [counts_within_tolerance, sampled_identities_match, live_event_verified_end_to_end, attestation_present], writes: [collector.state, collector.activated_at], emits: [collector.active], external_effects: none, retryable: false}
+  - {from: RECONCILING, event: reconciliation_failed, to: BACKFILLING, guards: [repair_budget_remaining], writes: [collector.state, diagnostic.row], emits: [collector.rebackfill], external_effects: source_reads, retryable: true}
+  - {from: ACTIVE, event: health_breach, to: DEGRADED, guards: [freshness_or_lag_or_quarantine_breached], writes: [collector.state, collector.health], emits: [collector.degraded], external_effects: none, retryable: true}
+  - {from: DEGRADED, event: health_restored, to: ACTIVE, guards: [health_within_bounds_for_n_intervals], writes: [collector.state, collector.health], emits: [collector.recovered], external_effects: none, retryable: true}
+  - {from: ACTIVE, event: pause, to: PAUSED, guards: [pause_authorized_or_grant_revoked], writes: [collector.state, collector.reason], emits: [collector.paused], external_effects: subscription_suspended, retryable: true}
+  - {from: DEGRADED, event: pause, to: PAUSED, guards: [pause_authorized_or_grant_revoked], writes: [collector.state, collector.reason], emits: [collector.paused], external_effects: subscription_suspended, retryable: true}
+  - {from: PAUSED, event: resume, to: RECONCILING, guards: [source_grant_active, resume_authorized], writes: [collector.state], emits: [collector.resuming], external_effects: source_reads, retryable: true}
+  - {from: PLANNED, event: retire, to: RETIRED, guards: [retire_authorized], writes: [collector.state], emits: [collector.retired], external_effects: none, retryable: false}
+  - {from: SHADOW, event: retire, to: RETIRED, guards: [retire_authorized], writes: [collector.state], emits: [collector.retired], external_effects: subscription_deleted, retryable: false}
+  - {from: ACTIVE, event: retire, to: RETIRED, guards: [retire_authorized, downstream_notified], writes: [collector.state], emits: [collector.retired], external_effects: subscription_deleted, retryable: false}
+  - {from: DEGRADED, event: retire, to: RETIRED, guards: [retire_authorized, downstream_notified], writes: [collector.state], emits: [collector.retired], external_effects: subscription_deleted, retryable: false}
+  - {from: PAUSED, event: retire, to: RETIRED, guards: [retire_authorized, downstream_notified], writes: [collector.state], emits: [collector.retired], external_effects: subscription_deleted, retryable: false}

@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "MetricEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "denominator": {
+          "description": "cases behind the estimate",
+          "minimum": 0,
+          "title": "Denominator",
+          "type": "integer"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "point": {
+          "title": "Point",
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "point",
+        "low",
+        "high",
+        "denominator",
+        "method"
+      ],
+      "title": "MetricEstimate",
+      "type": "object"
+    },
+    "OpportunityRoute": {
+      "enum": [
+        "friction",
+        "unmet_obligation",
+        "new_capability"
+      ],
+      "title": "OpportunityRoute",
+      "type": "string"
+    },
+    "OpportunityStatus": {
+      "enum": [
+        "hypothesis",
+        "evidenced",
+        "objective_accepted",
+        "infeasible",
+        "no_beneficial_intervention",
+        "superseded",
+        "retired"
+      ],
+      "title": "OpportunityStatus",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/OpportunitySpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "baseline": {
+      "items": {
+        "$ref": "#/$defs/MetricEstimate"
+      },
+      "title": "Baseline",
+      "type": "array"
+    },
+    "credible_alternatives": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Credible Alternatives",
+      "type": "array"
+    },
+    "evidence_coverage": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Evidence Coverage",
+      "type": "number"
+    },
+    "evidence_packet_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "expected_benefit": {
+      "items": {
+        "$ref": "#/$defs/MetricEstimate"
+      },
+      "title": "Expected Benefit",
+      "type": "array"
+    },
+    "expected_downside": {
+      "title": "Expected Downside",
+      "type": "string"
+    },
+    "expected_intervention": {
+      "title": "Expected Intervention",
+      "type": "string"
+    },
+    "falsifiers": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Falsifiers",
+      "type": "array"
+    },
+    "hard_constraints": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Hard Constraints",
+      "type": "array"
+    },
+    "hypothesis": {
+      "title": "Hypothesis",
+      "type": "string"
+    },
+    "known_exceptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Exceptions",
+      "type": "array"
+    },
+    "measurement_plan": {
+      "title": "Measurement Plan",
+      "type": "string"
+    },
+    "objective": {
+      "title": "Objective",
+      "type": "string"
+    },
+    "objective_accepted_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "asserted: principal who accepted the objective",
+      "title": "Objective Accepted By"
+    },
+    "opportunity_id": {
+      "title": "Opportunity Id",
+      "type": "string"
+    },
+    "policy_dependencies": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Policy Dependencies",
+      "type": "array"
+    },
+    "population": {
+      "description": "query over business objects defining eligible cases",
+      "title": "Population",
+      "type": "string"
+    },
+    "review_burden": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MetricEstimate"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "route": {
+      "$ref": "#/$defs/OpportunityRoute"
+    },
+    "status": {
+      "$ref": "#/$defs/OpportunityStatus",
+      "default": "hypothesis"
+    },
+    "suspected_bottleneck": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suspected Bottleneck"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "opportunity_id",
+    "tenant_id",
+    "route",
+    "objective",
+    "population",
+    "baseline",
+    "hypothesis",
+    "evidence_packet_ref",
+    "evidence_coverage",
+    "expected_intervention",
+    "expected_benefit",
+    "expected_downside",
+    "falsifiers",
+    "measurement_plan"
+  ],
+  "title": "OpportunitySpec",
+  "type": "object"
+}

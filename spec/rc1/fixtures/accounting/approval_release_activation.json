@@ -1,0 +1,25 @@
+{
+  "approval_id": "apr_release_doc_intake_v1",
+  "approver_principal_id": "prn_owner_01",
+  "bound_digests": [
+    "sha256:72984f891671f748eb41fafc429140f914be599ac4c0265415f81b3d3177bed8"
+  ],
+  "decided_at": "2026-10-03T12:00:00+00:00",
+  "decision": "granted",
+  "expires_at": "2027-04-01T00:00:00+00:00",
+  "kind": "release_activation",
+  "nonce": "nonce_8f1c2d",
+  "policy_version": "pol-2026-10",
+  "prerequisite_state": {
+    "release_state": "VERIFIED"
+  },
+  "requested_at": "2026-10-03T12:00:00+00:00",
+  "scope": {
+    "environments": [
+      "canary",
+      "production"
+    ]
+  },
+  "status": "GRANTED",
+  "tenant_id": "tnt_barlowkim"
+}

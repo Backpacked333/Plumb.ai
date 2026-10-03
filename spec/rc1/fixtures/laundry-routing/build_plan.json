@@ -1,0 +1,245 @@
+{
+  "envelope_ref": {
+    "digest": "sha256:a810f97e0dee72f9dec0083eba8a5ada73fa91f718bf032e509314a9b50c0e50",
+    "id": "env_freshpress_v1",
+    "object_type": "AutonomyEnvelope"
+  },
+  "plan_id": "plan_freshpress_route_prep_v1",
+  "solution_ref": {
+    "digest": "sha256:6e8477a89719dec65f22014bb5a1ae8200ec62f469456cd699d576ecf10d2c50",
+    "id": "sol_route_prep_v1",
+    "object_type": "SolutionSpec"
+  },
+  "steps": [
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [
+        {
+          "digest": "sha256:0a139fa88b379ad87572195fb51886c4f7b075fe93ee31cfa470b897bcbc889c",
+          "id": "inv_freshpress_2026_10",
+          "object_type": "EnvironmentInventory"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "discovery",
+        "implementation"
+      ],
+      "required_capabilities": [
+        "cleancloud:orders.list"
+      ],
+      "step_id": "step_probe_orders",
+      "timeout_s": 1800,
+      "type": "probe_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "native_undo",
+      "depends_on": [
+        "step_probe_orders"
+      ],
+      "destinations": [
+        "storage:tenant:freshpress"
+      ],
+      "effect_class": "config_change",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [
+        {
+          "name": "stop_durations",
+          "scope": "sam-org-310",
+          "semantic_type": "duration",
+          "unit": "s"
+        }
+      ],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:collector.deploy",
+        "samsara:trips.list"
+      ],
+      "step_id": "step_collector_trips",
+      "timeout_s": 1800,
+      "type": "deploy_collector",
+      "verification": [
+        {
+          "check_id": "chk_collector_live_event_v1",
+          "criteria_version": "1"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 4000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_collector_trips"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [
+        {
+          "name": "stop_durations",
+          "scope": "sam-org-310",
+          "semantic_type": "duration",
+          "unit": "s"
+        }
+      ],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "notes": "constraint satisfaction on last 8 weeks of actual stops; hard constraints: vehicle capacity, store windows, driver shifts",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "evaluation"
+      ],
+      "required_capabilities": [
+        "plumb:solver.vrp"
+      ],
+      "step_id": "step_solver_config",
+      "timeout_s": 1800,
+      "type": "run_experiment",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_solver_config"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:workflow.compile"
+      ],
+      "step_id": "step_compile_workflow",
+      "timeout_s": 1800,
+      "type": "compile_workflow",
+      "verification": [
+        {
+          "check_id": "chk_workflow_scenarios_v1",
+          "criteria_version": "1",
+          "data_role": "protected_acceptance"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_compile_workflow"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "production_observed",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:verifier.request"
+      ],
+      "step_id": "step_request_verification",
+      "timeout_s": 1800,
+      "type": "request_verification",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_request_verification"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:release.create"
+      ],
+      "step_id": "step_create_release",
+      "timeout_s": 1800,
+      "type": "create_release",
+      "verification": [
+        {
+          "check_id": "chk_release_manifest_v1",
+          "criteria_version": "1"
+        }
+      ]
+    }
+  ],
+  "tenant_id": "tnt_freshpress",
+  "total_budget_max": {
+    "currency": "USD",
+    "minor_units": 30000
+  }
+}

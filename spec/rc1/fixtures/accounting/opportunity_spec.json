@@ -1,0 +1,70 @@
+{
+  "baseline": [
+    {
+      "denominator": 412,
+      "high": 0.38,
+      "low": 0.24,
+      "method": "email thread and call log backfill, 12 months",
+      "name": "duplicate_requests_per_obligation",
+      "point": 0.31,
+      "unit": "count"
+    }
+  ],
+  "credible_alternatives": [
+    "practice management auto-reminders only",
+    "do nothing"
+  ],
+  "evidence_coverage": 0.83,
+  "evidence_packet_ref": {
+    "digest": "sha256:19a973c6d947569f283038d8d6a19a1dc69f04e8d17249de91d07fbed9a09b5c",
+    "id": "pkt_doc_chase_evidence",
+    "object_type": "EvidencePacket"
+  },
+  "expected_benefit": [
+    {
+      "denominator": 412,
+      "high": 0.12,
+      "low": 0.0,
+      "method": "counterfactual on backfill; prospective cohort confirms",
+      "name": "duplicate_requests_per_obligation",
+      "point": 0.05,
+      "unit": "count"
+    }
+  ],
+  "expected_downside": "a wrong client/period mapping sends a request about the wrong period; mitigated by approved identities and send review",
+  "expected_intervention": "consolidated missing-item request drafted from reconciled evidence, one owner per obligation",
+  "falsifiers": [
+    "duplicate requests persist after shared presence view",
+    "partners confirm second reminders are intentional controls"
+  ],
+  "hard_constraints": [
+    "no ledger posting",
+    "no commitments in client messages"
+  ],
+  "hypothesis": "Requests are duplicated because document presence in Drive and the ledger is not visible to the person sending reminders",
+  "known_exceptions": [
+    "a second reminder by a partner is sometimes an intentional escalation"
+  ],
+  "measurement_plan": "prospective: duplicate requests per obligation and review minutes per case over 2 periods, cohort by client",
+  "objective": "Stop chasing clients twice for the same document and shorten review-package preparation",
+  "objective_accepted_by": "prn_owner_01",
+  "opportunity_id": "opp_doc_chase_01",
+  "policy_dependencies": [
+    "authoritative engagement checklist owner",
+    "reminder cadence policy"
+  ],
+  "population": "obligations where fulfillment_predicate = 'bank_statement_received' AND period >= 2026-01",
+  "review_burden": {
+    "denominator": 0,
+    "high": 8.0,
+    "low": 2.0,
+    "method": "estimate, to be measured prospectively",
+    "name": "review_minutes_per_case",
+    "point": 4.0,
+    "unit": "minutes"
+  },
+  "route": "friction",
+  "status": "objective_accepted",
+  "suspected_bottleneck": "no shared view of document presence across Drive, email and the ledger",
+  "tenant_id": "tnt_barlowkim"
+}

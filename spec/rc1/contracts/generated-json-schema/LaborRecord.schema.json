@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "LaborCategory": {
+      "enum": [
+        "customer_authorization",
+        "domain_clarification",
+        "business_review",
+        "engineering_intervention",
+        "operational_repair",
+        "platform_engineering"
+      ],
+      "title": "LaborCategory",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/LaborRecord.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actor_role": {
+      "title": "Actor Role",
+      "type": "string"
+    },
+    "build_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Build Id"
+    },
+    "case_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ref"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "category": {
+      "$ref": "#/$defs/LaborCategory"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "minutes": {
+      "minimum": 0,
+      "title": "Minutes",
+      "type": "number"
+    },
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "tenant_id",
+    "category",
+    "actor_role",
+    "minutes",
+    "description",
+    "recorded_at"
+  ],
+  "title": "LaborRecord",
+  "type": "object"
+}

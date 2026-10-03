@@ -1,0 +1,190 @@
+{
+  "$defs": {
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "TrainingState": {
+      "enum": [
+        "PLANNED",
+        "SUBMITTED",
+        "SUBMISSION_UNKNOWN",
+        "RUNNING",
+        "CANDIDATE",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "TrainingState",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/TrainingSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "base_model": {
+      "title": "Base Model",
+      "type": "string"
+    },
+    "data_handling_constraints": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Data Handling Constraints",
+      "type": "array"
+    },
+    "dataset_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "evaluation_plan_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "method": {
+      "title": "Method",
+      "type": "string"
+    },
+    "objective": {
+      "title": "Objective",
+      "type": "string"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "provider_job_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provider Job Id"
+    },
+    "region": {
+      "title": "Region",
+      "type": "string"
+    },
+    "resource_limits": {
+      "additionalProperties": true,
+      "title": "Resource Limits",
+      "type": "object"
+    },
+    "spend_max": {
+      "$ref": "#/$defs/MoneyAmount"
+    },
+    "status": {
+      "$ref": "#/$defs/TrainingState",
+      "default": "PLANNED"
+    },
+    "stopping_condition": {
+      "title": "Stopping Condition",
+      "type": "string"
+    },
+    "submission_identity": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "platform: persisted before provider call (SR-072)",
+      "title": "Submission Identity"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "training_id": {
+      "title": "Training Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "training_id",
+    "tenant_id",
+    "dataset_ref",
+    "base_model",
+    "method",
+    "provider",
+    "region",
+    "objective",
+    "resource_limits",
+    "spend_max",
+    "stopping_condition",
+    "data_handling_constraints",
+    "evaluation_plan_ref"
+  ],
+  "title": "TrainingSpec",
+  "type": "object"
+}

@@ -1,0 +1,65 @@
+{
+  "components": {
+    "collector_docs": {
+      "digest": "sha256:dc1381ad393ad7c139c03d33ea62d30ed2552291195e9fb2f20b4ea69a96ad43",
+      "id": "col_docs_v1",
+      "object_type": "CollectionSpec"
+    },
+    "collector_qbo": {
+      "digest": "sha256:9cfe49afa6130b5a199e02efd2ddc42c3e08315e39919d684f5af6b28082f276",
+      "id": "col_qbo_v1",
+      "object_type": "CollectionSpec"
+    },
+    "connector_drive": {
+      "digest": "sha256:14958ae85e0e76303ad72433d656592023671e1f38bd2b50e49f0c2a60adf34d",
+      "id": "int_drive_folder_map_v1",
+      "object_type": "IntegrationSpec"
+    },
+    "infra": {
+      "digest": "sha256:a5c82eaabc205f7ac46b5ed01e18438a4ecbbccb2f927f48012880867c52bdfe",
+      "id": "infra_doc_intake_v1",
+      "object_type": "InfrastructurePlan"
+    },
+    "policies": {
+      "digest": "sha256:7fe48e0a6eb335e75430b9568ee6a7fc815971e2e26c18749897c9413d5b86ad",
+      "id": "pol-2026-10",
+      "object_type": "PolicySnapshot"
+    },
+    "prompts": {
+      "digest": "sha256:afa5cc663b38adcb526874dc136a65c7be11b85cb9b684767a0a460ca2501a1e",
+      "id": "prompts_request_v1",
+      "object_type": "PromptSet"
+    },
+    "rules": {
+      "id": "rules_checklist_v1",
+      "object_type": "RuleSet"
+    },
+    "workflow": {
+      "digest": "sha256:65961f4e8354450029cc0f53a29c2e753b5d151c118f7199718340c56f285c1d",
+      "id": "wf_barlowkim_doc_intake_v1",
+      "object_type": "WorkflowSpec"
+    }
+  },
+  "policy_version": "pol-2026-10",
+  "release_id": "rel_doc_intake_v1",
+  "required_checks": [
+    "chk_adapter_contract_v1",
+    "chk_collector_live_event_v1",
+    "chk_backfill_reconciliation_v1",
+    "chk_workflow_scenarios_v1",
+    "chk_release_manifest_v1",
+    "chk_gateway_adversarial_v1"
+  ],
+  "rollout": {
+    "canary_clients": 5,
+    "canary_min_opportunities": 25,
+    "shadow_divergence_max": 0.03,
+    "shadow_min_opportunities": 40
+  },
+  "schema_versions": {
+    "case": "1.0",
+    "event": "1.0"
+  },
+  "status": "CANDIDATE",
+  "tenant_id": "tnt_barlowkim"
+}

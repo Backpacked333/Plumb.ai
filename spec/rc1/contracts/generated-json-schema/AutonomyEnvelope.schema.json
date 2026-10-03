@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "EffectClass": {
+      "enum": [
+        "none",
+        "internal",
+        "external_message",
+        "external_record_write",
+        "external_payment",
+        "config_change",
+        "infra_change"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "EscalationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "description": "named condition from spec/authority-and-verification.md",
+          "title": "Condition",
+          "type": "string"
+        },
+        "deadline_hours": {
+          "minimum": 1,
+          "title": "Deadline Hours",
+          "type": "integer"
+        },
+        "route_to": {
+          "description": "principal id or role",
+          "title": "Route To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition",
+        "route_to",
+        "deadline_hours"
+      ],
+      "title": "EscalationRule",
+      "type": "object"
+    },
+    "ImpactClass": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "ImpactClass",
+      "type": "string"
+    },
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "SolutionClass": {
+      "enum": [
+        "remove_step",
+        "native_configuration",
+        "deterministic_rules",
+        "classical_model",
+        "general_model_workflow",
+        "retrieval",
+        "specialist_api",
+        "optimizer",
+        "trained_component",
+        "do_nothing"
+      ],
+      "title": "SolutionClass",
+      "type": "string"
+    },
+    "SpendCaps": {
+      "additionalProperties": false,
+      "properties": {
+        "build_max": {
+          "$ref": "#/$defs/MoneyAmount"
+        },
+        "monthly_operation_max": {
+          "$ref": "#/$defs/MoneyAmount"
+        },
+        "single_action_max": {
+          "$ref": "#/$defs/MoneyAmount"
+        }
+      },
+      "required": [
+        "build_max",
+        "monthly_operation_max",
+        "single_action_max"
+      ],
+      "title": "SpendCaps",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/AutonomyEnvelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Standing implementation and operation authority (layer 2). Versioned; a derived task cannot widen it.",
+  "properties": {
+    "approval_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "detached approval binding this version",
+      "title": "Approval Id"
+    },
+    "destinations_allowed": {
+      "description": "destination patterns, e.g. mailbox:client_contacts, provider:quickbooks:realm_123",
+      "items": {
+        "type": "string"
+      },
+      "title": "Destinations Allowed",
+      "type": "array"
+    },
+    "effect_classes_allowed": {
+      "items": {
+        "$ref": "#/$defs/EffectClass"
+      },
+      "title": "Effect Classes Allowed",
+      "type": "array"
+    },
+    "envelope_id": {
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "environments": {
+      "items": {
+        "enum": [
+          "sandbox",
+          "shadow",
+          "canary",
+          "production"
+        ],
+        "type": "string"
+      },
+      "title": "Environments",
+      "type": "array"
+    },
+    "escalation": {
+      "items": {
+        "$ref": "#/$defs/EscalationRule"
+      },
+      "title": "Escalation",
+      "type": "array"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "goals": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Goals",
+      "type": "array"
+    },
+    "intervention_classes_allowed": {
+      "items": {
+        "$ref": "#/$defs/SolutionClass"
+      },
+      "title": "Intervention Classes Allowed",
+      "type": "array"
+    },
+    "max_auto_impact": {
+      "$ref": "#/$defs/ImpactClass",
+      "description": "highest impact class deployable without a release approval"
+    },
+    "owner_principal_id": {
+      "title": "Owner Principal Id",
+      "type": "string"
+    },
+    "processors_allowed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Processors Allowed",
+      "type": "array"
+    },
+    "regions_allowed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Regions Allowed",
+      "type": "array"
+    },
+    "source_grant_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Grant Ids",
+      "type": "array"
+    },
+    "spend": {
+      "$ref": "#/$defs/SpendCaps"
+    },
+    "status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "active",
+        "expired",
+        "revoked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "envelope_id",
+    "tenant_id",
+    "version",
+    "owner_principal_id",
+    "goals",
+    "source_grant_ids",
+    "processors_allowed",
+    "regions_allowed",
+    "destinations_allowed",
+    "effect_classes_allowed",
+    "max_auto_impact",
+    "intervention_classes_allowed",
+    "environments",
+    "spend",
+    "expires_at",
+    "escalation"
+  ],
+  "title": "AutonomyEnvelope",
+  "type": "object"
+}

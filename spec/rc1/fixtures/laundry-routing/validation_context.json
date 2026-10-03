@@ -1,0 +1,206 @@
+{
+  "approval_obligations": [
+    "step_collector_trips"
+  ],
+  "artifacts": {
+    "env_freshpress_v1": {
+      "digest": "sha256:a810f97e0dee72f9dec0083eba8a5ada73fa91f718bf032e509314a9b50c0e50",
+      "kind": "AutonomyEnvelope",
+      "tenant_id": "tnt_freshpress"
+    },
+    "inv_freshpress_2026_10": {
+      "digest": "sha256:0a139fa88b379ad87572195fb51886c4f7b075fe93ee31cfa470b897bcbc889c",
+      "kind": "EnvironmentInventory",
+      "tenant_id": "tnt_freshpress"
+    },
+    "sol_route_prep_v1": {
+      "digest": "sha256:6e8477a89719dec65f22014bb5a1ae8200ec62f469456cd699d576ecf10d2c50",
+      "impact_class": "low",
+      "kind": "SolutionSpec",
+      "tenant_id": "tnt_freshpress"
+    }
+  },
+  "capabilities": {
+    "cleancloud:orders.list": {
+      "account_ref": "cc-store-group-77",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "account_verified"
+    },
+    "plumb:collector.deploy": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "production_observed"
+    },
+    "plumb:release.create": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "production_observed"
+    },
+    "plumb:solver.vrp": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "production_observed"
+    },
+    "plumb:verifier.request": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "production_observed"
+    },
+    "plumb:workflow.compile": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "production_observed"
+    },
+    "samsara:trips.list": {
+      "account_ref": "sam-org-310",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "sandbox_tested"
+    },
+    "samsara:vehicles.list": {
+      "account_ref": "sam-org-310",
+      "tenant_id": "tnt_freshpress",
+      "verification_level": "account_verified"
+    }
+  },
+  "envelope": {
+    "approval_id": "apr_env_v3",
+    "destinations_allowed": [
+      "mailbox:client_contacts:*",
+      "provider:quickbooks:realm_4011*",
+      "storage:tenant:*",
+      "provider:cleancloud:cc-store-group-77*"
+    ],
+    "effect_classes_allowed": [
+      "none",
+      "internal",
+      "external_message",
+      "config_change",
+      "infra_change"
+    ],
+    "envelope_id": "env_freshpress_v1",
+    "environments": [
+      "sandbox",
+      "shadow",
+      "canary",
+      "production"
+    ],
+    "escalation": [
+      {
+        "condition": "new_processor_required",
+        "deadline_hours": 72,
+        "route_to": "prn_owner_01"
+      }
+    ],
+    "expires_at": "2027-04-01T00:00:00+00:00",
+    "goals": [
+      "Reduce duplicate document chasing and accountant review time for monthly close"
+    ],
+    "intervention_classes_allowed": [
+      "remove_step",
+      "native_configuration",
+      "deterministic_rules",
+      "classical_model",
+      "general_model_workflow",
+      "retrieval",
+      "specialist_api",
+      "trained_component",
+      "optimizer"
+    ],
+    "max_auto_impact": "low",
+    "owner_principal_id": "prn_owner_01",
+    "processors_allowed": [
+      "plumb:control",
+      "openai:api:zdr",
+      "anthropic:api:zdr"
+    ],
+    "regions_allowed": [
+      "us-east-1"
+    ],
+    "source_grant_ids": [
+      "grant_orders",
+      "grant_fleet"
+    ],
+    "spend": {
+      "build_max": {
+        "currency": "USD",
+        "minor_units": 250000
+      },
+      "monthly_operation_max": {
+        "currency": "USD",
+        "minor_units": 150000
+      },
+      "single_action_max": {
+        "currency": "USD",
+        "minor_units": 500
+      }
+    },
+    "status": "active",
+    "tenant_id": "tnt_freshpress",
+    "version": 3
+  },
+  "grants": {
+    "grant_fleet": {
+      "account_ref": "sam-org-310",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_fleet",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "samsara",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_freshpress",
+      "terms_version": "samsara-terms-2026-01"
+    },
+    "grant_orders": {
+      "account_ref": "cc-store-group-77",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_orders",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "cleancloud",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_freshpress",
+      "terms_version": "cleancloud-terms-2026-01"
+    }
+  },
+  "tenant_id": "tnt_freshpress"
+}

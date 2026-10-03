@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "ReleaseState": {
+      "enum": [
+        "CANDIDATE",
+        "VERIFIED",
+        "APPROVED",
+        "SHADOW",
+        "CANARY",
+        "ACTIVE",
+        "PAUSED",
+        "ROLLED_BACK",
+        "RETIRED"
+      ],
+      "title": "ReleaseState",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/ReleaseManifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "components": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Ref"
+      },
+      "description": "kind -> ref with digest: workflow, connectors, collectors, models, prompts, rules, schemas, policies, infra",
+      "title": "Components",
+      "type": "object"
+    },
+    "manifest_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "platform: computed over canonical bytes excluding approvals",
+      "title": "Manifest Digest"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "release_id": {
+      "title": "Release Id",
+      "type": "string"
+    },
+    "required_checks": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Checks",
+      "type": "array"
+    },
+    "rollout": {
+      "additionalProperties": true,
+      "title": "Rollout",
+      "type": "object"
+    },
+    "schema_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Schema Versions",
+      "type": "object"
+    },
+    "status": {
+      "$ref": "#/$defs/ReleaseState",
+      "default": "CANDIDATE"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "release_id",
+    "tenant_id",
+    "components",
+    "required_checks",
+    "schema_versions",
+    "policy_version",
+    "rollout"
+  ],
+  "title": "ReleaseManifest",
+  "type": "object"
+}

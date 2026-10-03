@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/FailureDiagnostic.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt_no": {
+      "title": "Attempt No",
+      "type": "integer"
+    },
+    "change_made": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Change Made"
+    },
+    "diagnostic_id": {
+      "title": "Diagnostic Id",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "failure_class": {
+      "enum": [
+        "transient_infrastructure",
+        "implementation_defect",
+        "semantic_uncertainty",
+        "missing_authorization",
+        "missing_business_judgment",
+        "unsupported_capability",
+        "exhausted_resources",
+        "source_schema_change",
+        "poor_model_quality"
+      ],
+      "title": "Failure Class",
+      "type": "string"
+    },
+    "hypothesis": {
+      "title": "Hypothesis",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tests_to_rerun": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tests To Rerun",
+      "type": "array"
+    }
+  },
+  "required": [
+    "diagnostic_id",
+    "task_id",
+    "attempt_no",
+    "failure_class",
+    "hypothesis"
+  ],
+  "title": "FailureDiagnostic",
+  "type": "object"
+}

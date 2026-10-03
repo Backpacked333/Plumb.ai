@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "CheckOutcome": {
+      "enum": [
+        "pass",
+        "pass_with_limitations",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "CheckOutcome",
+      "type": "string"
+    },
+    "DataRole": {
+      "enum": [
+        "training",
+        "development",
+        "calibration",
+        "regression",
+        "protected_acceptance",
+        "prospective_monitoring"
+      ],
+      "title": "DataRole",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/VerificationAttestation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "account_scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Account Scope",
+      "type": "array"
+    },
+    "artifact_digests": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Artifact Digests",
+      "type": "array"
+    },
+    "attestation_id": {
+      "title": "Attestation Id",
+      "type": "string"
+    },
+    "check_id": {
+      "title": "Check Id",
+      "type": "string"
+    },
+    "check_version": {
+      "title": "Check Version",
+      "type": "string"
+    },
+    "criteria_version": {
+      "title": "Criteria Version",
+      "type": "string"
+    },
+    "data_role": {
+      "$ref": "#/$defs/DataRole"
+    },
+    "environment": {
+      "title": "Environment",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "input_digests": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Input Digests",
+      "type": "array"
+    },
+    "invalidation_conditions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Invalidation Conditions",
+      "type": "array"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "outcome": {
+      "$ref": "#/$defs/CheckOutcome"
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "detached signature over canonical bytes",
+      "title": "Signature"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "verifier_identity": {
+      "description": "platform: verifier service identity, never the builder",
+      "title": "Verifier Identity",
+      "type": "string"
+    }
+  },
+  "required": [
+    "attestation_id",
+    "tenant_id",
+    "check_id",
+    "check_version",
+    "criteria_version",
+    "artifact_digests",
+    "environment",
+    "data_role",
+    "outcome",
+    "verifier_identity",
+    "issued_at"
+  ],
+  "title": "VerificationAttestation",
+  "type": "object"
+}

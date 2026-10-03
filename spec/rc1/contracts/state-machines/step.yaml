@@ -1,0 +1,23 @@
+machine: BuildStep
+aggregate: step
+initial: PENDING
+terminal: [VERIFIED, FAILED, CANCELLED]
+states: [PENDING, READY, RUNNING, RECONCILING, VERIFYING, VERIFIED, FAILED, BLOCKED, CANCELLED]
+transitions:
+  - {from: PENDING, event: deps_verified, to: READY, guards: [all_dependencies_verified], writes: [step.state], emits: [step.ready], external_effects: none, retryable: true}
+  - {from: READY, event: lease_acquired, to: RUNNING, guards: [lease_cas_succeeded, budget_reserved_for_attempt, attempts_remaining, capability_grant_issued], writes: [step.state, step.attempt_no, lease.row, reservation.row, outbox.dispatch], emits: [step.started], external_effects: none, retryable: true}
+  - {from: RUNNING, event: result_committed, to: VERIFYING, guards: [fencing_token_current, result_digests_present], writes: [step.state, step.result_ref], emits: [step.result_committed], external_effects: none, retryable: false}
+  - {from: RUNNING, event: lease_expired, to: RECONCILING, guards: [], writes: [step.state, lease.expired], emits: [step.lease_expired], external_effects: none, retryable: true}
+  - {from: RECONCILING, event: effects_reconciled, to: READY, guards: [no_unknown_effects_outstanding, attempts_remaining], writes: [step.state], emits: [step.requeued], external_effects: none, retryable: true}
+  - {from: RECONCILING, event: effects_reconciled, to: FAILED, guards: [no_unknown_effects_outstanding, attempts_exhausted], writes: [step.state, step.reason], emits: [step.failed], external_effects: none, retryable: false}
+  - {from: RUNNING, event: dependency_raised, to: BLOCKED, guards: [dependency_recorded], writes: [step.state, dependency.open, reservation.released], emits: [step.blocked], external_effects: none, retryable: true}
+  - {from: BLOCKED, event: dependency_resolved, to: READY, guards: [dependency_resolved_by_authorized_role], writes: [step.state], emits: [step.unblocked], external_effects: none, retryable: true}
+  - {from: VERIFYING, event: attestation_accepted, to: VERIFIED, guards: [attestation_matches_result_digests, attestation_from_verifier_identity], writes: [step.state, step.verified_at, reservation.settled], emits: [step.verified], external_effects: none, retryable: false}
+  - {from: VERIFYING, event: attestation_failed, to: READY, guards: [attempts_remaining, diagnostic_recorded], writes: [step.state, diagnostic.row, workspace.restore], emits: [step.repair_requeued], external_effects: none, retryable: true}
+  - {from: VERIFYING, event: attestation_failed, to: FAILED, guards: [attempts_exhausted, diagnostic_recorded], writes: [step.state, step.reason], emits: [step.failed], external_effects: none, retryable: false}
+  - {from: RUNNING, event: worker_failure, to: READY, guards: [failure_class_retryable, attempts_remaining, no_unknown_effects_outstanding], writes: [step.state, diagnostic.row], emits: [step.requeued], external_effects: none, retryable: true}
+  - {from: RUNNING, event: worker_failure, to: FAILED, guards: [failure_class_terminal_or_attempts_exhausted, no_unknown_effects_outstanding], writes: [step.state, step.reason, diagnostic.row], emits: [step.failed], external_effects: none, retryable: false}
+  - {from: PENDING, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [step.state], emits: [step.cancelled], external_effects: none, retryable: false}
+  - {from: READY, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [step.state], emits: [step.cancelled], external_effects: none, retryable: false}
+  - {from: RUNNING, event: cancel, to: CANCELLED, guards: [cancel_authorized, no_unknown_effects_outstanding], writes: [step.state, reservation.released], emits: [step.cancelled], external_effects: sandbox_cleanup, retryable: false}
+  - {from: BLOCKED, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [step.state], emits: [step.cancelled], external_effects: none, retryable: false}

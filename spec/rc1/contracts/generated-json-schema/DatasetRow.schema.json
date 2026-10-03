@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "LabelAuthority": {
+      "enum": [
+        "historical_decision",
+        "reviewed_approval",
+        "expert_adjudicated",
+        "correction",
+        "preference",
+        "behavioral_response",
+        "business_outcome",
+        "model_generated"
+      ],
+      "title": "LabelAuthority",
+      "type": "string"
+    },
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/DatasetRow.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allowed_purposes": {
+      "items": {
+        "$ref": "#/$defs/Purpose"
+      },
+      "title": "Allowed Purposes",
+      "type": "array"
+    },
+    "decision_time": {
+      "format": "date-time",
+      "title": "Decision Time",
+      "type": "string"
+    },
+    "example_id": {
+      "title": "Example Id",
+      "type": "string"
+    },
+    "exclusion_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Exclusion Reason"
+    },
+    "family_id": {
+      "title": "Family Id",
+      "type": "string"
+    },
+    "inclusion_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inclusion Reason"
+    },
+    "input_snapshot_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Input Snapshot Refs",
+      "type": "array"
+    },
+    "label_authority": {
+      "$ref": "#/$defs/LabelAuthority"
+    },
+    "label_status": {
+      "enum": [
+        "provisional",
+        "mature",
+        "amended",
+        "disputed"
+      ],
+      "title": "Label Status",
+      "type": "string"
+    },
+    "permission_compartment": {
+      "title": "Permission Compartment",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "source_availability_evidence": {
+      "$ref": "#/$defs/Ref"
+    },
+    "target_evidence": {
+      "$ref": "#/$defs/Ref"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transformation_version": {
+      "title": "Transformation Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "example_id",
+    "family_id",
+    "tenant_id",
+    "permission_compartment",
+    "input_snapshot_refs",
+    "decision_time",
+    "source_availability_evidence",
+    "target_evidence",
+    "label_authority",
+    "label_status",
+    "policy_version",
+    "transformation_version",
+    "allowed_purposes"
+  ],
+  "title": "DatasetRow",
+  "type": "object"
+}

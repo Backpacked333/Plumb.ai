@@ -1,0 +1,264 @@
+{
+  "actions": [
+    {
+      "action_id": "act_send_request",
+      "compensation_class": "irreversible",
+      "effect_class": "external_message",
+      "operation_id": "google_workspace:gmail.messages.send",
+      "per_recipient_budget": 3,
+      "recipient_scope": "client_contacts",
+      "requires_case_approval": false,
+      "retry_class": "provider_keyed",
+      "template_class": "document_request_v1"
+    }
+  ],
+  "bounded_loops": {
+    "reminder_loop": 3
+  },
+  "case_key_fields": [
+    "client_id",
+    "period"
+  ],
+  "completion_predicate": "review_package_accepted",
+  "durable_waits": [
+    "WAIT_DOCUMENTS",
+    "AWAIT_SEND_REVIEW",
+    "AWAIT_SIGNOFF"
+  ],
+  "initial_state": "RESOLVE_CASE",
+  "input_ports": [
+    {
+      "name": "obligations",
+      "scope": "tnt_barlowkim",
+      "semantic_type": "record_set"
+    },
+    {
+      "name": "documents",
+      "scope": "tnt_barlowkim",
+      "semantic_type": "record_set"
+    }
+  ],
+  "max_cost_per_case": {
+    "currency": "USD",
+    "minor_units": 300
+  },
+  "review_surfaces": [
+    "gmail_draft",
+    "plumb_companion_review"
+  ],
+  "source_freshness": {
+    "google_drive": 900,
+    "google_workspace": 900,
+    "quickbooks_online": 3600
+  },
+  "states": [
+    "RESOLVE_CASE",
+    "RECONCILE_EVIDENCE",
+    "CONSOLIDATE_MISSING",
+    "REQUEST_DRAFTED",
+    "AWAIT_SEND_REVIEW",
+    "SENT",
+    "WAIT_DOCUMENTS",
+    "VALIDATE_DOCUMENTS",
+    "PREPARE_PACKAGE",
+    "AWAIT_SIGNOFF",
+    "PACKAGE_ACCEPTED",
+    "ESCALATED",
+    "CANCELLED"
+  ],
+  "tenant_id": "tnt_barlowkim",
+  "terminal_states": [
+    "PACKAGE_ACCEPTED",
+    "ESCALATED",
+    "CANCELLED"
+  ],
+  "timers": {
+    "escalation_timer": 2592000,
+    "reminder_timer": 604800
+  },
+  "transitions": [
+    {
+      "event": "case_resolved",
+      "from_state": "RESOLVE_CASE",
+      "guards": [
+        "client_and_period_resolved_to_approved_identities"
+      ],
+      "to_state": "RECONCILE_EVIDENCE"
+    },
+    {
+      "event": "evidence_reconciled",
+      "from_state": "RECONCILE_EVIDENCE",
+      "guards": [
+        "sources_fresh"
+      ],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "nothing_missing",
+      "from_state": "CONSOLIDATE_MISSING",
+      "guards": [
+        "checklist_satisfied"
+      ],
+      "to_state": "PREPARE_PACKAGE"
+    },
+    {
+      "actions": [
+        "draft_consolidated_request"
+      ],
+      "event": "items_missing",
+      "from_state": "CONSOLIDATE_MISSING",
+      "guards": [
+        "reminder_policy_permits",
+        "no_open_request_for_obligation_epoch"
+      ],
+      "to_state": "REQUEST_DRAFTED"
+    },
+    {
+      "actions": [
+        "act_send_request"
+      ],
+      "event": "policy_auto_send",
+      "from_state": "REQUEST_DRAFTED",
+      "guards": [
+        "standing_send_authority",
+        "recipient_authorized",
+        "per_recipient_budget_ok"
+      ],
+      "to_state": "SENT"
+    },
+    {
+      "event": "review_required",
+      "from_state": "REQUEST_DRAFTED",
+      "guards": [
+        "review_surface_available"
+      ],
+      "to_state": "AWAIT_SEND_REVIEW"
+    },
+    {
+      "actions": [
+        "act_send_request"
+      ],
+      "event": "approved",
+      "from_state": "AWAIT_SEND_REVIEW",
+      "guards": [
+        "approval_bound_to_draft_digest_and_case_version"
+      ],
+      "to_state": "SENT"
+    },
+    {
+      "event": "rejected",
+      "from_state": "AWAIT_SEND_REVIEW",
+      "guards": [],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "effect_confirmed",
+      "from_state": "SENT",
+      "guards": [
+        "send_effect_confirmed"
+      ],
+      "to_state": "WAIT_DOCUMENTS"
+    },
+    {
+      "event": "document_arrived",
+      "from_state": "WAIT_DOCUMENTS",
+      "guards": [
+        "event_matches_case_key"
+      ],
+      "to_state": "VALIDATE_DOCUMENTS"
+    },
+    {
+      "event": "reminder_timer",
+      "from_state": "WAIT_DOCUMENTS",
+      "guards": [
+        "reminder_loop_under_max"
+      ],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "escalation_timer",
+      "from_state": "WAIT_DOCUMENTS",
+      "guards": [
+        "reminder_loop_exhausted"
+      ],
+      "to_state": "ESCALATED"
+    },
+    {
+      "event": "valid",
+      "from_state": "VALIDATE_DOCUMENTS",
+      "guards": [
+        "document_matches_client_period",
+        "not_duplicate"
+      ],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "invalid",
+      "from_state": "VALIDATE_DOCUMENTS",
+      "guards": [
+        "invalid_reason_recorded"
+      ],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "package_ready",
+      "from_state": "PREPARE_PACKAGE",
+      "guards": [
+        "package_digest_recorded",
+        "review_surface_available"
+      ],
+      "to_state": "AWAIT_SIGNOFF"
+    },
+    {
+      "event": "accepted",
+      "from_state": "AWAIT_SIGNOFF",
+      "guards": [
+        "signoff_bound_to_package_digest"
+      ],
+      "to_state": "PACKAGE_ACCEPTED"
+    },
+    {
+      "event": "returned",
+      "from_state": "AWAIT_SIGNOFF",
+      "guards": [
+        "return_reason_recorded"
+      ],
+      "to_state": "CONSOLIDATE_MISSING"
+    },
+    {
+      "event": "evidence_changed",
+      "from_state": "AWAIT_SIGNOFF",
+      "guards": [
+        "material_change_detected"
+      ],
+      "to_state": "PREPARE_PACKAGE"
+    },
+    {
+      "event": "cancel",
+      "from_state": "RESOLVE_CASE",
+      "guards": [
+        "cancel_authorized"
+      ],
+      "to_state": "CANCELLED"
+    },
+    {
+      "event": "cancel",
+      "from_state": "WAIT_DOCUMENTS",
+      "guards": [
+        "cancel_authorized"
+      ],
+      "to_state": "CANCELLED"
+    },
+    {
+      "event": "x",
+      "from_state": "PACKAGE_ACCEPTED",
+      "to_state": "CANCELLED"
+    }
+  ],
+  "triggers": [
+    "schedule:period_start",
+    "event:document.arrived",
+    "event:obligation.reopened"
+  ],
+  "workflow_id": "wf_barlowkim_doc_intake_v1"
+}

@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/BillableUnitRecord.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "predicate": {
+      "description": "e.g. review_package_accepted; must equal the WorkflowSpec completion_predicate",
+      "title": "Predicate",
+      "type": "string"
+    },
+    "release_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "satisfied_at": {
+      "format": "date-time",
+      "title": "Satisfied At",
+      "type": "string"
+    },
+    "status": {
+      "default": "billable",
+      "enum": [
+        "billable",
+        "credited",
+        "superseded",
+        "void"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "supersedes_unit_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Unit Id"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "unit_id": {
+      "title": "Unit Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "unit_id",
+    "tenant_id",
+    "case_ref",
+    "predicate",
+    "release_ref",
+    "satisfied_at"
+  ],
+  "title": "BillableUnitRecord",
+  "type": "object"
+}

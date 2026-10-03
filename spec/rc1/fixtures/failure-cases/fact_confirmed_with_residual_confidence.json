@@ -1,0 +1,19 @@
+{
+  "confidence": 0.7,
+  "derivation_version": "d1",
+  "evidence": [
+    {
+      "id": "evt_1",
+      "object_type": "EvidenceEvent"
+    }
+  ],
+  "fact_id": "fct_x",
+  "predicate": "chased_times",
+  "status": "confirmed",
+  "subject": {
+    "id": "obj_close_1207",
+    "object_type": "Close"
+  },
+  "tenant_id": "tnt_barlowkim",
+  "value": 4
+}

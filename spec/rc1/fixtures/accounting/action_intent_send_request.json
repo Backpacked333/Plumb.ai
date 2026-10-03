@@ -1,0 +1,34 @@
+{
+  "account_ref": "gws-acct-7F2A",
+  "authority": {
+    "envelope_id": "env_barlowkim_v3",
+    "envelope_version": "3",
+    "grant_ids": "grant_gmail_ops",
+    "release_id": "rel_doc_intake_v1"
+  },
+  "case_ref": {
+    "id": "case_0142_2026_08",
+    "object_type": "Case"
+  },
+  "compensation_class": "irreversible",
+  "cost_reservation_id": "res_01HZ",
+  "effect_class": "external_message",
+  "effect_slot": "tnt_barlowkim|case_0142_2026_08|1|gmail.messages.send|contact_maria",
+  "expected_state_versions": {
+    "case": 7,
+    "obligation": 2
+  },
+  "intent_id": "int_send_req_0142_2026_08",
+  "logical_action_id": "act_d59b9504df8cc2538db6",
+  "obligation_epoch": 1,
+  "obligation_ref": {
+    "id": "obl_0142_2026_08_bank_stmt",
+    "object_type": "Obligation"
+  },
+  "operation_id": "google_workspace:gmail.messages.send",
+  "payload_digest": "sha256:6dd64613cbadf7ed3bc54c36a4f603137d5379352724a331ed3c595917343e37",
+  "payload_ref": "obj://tnt_barlowkim/payloads/int_send_req_0142_2026_08.json",
+  "provider": "google_workspace",
+  "retry_class": "provider_keyed",
+  "tenant_id": "tnt_barlowkim"
+}

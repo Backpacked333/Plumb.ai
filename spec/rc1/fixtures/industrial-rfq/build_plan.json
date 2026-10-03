@@ -1,0 +1,292 @@
+{
+  "envelope_ref": {
+    "digest": "sha256:25fdee0119ba07fcf330c2eb8f8442220149478abda50267d7d56eac45523bba",
+    "id": "env_norbridge_v1",
+    "object_type": "AutonomyEnvelope"
+  },
+  "plan_id": "plan_norbridge_rfq_prep_v1",
+  "solution_ref": {
+    "digest": "sha256:0d396523c211f917dc125122e769315f49afd091a1fa14b22d5b357b1d182cb2",
+    "id": "sol_rfq_prep_v1",
+    "object_type": "SolutionSpec"
+  },
+  "steps": [
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [
+        {
+          "digest": "sha256:517fe494b8d0c820de0837570496e48ea1108f726314e609d88e45189a5a714c",
+          "id": "inv_norbridge_2026_10",
+          "object_type": "EnvironmentInventory"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "discovery",
+        "implementation"
+      ],
+      "required_capabilities": [
+        "netsuite:items.search",
+        "netsuite:pricing.get"
+      ],
+      "step_id": "step_probe_erp",
+      "timeout_s": 1800,
+      "type": "probe_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_probe_erp"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [
+        {
+          "name": "quantities",
+          "scope": "ns-acct-55120",
+          "semantic_type": "quantity",
+          "unit": "each"
+        },
+        {
+          "currency": "USD",
+          "freshness_max_s": 86400,
+          "name": "unit_prices",
+          "scope": "ns-acct-55120",
+          "semantic_type": "money"
+        }
+      ],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "netsuite:pricing.get"
+      ],
+      "step_id": "step_profile_pricing",
+      "timeout_s": 1800,
+      "type": "profile_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 8000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_profile_pricing"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [
+        {
+          "name": "quantities",
+          "scope": "ns-acct-55120",
+          "semantic_type": "quantity",
+          "unit": "each"
+        },
+        {
+          "currency": "USD",
+          "freshness_max_s": 86400,
+          "name": "unit_prices",
+          "scope": "ns-acct-55120",
+          "semantic_type": "money"
+        }
+      ],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "notes": "unit/SKU normalization: cases vs eaches, price list freshness",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:agent.harness"
+      ],
+      "step_id": "step_adapter_sku_units",
+      "timeout_s": 1800,
+      "type": "generate_adapter",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "native_undo",
+      "depends_on": [
+        "step_probe_erp"
+      ],
+      "destinations": [
+        "storage:tenant:norbridge"
+      ],
+      "effect_class": "config_change",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:collector.deploy",
+        "microsoft_365:mail.list"
+      ],
+      "step_id": "step_collector_rfq_mail",
+      "timeout_s": 1800,
+      "type": "deploy_collector",
+      "verification": [
+        {
+          "check_id": "chk_collector_live_event_v1",
+          "criteria_version": "1"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_adapter_sku_units",
+        "step_collector_rfq_mail"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:workflow.compile"
+      ],
+      "step_id": "step_compile_workflow",
+      "timeout_s": 1800,
+      "type": "compile_workflow",
+      "verification": [
+        {
+          "check_id": "chk_workflow_scenarios_v1",
+          "criteria_version": "1",
+          "data_role": "protected_acceptance"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_compile_workflow"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "production_observed",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:verifier.request"
+      ],
+      "step_id": "step_request_verification",
+      "timeout_s": 1800,
+      "type": "request_verification",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_request_verification"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:release.create"
+      ],
+      "step_id": "step_create_release",
+      "timeout_s": 1800,
+      "type": "create_release",
+      "verification": [
+        {
+          "check_id": "chk_release_manifest_v1",
+          "criteria_version": "1"
+        }
+      ]
+    }
+  ],
+  "tenant_id": "tnt_norbridge_mfg",
+  "total_budget_max": {
+    "currency": "USD",
+    "minor_units": 40000
+  }
+}

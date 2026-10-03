@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "ApprovalKind": {
+      "enum": [
+        "data_use",
+        "implement",
+        "release_activation",
+        "case_action",
+        "policy_change"
+      ],
+      "title": "ApprovalKind",
+      "type": "string"
+    },
+    "ApprovalState": {
+      "enum": [
+        "REQUESTED",
+        "GRANTED",
+        "DENIED",
+        "EXPIRED",
+        "REVOKED",
+        "INVALIDATED"
+      ],
+      "title": "ApprovalState",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/Approval.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "approver_principal_id": {
+      "title": "Approver Principal Id",
+      "type": "string"
+    },
+    "bound_digests": {
+      "description": "exact artifact or action digests this decision covers",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Bound Digests",
+      "type": "array"
+    },
+    "decided_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decided At"
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "enum": [
+            "granted",
+            "denied"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decision"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ApprovalKind"
+    },
+    "nonce": {
+      "description": "platform: single-use anti-replay token for link-based approvals",
+      "title": "Nonce",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "prerequisite_state": {
+      "additionalProperties": true,
+      "description": "e.g. case_version, release_state",
+      "title": "Prerequisite State",
+      "type": "object"
+    },
+    "requested_at": {
+      "format": "date-time",
+      "title": "Requested At",
+      "type": "string"
+    },
+    "scope": {
+      "additionalProperties": true,
+      "title": "Scope",
+      "type": "object"
+    },
+    "status": {
+      "$ref": "#/$defs/ApprovalState",
+      "default": "REQUESTED"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "approval_id",
+    "tenant_id",
+    "kind",
+    "bound_digests",
+    "approver_principal_id",
+    "policy_version",
+    "nonce",
+    "requested_at",
+    "expires_at"
+  ],
+  "title": "Approval",
+  "type": "object"
+}

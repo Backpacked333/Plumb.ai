@@ -1,4 +1,25 @@
-# Plumb Autonomous Implementation System: reference package
+# Plumb Autonomous Implementation System
+
+## Current build target
+
+The supplied reconciled RC1 specification is preserved byte-for-byte in
+[`spec/rc1/`](spec/rc1/README.md), including its contracts, fixtures and reference tests.
+Its [product contract](spec/rc1/PRODUCT_CONTRACT.md) is the target: an autonomous
+implementation engine, proved first through accounting evidence collection and
+`review_package_accepted`. Accounting ledger writes are not part of release 1.
+
+The first implementation slice is the [PostgreSQL authority foundation](database/README.md).
+It applies the RC1 migrations with complete tenant RLS, tenant-bound foreign keys,
+separate service roles, verifier-only attestation issuance and live PostgreSQL tests.
+It is **not** an API, a policy gateway, a deployed product or a completed WP-01.
+
+The existing `plumb` Python package and the sections below remain the **v0.2 reference**
+and regression baseline. They have not silently been replaced by RC1 contracts.
+The root `VALIDATION_REPORT.md` and `MANIFEST.json` describe that historical delivery;
+the RC1 snapshot has its own manifest. New runtime code must explicitly reconcile
+the two contract families rather than mixing their records.
+
+## Historical v0.2 reference package
 
 Reference contracts, checkers, an effect-ledger simulation and contract tests for the
 **Plumb Autonomous Implementation System** engineering specification, version 0.2

@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "EffectClass": {
+      "enum": [
+        "none",
+        "internal",
+        "external_message",
+        "external_record_write",
+        "external_payment",
+        "config_change",
+        "infra_change"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "RetryClass": {
+      "enum": [
+        "natural_idempotent",
+        "provider_keyed",
+        "reconcilable",
+        "not_retryable_after_ambiguity"
+      ],
+      "title": "RetryClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/IntegrationSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "account_ref": {
+      "title": "Account Ref",
+      "type": "string"
+    },
+    "auth_ref": {
+      "description": "vault reference, never a token value",
+      "title": "Auth Ref",
+      "type": "string"
+    },
+    "capability_manifest_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capability Manifest Digest"
+    },
+    "connection_grantor_id": {
+      "title": "Connection Grantor Id",
+      "type": "string"
+    },
+    "cursor_strategy": {
+      "enum": [
+        "webhook_then_fetch",
+        "change_capture",
+        "poll_overlap",
+        "cdc",
+        "manual"
+      ],
+      "title": "Cursor Strategy",
+      "type": "string"
+    },
+    "deletion_behaviour": {
+      "title": "Deletion Behaviour",
+      "type": "string"
+    },
+    "effect_class": {
+      "$ref": "#/$defs/EffectClass"
+    },
+    "integration_id": {
+      "title": "Integration Id",
+      "type": "string"
+    },
+    "maintenance_exposure": {
+      "enum": [
+        "library",
+        "generated",
+        "ui_bridge"
+      ],
+      "title": "Maintenance Exposure",
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "rate_limits": {
+      "additionalProperties": true,
+      "title": "Rate Limits",
+      "type": "object"
+    },
+    "retry_class": {
+      "$ref": "#/$defs/RetryClass"
+    },
+    "rung": {
+      "enum": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "Rung",
+      "type": "integer"
+    },
+    "schema_drift_policy": {
+      "title": "Schema Drift Policy",
+      "type": "string"
+    },
+    "schema_mappings": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Schema Mappings",
+      "type": "object"
+    },
+    "scopes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scopes",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "verification_probes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Verification Probes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "integration_id",
+    "tenant_id",
+    "provider",
+    "account_ref",
+    "connection_grantor_id",
+    "rung",
+    "operations",
+    "auth_ref",
+    "scopes",
+    "cursor_strategy",
+    "retry_class",
+    "deletion_behaviour",
+    "effect_class",
+    "verification_probes",
+    "schema_drift_policy",
+    "maintenance_exposure"
+  ],
+  "title": "IntegrationSpec",
+  "type": "object"
+}

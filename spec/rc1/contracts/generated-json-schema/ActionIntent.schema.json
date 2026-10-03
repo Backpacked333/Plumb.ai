@@ -1,0 +1,213 @@
+{
+  "$defs": {
+    "CompensationClass": {
+      "enum": [
+        "not_needed",
+        "native_undo",
+        "compensating_effect",
+        "irreversible"
+      ],
+      "title": "CompensationClass",
+      "type": "string"
+    },
+    "EffectClass": {
+      "enum": [
+        "none",
+        "internal",
+        "external_message",
+        "external_record_write",
+        "external_payment",
+        "config_change",
+        "infra_change"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "RetryClass": {
+      "enum": [
+        "natural_idempotent",
+        "provider_keyed",
+        "reconcilable",
+        "not_retryable_after_ambiguity"
+      ],
+      "title": "RetryClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/ActionIntent.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "account_ref": {
+      "title": "Account Ref",
+      "type": "string"
+    },
+    "authority": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "approval_id, envelope_version, release_id, grant_ids",
+      "title": "Authority",
+      "type": "object"
+    },
+    "case_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "compensation_class": {
+      "$ref": "#/$defs/CompensationClass"
+    },
+    "cost_reservation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cost Reservation Id"
+    },
+    "effect_class": {
+      "$ref": "#/$defs/EffectClass"
+    },
+    "effect_slot": {
+      "description": "platform: tenant|case|obligation_epoch|operation|target",
+      "title": "Effect Slot",
+      "type": "string"
+    },
+    "expected_state_versions": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Expected State Versions",
+      "type": "object"
+    },
+    "intent_id": {
+      "title": "Intent Id",
+      "type": "string"
+    },
+    "logical_action_id": {
+      "title": "Logical Action Id",
+      "type": "string"
+    },
+    "obligation_epoch": {
+      "minimum": 1,
+      "title": "Obligation Epoch",
+      "type": "integer"
+    },
+    "obligation_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ref"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "operation_id": {
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "payload_digest": {
+      "title": "Payload Digest",
+      "type": "string"
+    },
+    "payload_ref": {
+      "title": "Payload Ref",
+      "type": "string"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "retry_class": {
+      "$ref": "#/$defs/RetryClass"
+    },
+    "supersedes_intent_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Intent Id"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "intent_id",
+    "tenant_id",
+    "case_ref",
+    "obligation_epoch",
+    "operation_id",
+    "provider",
+    "account_ref",
+    "effect_slot",
+    "logical_action_id",
+    "payload_digest",
+    "payload_ref",
+    "expected_state_versions",
+    "authority",
+    "retry_class",
+    "compensation_class",
+    "effect_class"
+  ],
+  "title": "ActionIntent",
+  "type": "object"
+}

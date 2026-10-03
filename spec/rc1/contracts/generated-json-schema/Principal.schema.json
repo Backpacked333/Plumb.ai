@@ -1,0 +1,63 @@
+{
+  "$id": "https://plumb.example/schemas/Principal.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "active": {
+      "default": true,
+      "title": "Active",
+      "type": "boolean"
+    },
+    "display_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Display Name"
+    },
+    "kind": {
+      "enum": [
+        "platform_operator",
+        "tenant_owner",
+        "employee",
+        "domain_approver",
+        "client_grantor",
+        "sponsor",
+        "service_identity",
+        "build_worker",
+        "runtime_worker",
+        "verifier",
+        "integration_manager"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "principal_id": {
+      "title": "Principal Id",
+      "type": "string"
+    },
+    "roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Roles",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "principal_id",
+    "tenant_id",
+    "kind"
+  ],
+  "title": "Principal",
+  "type": "object"
+}
