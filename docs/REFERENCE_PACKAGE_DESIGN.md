@@ -45,8 +45,8 @@ plumb/
     findings.py            Finding, CheckReport
     plan_checker.py        check_plan(plan, envelope, registry) -> CheckReport
     dataset_checker.py     check_dataset(manifest) -> CheckReport
-    approval_checker.py    check_approval(approval, artifact_digest, case_version, policy_version, now) -> CheckReport
-    release_checker.py     check_release(manifest, attestations, approvals, now) -> CheckReport
+    approval_checker.py    check_approval(approval, *, subject_digest, tenant_id, policy_version, case_version=None, now) -> CheckReport
+    release_checker.py     check_release(manifest, attestations, approvals, *, now, current_policy_version) -> CheckReport
     cli.py                 python -m plumb.checker.cli plan <plan.json> <envelope.json>
   ledger/
     __init__.py
@@ -168,6 +168,7 @@ class BuildStep(StrictModel):
     budget: Budget
     verification: list[VerificationObligation]   # ≥1 unless step_type == "dependency.raise"
     required: bool = True
+    environment: ShortStr | None = None   # deployment environment for infrastructure.*/release.* steps
 
 class BuildPlan(ArtifactHeader):
     kind = BuildPlan
@@ -241,7 +242,7 @@ class DatasetManifest(ArtifactHeader):
     lineage_refs, availability: DatasetState-ish flag `unavailable_reason: str|None`, source_rights_refs
 ```
 
-`check_dataset(manifest)` emits: `FUTURE_INFORMATION` (input_availability_time > decision_time), `TARGET_BEFORE_DECISION` (target available before decision when label_kind is OBSERVED_OUTCOME is fine; but target_availability_time < decision_time for CORRECTION is a leak flag), `UNKNOWN_AVAILABILITY` (missing availability → cannot claim faithful replay), `DUPLICATE_FAMILY_ACROSS_SPLITS` (same group_id in >1 split), `QUARANTINED_ROW_IN_TRAINING` (non-ACCEPTED label in train split), `MISSING_EXCLUSION_REASON`, `UNPINNED_SOURCE` (source_versions empty or without digest), `COUNT_MISMATCH` (declared counts ≠ rows), `SPLIT_WITHOUT_QUESTION`. Error classes: DATA_QUALITY_FAILED (PL-027..PL-030).
+`check_dataset(manifest)` emits: `FUTURE_INFORMATION` (input_availability_time > decision_time), `TARGET_LEAK` (an OBSERVED_OUTCOME known before the decision is fine; a CORRECTION or EXPERT_DECISION target available before decision_time is a leak), `UNKNOWN_AVAILABILITY` (missing availability → cannot claim faithful replay), `DUPLICATE_FAMILY_ACROSS_SPLITS` (same group_id in >1 split), `QUARANTINED_ROW_IN_TRAINING` (non-ACCEPTED label in train split), `MISSING_EXCLUSION_REASON`, `UNPINNED_SOURCE` (source_versions empty or without digest), `COUNT_MISMATCH` (declared counts ≠ rows), `SPLIT_WITHOUT_QUESTION`. Error classes: DATA_QUALITY_FAILED (PL-027..PL-030).
 
 ## 6. ActionIntent and the effect ledger
 

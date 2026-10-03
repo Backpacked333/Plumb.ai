@@ -45,6 +45,9 @@ import yaml  # noqa: E402
 
 REQ_PATTERN = re.compile(r"^PL-\d{3}$")
 
+TEXT_PIN_FILES = {"test_requirements_index.py"}
+"""Test files whose requirement markers pin specification text rather than enforce behaviour."""
+
 NOT_EXECUTED = [
     "Live API or connector calls",
     "Authentication/security integration tests",
@@ -64,6 +67,7 @@ class _Collector:
 
     def __init__(self) -> None:
         self.requirements: dict[str, set[str]] = defaultdict(set)
+        self.text_pins: dict[str, set[str]] = defaultdict(set)
         self.outcomes: dict[str, str] = {}
         self.per_file: dict[str, int] = defaultdict(int)
         self.unmarked: list[str] = []
@@ -77,9 +81,13 @@ class _Collector:
                         ids.add(str(value))
             if not ids:
                 self.unmarked.append(item.nodeid)
+            file_part = item.nodeid.split("::", 1)[0]
+            # Tests in TEXT_PIN_FILES pin the normative wording of a requirement; they do
+            # not exercise its behaviour, so they are reported separately in the matrix.
+            target = self.text_pins if Path(file_part).name in TEXT_PIN_FILES else self.requirements
             for req in ids:
-                self.requirements[req].add(item.nodeid)
-            self.per_file[item.nodeid.split("::", 1)[0]] += 1
+                target[req].add(item.nodeid)
+            self.per_file[file_part] += 1
 
     def pytest_runtest_logreport(self, report):  # noqa: ANN001
         if report.when == "call" or (report.when == "setup" and report.outcome != "passed"):
@@ -283,15 +291,19 @@ def main(argv: list[str] | None = None) -> int:
         lines.append("")
     lines.append("## Requirement coverage matrix\n")
     lines.append(
-        "A requirement is *locally tested* when at least one test carries its marker. "
+        "A requirement is *locally tested* when at least one behavioural test carries its marker. "
+        "Tests in `tests/test_requirements_index.py` only pin the normative wording and are counted in their own column. "
         "A local test exercises the reference contract or checker, not the production behaviour; "
         "the acceptance column lists production acceptance scenarios that specify the real test. "
         "Requirements with neither are enforced only by the production gates named in the specification.\n"
     )
-    lines.append("| Requirement | Section | Local tests | Acceptance scenarios | Status |\n|---|---|---|---|---|")
+    lines.append(
+        "| Requirement | Section | Local behavioural tests | Text-pinning tests | Acceptance scenarios | Status |\n|---|---|---|---|---|---|"
+    )
     for req in requirements:
         rid = req["id"]
         tests = sorted(collector.requirements.get(rid, set()))
+        pins = sorted(collector.text_pins.get(rid, set()))
         accept = sorted(acceptance_by_req.get(rid, []))
         if tests and accept:
             status = "locally tested + production scenario"
@@ -301,7 +313,9 @@ def main(argv: list[str] | None = None) -> int:
             status = "production scenario only"
         else:
             status = "production gate only (no local check)"
-        lines.append(f"| {rid} | {req['section']} | {len(tests)} | {', '.join(accept) if accept else '-'} | {status} |")
+        lines.append(
+            f"| {rid} | {req['section']} | {len(tests)} | {len(pins)} | {', '.join(accept) if accept else '-'} | {status} |"
+        )
     lines.append("")
     if uncovered:
         lines.append("Requirements without any local test:\n")
