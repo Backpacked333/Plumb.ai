@@ -1,0 +1,29 @@
+[project]
+name = "plumb-reference"
+version = "0.2.0"
+description = "Plumb Autonomous Implementation System: reference contracts, checker, effect ledger and contract tests (specification v0.2, October 2, 2026)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = [
+  "pydantic>=2.11,<3",
+  "pyyaml>=6.0",
+  "jsonschema>=4.20",
+  "openapi-spec-validator>=0.7",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+filterwarnings = ["error::DeprecationWarning:plumb.*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["plumb*"]

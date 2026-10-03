@@ -1,0 +1,1828 @@
+PLUMB / PRODUCT + ENGINEERING
+
+
+
+
+Autonomous
+Implementation
+System
+The system that discovers the work, builds the solution, proves it
+works and keeps it running.
+
+
+Version 0.2 | October 2, 2026
+
+
+Prepared for Roy Salman. This revision makes automatic implementation the central product contract:
+application connections, data collection, learning setup, business workflows, deployment and
+maintenance are work performed by Plumb.
+
+
+
+
+  63 requirements                                            17 typed contracts
+
+
+
+  24 API operations                                          56 passing local tests
+
+
+
+
+Scope: normative system design, implementation protocol, first-customer trace and executable reference contracts. The
+package is not a deployed product; production requirements remain subject to the stated acceptance gates.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                            1
+PLUMB / AUTONOMOUS IMPLEMENTATION                              ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Contents
+Architecture at a glance                                                                  3
+1. Product contract: Plumb performs the implementation                                    4
+2. What this revision adds                                                                5
+3. Architecture and chosen initial stack                                                  5
+4. Trust and authority model                                                              6
+5. Company onboarding and autonomous inventory                                            7
+6. Evidence, time and business objects                                                    7
+7. Opportunity discovery and selection                                                    8
+8. The implementation intermediate representation                                         8
+9. Engineering execution and bounded repair                                               9
+10. Connector construction and application configuration                                  9
+11. Collection construction: history and continuing evidence                             10
+12. Discovering where the training data lies                                             11
+13. Dataset construction and point-in-time correctness                                   11
+14. Training, model routing and serving                                                  12
+15. Workflow synthesis and the business runtime                                          12
+16. External effects, idempotency and concurrent agents                                  13
+17. Approval and autonomy without constant interruption                                  14
+18. Independent verification and completion evidence                                     14
+19. Infrastructure construction and release                                              15
+20. Maintenance and autonomous improvement                                               15
+21. Security, data rights and hostile inputs                                             16
+22. Control-plane API and event protocol                                                 16
+23. Persistence and state machines                                                       17
+24. Economics, scale and observability                                                   18
+25. Acceptance and the three reference scenarios                                         19
+26. Delivery sequence and engineering ownership                                          19
+27. Architectural decisions and unresolved experiments                                   20
+28. Package contents and verification limits                                             21
+29. Primary sources and evidence boundaries                                              21
+Appendix A. Agent execution protocol                                                     23
+Appendix B. First complete customer trace                                                27
+Appendix C. Delivered reference package and verification                                 30
+
+
+
+
+October 2, 2026 | Proposed system design                                                  2
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                        ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Architecture at a glance
+An agent performs the engineering work. Trusted services constrain its authority and independently
+determine whether the resulting implementation works.
+
+
+
+
+  Evidence and business state
+  Authorized sources, object identity, obligations and provenance
+
+
+
+
+  Engineering execution                                         Independent verification
+  Discover and plan; build integrations,                        Pinned artifacts, protected tests,
+  collectors, models and workflows                              actual provider and business state
+
+
+
+
+  Enforcement and release
+  Authority, spend, credentials, effect identity and deployment gates
+
+
+
+
+  Business execution
+  Durable cases, approved actions, outcomes and ongoing repair
+
+
+Implementation and business execution have separate lifecycles and credentials. Durable state and
+immutable artifacts survive replaced agent sessions. The verifier checks exact artifact versions and
+actual outcomes; the action gateway enforces permissions, budgets and effect identity.
+
+Automatic work continues inside the authorized envelope. Missing access, an unresolved business
+decision or an unsupported operation becomes a specific resumable dependency.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                            3
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+Version 0.2 | Normative engineering specification | October 2, 2026
+
+Prepared for Roy Salman. This revision supersedes the earlier conceptual implementation brief for
+engineering purposes. Its central requirement is that Plumb performs implementation: discovering
+sources, creating integrations and collectors, configuring or training models, building workflows, testing
+them, deploying them and maintaining them.
+
+The accompanying package contains typed contracts, generated JSON Schemas, a control-plane
+OpenAPI contract, a proposed PostgreSQL schema, three synthetic build plans, a local reference
+checker, a persistent effect-ledger simulation and executable contract tests. These are reference
+artifacts, not a deployed Plumb product. They do not connect to customer systems, call a model, train
+weights or provision infrastructure.
+
+MUST and MUST NOT denote required behavior. SHOULD denotes a default with a documented
+exception. MAY denotes an optional implementation choice. Targets are proposed acceptance criteria,
+not achieved performance. The reference code enforces only the subset identified in its README and
+validation report; production requirements need the integration and adversarial tests specified below.
+
+
+
+
+1. Product contract: Plumb performs the
+implementation
+PL-001. Given an authorized business goal and an autonomy envelope, Plumb MUST discover relevant
+work and deliver one of three explicit outcomes: a verified operating intervention; an actionable
+external dependency with a preserved resumable build; or a terminal failure explaining what was
+attempted and why execution stopped. A recommendation, generated prompt or code archive alone
+MUST NOT count as a completed implementation.
+
+PL-002. For supported environments, Plumb MUST perform ordinary implementation tasks without
+asking a human engineer to configure each component. This includes inventory inspection, source
+profiling, schema mapping, integration setup, collection deployment, evaluation dataset construction,
+workflow assembly, deployment and monitoring. An OAuth consent, purchase authorization or
+unresolved business policy is a different kind of human input and MUST be recorded separately from
+manual engineering.
+
+PL-003. Plumb MUST record all human effort by category: customer authorization, domain clarification,
+normal business review, engineering intervention and operational repair. It MUST NOT call a
+deployment autonomous if a person secretly performed the implementation behind the interface.
+
+The intended starting point is an ordinary business with little or no existing AI. Employees can perform
+unrelated jobs. Plumb discovers useful applications rather than waiting for the customer to describe an
+AI workflow. It can implement a native software setting, deterministic automation, a general-model
+workflow, a specialist service, a retrieval system or a trained component. It must be able to decide that
+removing a step is better than automating it.
+
+The first delivery can use a supervised implementation process while production experience
+accumulates. The full-effect target is automatic execution of repeatable, authorized engineering work,
+with humans supplying authority and domain judgment at specific boundaries. These boundaries must
+be narrow and explicit; they must not turn into a requirement for the customer to become a systems
+integrator.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                   4
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                            ENGINEERING SPECIFICATION 0.2
+
+
+
+
+2. What this revision adds
+The previous brief described useful components. This revision defines the contracts between them, the
+information each needs, how the build progresses, what constitutes success, and how implementation
+recovers when reality differs from the plan.
+
+
+ Design question                    Decision
+
+
+ Who connects applications?         A build process invokes management APIs or generates and tests adapters, then
+                                    verifies live operation under customer authority.
+
+
+ Who establishes training           A data engineering process finds input/outcome pairs, generates collectors and
+ data?                              transformations, and verifies quality and permitted use.
+
+
+ Who chooses the model?             A capability-selection process evaluates complete candidate systems on the
+                                    customer's task and cost structure.
+
+
+ Who deploys?                       A release executor applies a verified artifact and infrastructure plan within the
+                                    autonomy envelope.
+
+
+ Who fixes failures?                A bounded diagnosis/repair process creates and tests a new artifact; it cannot
+                                    weaken its own acceptance criteria.
+
+
+ Who decides that work is           Independent verification services check persisted artifacts and actual external
+ complete?                          state.
+
+
+
+The package deliberately includes both an implementation process and a business runtime. A
+connector that builds integrations is not the same capability as a connector that sends a customer
+reminder. A deployment credential is not a runtime credential. A model trained on business records is
+not entitled to administer the environment that serves it.
+
+
+
+
+3. Architecture and chosen initial stack
+The system has five logical domains: evidence and business state; engineering execution; business
+execution; verification; and enforcement. Deploy initially as a modular control service with isolated
+workers. Logical separation is mandatory; a microservice for every box is not.
+
+
+ Domain                      Owns                                            Initial technology decision
+
+
+ Control service             Tenants, goals, envelopes, build state,         Python service with Pydantic contracts;
+                             versions, approvals                             HTTP API; PostgreSQL
+
+
+ Evidence workers            Source reads, capture normalization,            Connector adapters; object storage;
+                             provenance, object resolution                   relational and permission-filtered retrieval
+
+
+ Engineering workers         Planning, generated code, mappings,             A provider-neutral coding-agent harness in
+                             collectors, experiments                         disposable isolated environments
+
+
+ Business workers            Durable cases, approved tool calls, human       Temporal workflows and activities
+                             waits
+
+
+
+
+October 2, 2026 | Proposed system design                                                                                    5
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                         ENGINEERING SPECIFICATION 0.2
+
+
+
+
+ Domain                      Owns                                          Initial technology decision
+
+
+ Policy and action           Authorization, credentials, budgets, effect   Server-side deterministic enforcement;
+ gateway                     identity, receipts                            optional OPA for policy evaluation
+
+
+ Artifact and learning       Dataset manifests, models, tests, releases,   Content-addressed object storage; registry
+ services                    lineage                                       adapters; optional MLflow/OpenLineage
+
+
+ Product interface           Goals, opportunities, change proposals,       Web UI; approved in-application
+                             review, exceptions, outcomes                  notifications and review links
+
+
+
+TypeScript is suitable for SaaS integration functions and the UI. Python owns contracts, evaluation and
+training coordination. Do not introduce a second workflow orchestrator as a second authority for the
+same operation. If LangGraph is used inside a planning step, Temporal owns the enclosing lifecycle and
+external side effects. LangGraph documents persistence and interruption semantics, but nested
+orchestration still needs explicit ownership [S06].
+
+Temporal handles durable coordination; it does not supply a business-level exactly-once guarantee for
+arbitrary external APIs. Nango is a candidate integration management substrate. Airbyte is a candidate
+for supported source ingestion. Pulumi Automation API is a candidate for approved infrastructure
+operations. Each adapter must pass Plumb's contract tests before use [S03-S05].
+
+
+
+
+4. Trust and authority model
+PL-004. Every operation MUST have a tenant, acting principal, purpose, resource scope, capability
+version, policy version and budget allocation. Tenant identity MUST be derived from verified
+authentication, not trusted from a request body.
+
+PL-005. The autonomy envelope MUST define goals, authorized source scope, approved
+destinations/processors, allowed effect classes, spending limits, deployment environments, allowed
+regions, expiry and escalation conditions. It MUST be versioned and tied to an authorized business
+owner. A derived task cannot widen it.
+
+PL-006. Build and runtime agents MUST NOT receive general production administrator credentials. The
+action gateway resolves credentials for approved operations. Management capabilities, execution
+capabilities and policy-administration capabilities MUST be separated.
+
+Within an envelope, Plumb continues ordinary work automatically. It need not ask separately to inspect
+an authorized schema, create an approved collector, run a budgeted experiment or deploy a passing
+low-impact version. It pauses for a new permission, processor, spending limit, destructive operation or
+business commitment outside the granted authority. A pause must state the exact missing dependency
+and resume from persisted state once supplied.
+
+The enforcement service is part of the trusted platform. Generated adapters, documents, API
+descriptions and model outputs are untrusted. The builder may propose changes to platform policy but
+cannot apply them through a customer implementation job. The verifier's test artifacts and signing
+authority are inaccessible to the builder. A second model that reads the builder's explanation is not
+sufficient independence.
+
+MCP provides an interface for tools, not proof of tool correctness or business authorization. Its security
+guidance addresses token handling and confused-deputy risks. Plumb must additionally enforce
+customer-specific scope and destination rules [S07].
+
+
+
+October 2, 2026 | Proposed system design                                                                                6
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+
+5. Company onboarding and autonomous inventory
+PL-007. Plumb MUST produce an EnvironmentInventory before proposing a production build. It lists
+accessible applications, accounts, entities, schema versions, supported read/write operations,
+authorization status, available history, quotas, update mechanisms, source freshness and owners. An
+application logo is not an operation capability.
+
+PL-008. Plumb MUST distinguish discovered, documented, sandbox-tested and production-verified
+capabilities. A vendor page saying an API exists does not establish that a customer's account can use
+the required endpoint. Successful probes must record the account and exact operation without
+exposing credentials.
+
+Onboarding begins with business goals, an accountable owner and source authorization. Plumb reads
+allowed connection metadata and representative records, profiles schemas and documents
+discrepancies. For inaccessible applications it generates the appropriate consent or access request. It
+may configure supported application settings automatically after access is granted. It must not bypass
+vendor approvals, MFA, licensing or unavailable endpoints.
+
+The discovery layer should infer roles from authorized operational relationships rather than asking
+users to build an organization chart. It should ask targeted questions when the answer changes the
+plan: which record is authoritative, whether a reminder is intentional, or who may approve a quote.
+Low-confidence assumptions remain visible while unaffected work progresses.
+
+Capture is used to resolve gaps in the inventory: off-system handoffs, undocumented spreadsheets,
+missing decisions and physical context. Historical data and API events are preferred when sufficient. An
+enrollment screen must show capture scope, pause, exclusions and retention. The product must work
+when some employees or applications are not observed; its coverage report must disclose that
+limitation.
+
+
+
+
+6. Evidence, time and business objects
+PL-009. Each evidence event MUST preserve source identity, external record/version, tenant, event
+time, observation time, availability time, content digest, access policy reference, retention class and
+extraction version. Raw content should be referenced rather than copied into every downstream
+record.
+
+PL-010. Derived facts MUST carry supporting evidence, derivation version, validity interval and status:
+observed, inferred, confirmed, disputed, stale or superseded. Confidence MUST NOT substitute for
+source authority. Unknown absence MUST remain distinguishable from confirmed absence.
+
+PL-011. Object resolution MUST support ambiguous candidates, merge/split history and reversible
+corrections. A correction to the meaning of "Square" in one context MUST NOT change all occurrences
+of that word globally. The system computes an impact set, applies the scoped correction and
+revalidates dependent facts, datasets and plans.
+
+An event may relate to several business objects. Use many-to-many links among events, clients,
+periods, documents, obligations and actions. Keep externally assigned IDs where possible. Provisional
+IDs must not be silently substituted for confirmed financial or customer identities.
+
+Time has several meanings. A receipt can describe an August transaction, arrive in September and be
+corrected in October. For a September decision, an October correction cannot be treated as
+then-available knowledge. Store event/valid time separately from recorded/available time. Later
+backfills can improve the current model of history but cannot rewrite the knowledge boundary of a
+replay.
+
+October 2, 2026 | Proposed system design                                                                   7
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+The business model includes obligations and policies: what must exist, by when, under which
+engagement, and what establishes completion. This makes missing-work detection possible. Observed
+clicks supply evidence about current behavior; owner-confirmed goals and policies define desired
+behavior.
+
+
+
+
+7. Opportunity discovery and selection
+PL-012. Every OpportunitySpec MUST state the business objective, eligible case population, baseline,
+evidence coverage, proposed change, dependencies, expected benefit range, failure cost, review cost
+and a prospective measurement plan.
+
+PL-013. Candidate generation MUST include non-ML interventions and existing-product configuration.
+Plumb MUST compare the complete candidate system against the current process and a reasonable
+native-feature baseline. It must not force the highest available model into every step.
+
+Opportunity discovery has three passes. First, detect friction: repetition, wait states, duplicate
+contacts, rework, inconsistent classifications, manual transfer and missed obligations. Second, infer
+candidate interventions through a capability registry and domain rules. Third, test feasibility against
+actual access, data and business authority. Failed feasibility checks remain useful backlog entries with
+explicit blocking conditions.
+
+Rank candidate portfolios rather than independent tasks when they share prerequisites. Identity
+normalization may unlock five workflows. Two reminders may claim the same savings. Maintain a
+dependency graph and an overlap record so the sum of projected benefits does not double-count the
+same labor or revenue.
+
+An opportunity is a hypothesis. Where feasible, use staged rollout or comparable case cohorts to test
+value, accounting for case mix, calendar effects and employee review. Do not infer causal cycle-time
+improvements from historical replay alone. Distinguish theoretical labor capacity, usable capacity and
+realized cash or contribution margin.
+
+Expected net value is a range over a defined horizon: usable capacity and contribution gain plus
+avoided rework, less implementation, operation, review, change-management and expected failure
+cost. The planner should reject attractive-looking opportunities whose access or maintenance burden
+makes that value negative.
+
+
+
+
+8. The implementation intermediate representation
+PL-014. A BuildPlan MUST be a finite dependency graph of typed steps with declared inputs, outputs,
+required capabilities, budget reservations, bounded attempts and verification obligations. Unsupported
+step types MUST be rejected rather than interpreted as arbitrary instructions.
+
+PL-015. The compiler MUST check unique IDs, valid dependencies, cycles, input/output compatibility,
+missing artifacts, authority, region/purpose restrictions, effect class, budget and verification coverage.
+A syntactically valid JSON plan is not necessarily executable.
+
+PL-016. Execution MUST follow persisted state, not a model's memory of its prior messages. A step
+becomes verified only after the required checks confirm the expected artifact or external state.
+Downstream production steps MUST NOT consume a failed or unverified prerequisite.
+
+The build graph is separate from the generated business workflow. A build graph is finite: profile
+sources, generate an adapter, test it, deploy a collector, assemble a dataset, run an experiment and
+release a workflow. A business workflow may contain durable waits, event triggers and explicitly
+
+October 2, 2026 | Proposed system design                                                                     8
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                ENGINEERING SPECIFICATION 0.2
+
+
+
+bounded loops. The builder cannot hide an unbounded loop inside a supposedly finite step.
+
+The package's BuildPlan schema models the orchestration skeleton. Artifact references and semantic
+type checks are represented by registry-backed capabilities and production requirements; the local
+checker verifies graph structure, envelope scope, budget bounds, purpose permissions and verification
+presence. It is not a compiler for arbitrary generated application code.
+
+Suggested production artifact types are EnvironmentInventory, EvidencePacket, OpportunitySpec,
+IntegrationSpec, CollectionSpec, DatasetManifest, TrainingSpec, WorkflowSpec, EvaluationReport,
+InfrastructurePlan and ReleaseManifest. Each stored artifact has a tenant, schema version, content
+digest, producer, evidence links and immutable version. Mutable aliases point to immutable objects
+and are resolved before a run starts.
+
+
+
+
+9. Engineering execution and bounded repair
+PL-017. Every build MUST have a durable task ledger recording goal, step state, artifact hashes,
+current workspace commit, completed checks, failed checks, remaining budget and next eligible work.
+A worker restart MUST reconstruct progress without redoing verified external effects.
+
+PL-018. Repair attempts MUST have maximum counts, spend and elapsed-time bounds. A failed
+attempt MUST preserve its diagnostics. The repair process MUST NOT remove requirements, weaken
+tests, expand permissions or change the success metric to claim completion.
+
+PL-019. Generated code MUST execute in an isolated build environment with scoped
+filesystem/network access and no unmediated production credentials. The build environment MUST be
+disposable; authoritative job state and artifacts live outside it.
+
+The execution loop is: select a ready step; reserve its worst-case remaining budget; obtain a scoped
+grant; execute; collect artifacts and action receipts; verify; commit state; select the next step. On
+failure, classify it as transient infrastructure, implementation defect, missing authorization, missing
+business decision, unsupported capability or exhausted resources. Retry only when the classification
+supports it.
+
+For an implementation defect, the system restores a known workspace version, presents the error and
+relevant contract to the coding agent, applies a bounded patch, then reruns both the failing check and
+the required regression set. It records the new artifact digest. A changed artifact invalidates verification
+that was bound to the old digest.
+
+Anthropic's engineering material supports explicit progress artifacts and independent
+environment/session state for long-running agent work [S01-S02]. Plumb should implement these
+principles through its own durable objects rather than depend on a transcript surviving context
+compaction. The agent's summary is a convenience; persisted artifacts and verifier results are
+authoritative.
+
+
+
+
+10. Connector construction and application
+configuration
+PL-020. The integration factory MUST prefer a verified existing adapter, then a supported declarative
+configuration, then generated code for a documented operation, and finally a specifically supported UI
+adapter. It MUST record which path was used and the resulting maintenance exposure.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                    9
+PLUMB / AUTONOMOUS IMPLEMENTATION                                              ENGINEERING SPECIFICATION 0.2
+
+
+
+PL-021. Each IntegrationSpec MUST declare provider/account identity, exact operations,
+authentication reference, required scopes, schema mappings, cursor strategy, rate limits, retry
+semantics, deletion behavior, effect class, verification probes and schema-drift handling.
+
+PL-022. Before activation, an adapter MUST pass contract tests for pagination, empty pages,
+duplicates, rate limiting, authorization failure, malformed responses, schema changes and account
+boundaries where applicable. Write adapters MUST also verify the resulting business state and
+uncertain-write behavior.
+
+The factory can create integration definitions, mint authorization sessions, deploy functions and inspect
+sync logs through management APIs. Nango publicly documents such a management surface and
+explicitly separates it from runtime tools [S03]. That establishes useful implementation primitives, not
+proof that every application or business operation is supported.
+
+Airbyte's builder can generate declarative HTTP source connectors; its documented scope does not
+make it a universal write connector [S04]. Plumb must distinguish ingestion from action execution. If a
+connector can read a ledger, that does not establish that it can fetch a bank statement or post the
+required object.
+
+The build agent MUST verify provider-specific units, currency, time zone, identifiers, enums, lifecycle
+states and null semantics. For example, an amount in cents must not be mapped into a dollars field
+because their names resemble one another. Configuration changes in an existing SaaS product are
+deployable artifacts too: capture before/after state, affected resources, expected effect and reversal
+limits.
+
+
+
+
+11. Collection construction: history and continuing
+evidence
+PL-023. A CollectionSpec MUST identify the objective it supports, allowed sources, selected fields, join
+strategy, incremental mechanism, retention, destination, access policy, quality checks and evidence of
+permitted purpose. Collection must be justified by the active customer use case.
+
+PL-024. Backfill and live capture MUST converge without silent gaps or duplicates. Maintain source
+cursors, watermarks, processing offsets and idempotent event identity. Reordered events and later
+corrections MUST be handled explicitly. A webhook is a signal to fetch authoritative state when its
+payload is incomplete.
+
+PL-025. A collector MUST publish freshness, lag, completeness and failure state. Downstream
+workflows MUST block or degrade explicitly when required source coverage is missing. A stopped
+collector must never make an obligation appear satisfied or unsatisfied by default.
+
+Implementation order: profile source metadata; sample permitted records; identify stable keys; choose
+webhook, polling or database CDC; generate transformation and quality checks; deploy in shadow
+mode; backfill from an agreed watermark; reconcile counts and sampled identities; enable incremental
+processing; verify a new event end to end.
+
+For an authorized database, CDC can capture committed changes. It requires appropriate database
+access and operational support; it is not a substitute for SaaS APIs that do not expose the underlying
+database. Debezium documents restart/snapshot behavior in which duplicate records can occur,
+making consumer deduplication necessary [S08]. For polling, use overlapping windows with stable
+record versions; a single maximum timestamp can miss ties or late changes.
+
+The automatic collection apparatus includes source adapters, schedules, transformation code, storage
+schema, data-quality jobs, lineage emission, deletion handling and health monitors. Completion
+
+
+October 2, 2026 | Proposed system design                                                                  10
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+requires observing an actual permitted source update arrive with the expected schema, identity,
+access metadata and lineage. A deployed cron job alone is not sufficient evidence.
+
+
+
+
+12. Discovering where the training data lies
+PL-026. The learning planner MUST express the proposed task before choosing data: input available at
+decision time, desired output, objective, error costs, eligible cases and expected use. It MUST
+distinguish observable outcomes, expert decisions, corrections, preferences and weak proxy labels.
+
+PL-027. Input/target joins MUST be validated independently on representative cases. Ambiguous
+matches, inconsistent labels and disputed outcomes MUST be quarantined. The system MUST NOT
+silently treat employee acceptance or lack of complaint as correctness.
+
+The planner searches for decision boundaries and outcome locations. For classification, it looks for
+original documents, presented context, proposed class, human edits and final disposition. For quoting,
+it looks for request details, inventory state, quoted terms, subsequent revisions and outcomes. For
+routing, it looks for stops, constraints, route assignment and actual completion times. These are
+different training tasks with different evaluation methods.
+
+It profiles candidate labels for coverage, consistency, skew, lag and revision rate. It checks whether
+source inputs still exist and whether they can be lawfully paired. It generates join code and sample
+review tasks. Where historical linkage is poor, it can begin a prospective collector capturing the input
+snapshot and subsequent reviewed decision under the same case identifier.
+
+The system should create a source-candidate table with location, field semantics, join keys, access
+state, sample quality, permitted purposes and confidence. A label such as "training data found" is
+insufficient. The correct output may be "11,200 usable input/target pairs, 1,800 ambiguous joins,
+missing source documents for the remaining records," accompanied by a CollectionSpec to improve
+future coverage. These numbers are illustrative.
+
+
+
+
+13. Dataset construction and point-in-time
+correctness
+PL-028. Every training/evaluation row MUST include stable example and grouping IDs, input snapshot
+references, decision time, source availability time, target evidence, label status, purpose authorization,
+dataset revision and exclusion reason when rejected.
+
+PL-029. The dataset builder MUST exclude future information from model inputs, near-duplicate
+families across splits and disallowed source uses. It MUST preserve both event time and knowledge
+availability. Unknown availability timestamps cannot support a claim of faithful historical replay.
+
+PL-030. Dataset manifests MUST be immutable and reproducible from pinned source versions and
+transformations, subject to source rights and deletion. The manifest records split rules, schema,
+hashes, counts, distributions, rejected examples, label definition and lineage. Deletion of required
+source material may make an old dataset intentionally unreconstructable; mark it unavailable rather
+than falsifying reproducibility.
+
+Use temporal holdouts for future-work performance and group related transaction/document families to
+prevent leakage. For a tenant-specific model, clients can appear in both earlier training and later
+evaluation if that reflects deployment, but near-duplicate transactions must not. A separate
+client-disjoint evaluation measures generalization to new clients. State which question each split
+answers.
+
+October 2, 2026 | Proposed system design                                                                   11
+PLUMB / AUTONOMOUS IMPLEMENTATION                                              ENGINEERING SPECIFICATION 0.2
+
+
+
+Feast documents point-in-time joins and the separate issue of excluding later-created/backfilled values
+[S09]. A simple event-date filter is therefore insufficient. Plumb's input snapshot needs the values
+known at the decision boundary, not the latest corrected history.
+
+Labels mature according to the task: an accountant-confirmed classification may later be amended; a
+quote acceptance is not the same as profitable fulfillment. Capture revisions and outcomes after a
+defined maturation window. Do not delete unfavorable cases merely because they lower the score.
+Sampling and exclusions must be auditable and included in evaluation denominators.
+
+
+
+
+14. Training, model routing and serving
+PL-031. The model planner MUST compare rules/native configuration, prompted general models,
+retrieval, specialist APIs and training where applicable. Selection MUST use complete task performance
+and total operating cost, including review and serving utilization.
+
+PL-032. A TrainingSpec MUST pin the dataset, base-model capability/version, supported training
+method, objective, resource/spend limits, stopping condition, output location, data-handling constraints
+and evaluation plan. Unsupported combinations MUST fail before a provider job is submitted.
+
+PL-033. A training adapter MUST implement capability discovery, submission, status, cancellation,
+artifact retrieval and cleanup. Submission identity MUST be persisted so a lost response does not
+launch duplicate training jobs. A completed provider job is a candidate artifact, not an approved
+production model.
+
+Plumb can route a task to API-hosted customization, a managed open-model training job, or no training.
+It must verify method/modality support for the selected provider at build time. Generic "fine-tune this
+model" instructions are insufficient because providers differ in formats, allowed models, licensing, data
+terms and supported objectives.
+
+AWS exposes training-job configuration for input data, containers, resources, stopping conditions and
+model output; checkpoint support is an infrastructure option, not automatic correctness [S10]. Plumb
+must build the task-specific dataset and evaluate the result. If serving a small model requires idle
+dedicated capacity, its total cost can exceed a general model API despite cheaper marginal inference.
+
+PL-034. Model promotion MUST require a held-out evaluation, quality/cost comparison, registry
+version, compatible serving interface and deployment policy. Mutable registry aliases MUST resolve to
+immutable versions per case. One customer case must not silently switch model behavior halfway
+through an approval-sensitive workflow.
+
+Use MLflow or an equivalent registry for model metadata and lineage; mutable aliases are convenient
+routing pointers but are not sufficient release identity [S11]. Plumb's ReleaseManifest includes the
+resolved model version and the evidence that justified its promotion.
+
+
+
+
+15. Workflow synthesis and the business runtime
+PL-035. A generated WorkflowSpec MUST declare case identity, triggers, typed inputs, states,
+transitions, allowed operations, maximum iteration/time/cost bounds, durable waits, human decision
+points and completion conditions. It MUST distinguish read-only preparation from external business
+effects.
+
+PL-036. Business rules that can be expressed deterministically MUST be enforced outside model text.
+The runtime MUST validate model outputs before tool execution. A prompt saying "never post without
+approval" is not an approval mechanism.
+
+October 2, 2026 | Proposed system design                                                                 12
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+Build the workflow from certified primitives: fetch, classify, extract, validate, match, calculate,
+optimize, request missing information, wait, review and write. A generated custom primitive must pass
+the same adapter and verification requirements as a new connector. The model may choose among
+permitted actions when context requires judgment; it must not invent new tool authority.
+
+The runtime owns a case state version. Each consequential action checks that the relevant state has
+not changed since the action was prepared or approved. An accepted input becomes stale when its
+underlying document, obligation or policy changes materially. Recompute or send it for review instead
+of executing an outdated action.
+
+For the accounting example, the first complete workflow resolves client/period, reconciles existing
+evidence, consolidates missing items, sends authorized requests, waits durably, validates received
+documents, prepares a review package and obtains accountant sign-off. Whether an accounting write
+follows is an explicit policy choice. A review-ready package is not reported as an autonomous financial
+close.
+
+Physical workflows need additional interfaces. For laundry routing, Plumb can collect constraints and
+call a routing solver, but scheduling software does not physically move garments. Field observation can
+reveal constraints; actuators or human execution remain explicit parts of the process.
+
+
+
+
+16. External effects, idempotency and concurrent
+agents
+PL-037. Before dispatch, the gateway MUST persist an action intent containing a stable effect slot,
+payload digest, expected state version, authority reference, deployment version and provider/account
+target. The same effect slot MUST NOT be redispatched with a changed payload without an explicit
+supersession decision.
+
+PL-038. An ambiguous external outcome MUST enter an UNKNOWN state and be reconciled before
+retry. A timeout MUST NOT be interpreted as proof that no action occurred. Provider request IDs,
+external IDs and read-after-write probes must be stored.
+
+PL-039. Deduplication MUST apply across worker restarts and workflow/model releases. The semantic
+identity of a business action MUST NOT depend on the release version alone. Cross-workflow ownership
+must prevent two agents from independently satisfying the same obligation with duplicate actions.
+
+Use an effect slot such as tenant + case + obligation epoch + operation + target. Store a separate
+payload digest and logical action ID. Provider idempotency keys derive from the logical action identity.
+A changed message body is not automatically a new authorized reminder. A deliberate new reminder
+belongs to a new approved obligation/action epoch.
+
+Inside the control database, write intent and dispatch work atomically through a transaction/outbox
+pattern. A dispatcher records its lease and invokes the provider. It then stores the receipt and verifies
+postconditions. Provider calls are outside the database transaction. No general distributed transaction
+exists across arbitrary SaaS applications; uncertain states require reconciliation.
+
+The reference package implements a smaller SQLite effect ledger to exercise persisted deduplication,
+payload conflicts and UNKNOWN reconciliation. It does not implement a production outbox, distributed
+leases or provider guarantees. Production must test crashes at each boundary and concurrent dispatch
+under load.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                  13
+PLUMB / AUTONOMOUS IMPLEMENTATION                                              ENGINEERING SPECIFICATION 0.2
+
+
+
+
+17. Approval and autonomy without constant
+interruption
+PL-040. Approval records MUST bind to the artifact/action digest, relevant case version, policy version,
+approver identity and expiry. An approval for one version or tenant MUST NOT authorize another.
+Approval must come from an independently authenticated decision, not a value supplied by the build
+agent.
+
+PL-041. The system MUST automatically continue actions within existing authority. It MUST group
+related missing authorizations into a concrete reviewable request where possible and retain all
+completed work. It MUST NOT ask the owner to repeat an already valid authorization.
+
+Use three distinct decisions: authorization to observe/use particular data; authorization to implement
+and operate a described intervention; and any case-level business approval the intervention requires.
+An owner can approve a recurring reminder policy once. An accountant can retain sign-off over a
+prepared posting. A build agent can deploy a collector automatically if its purpose, scope, destination
+and budget already fall within the envelope.
+
+The request interface should explain what will change, why it is needed, what authority is missing and
+which work is currently blocked. Include an impact diff and the actual test evidence. Do not show a
+vague "Allow AI" button. Changes to a data processor, region, permissions, spending cap or irreversible
+action policy require authorization at the relevant boundary.
+
+Approval expiry must stop future actions promptly. Revocation invalidates cached grants and queued
+dispatches. A race in which revocation occurs after an external provider accepts an action cannot be
+undone by deleting a local grant; retain the receipt and reconcile any necessary remediation.
+
+
+
+
+18. Independent verification and completion
+evidence
+PL-042. Verification MUST inspect the artifact or resulting system state, not trust an agent's
+completion claim. Each check records verifier identity/version, input artifact digest, evidence, result,
+timestamp and environment. The verifier must not be writable by the implementation job it assesses.
+
+PL-043. A release MUST include structural checks, capability/integration checks, business scenario
+evaluation, adversarial tests and a prospective operating plan. Passing unit tests cannot substitute for
+verifying a real external effect in the intended environment.
+
+PL-044. Evaluation data MUST be segregated from tuning and repair examples. A failed protected test
+can yield a controlled diagnostic category without exposing the entire holdout. Refresh evaluation sets
+when repeated use risks overfitting. Synthetic tests supplement representative real cases; they do not
+establish business performance by themselves.
+
+Verification has five levels: schema/type validity; artifact integrity; integration behavior; business
+outcome correctness; and economic result. A model extraction score belongs to one level. It cannot
+establish that a workflow saves time or that customer records were updated correctly.
+
+Use deterministic checks for exact fields, amounts, identities, permissions and final database/provider
+state. Use calibrated model judgment for qualitative criteria where necessary, with expert audit. Run
+multiple trials for nondeterministic components and inspect confidently accepted cases, not just
+escalations. Anthropic's evaluation guidance emphasizes actual outcomes and repeatability; Plumb
+must establish its own domain-specific acceptance corpus [S12].
+
+
+
+October 2, 2026 | Proposed system design                                                                 14
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                  ENGINEERING SPECIFICATION 0.2
+
+
+
+Completion evidence for a deployed collector includes a source change and the resulting authorized
+event. For an integration, it includes a required operation on the intended account. For training, it
+includes a reproducible candidate and held-out results. For a workflow, it includes a complete case and
+its external receipts. For a business claim, it includes prospective measured outcomes with
+review/rework accounted for.
+
+
+
+
+19. Infrastructure construction and release
+PL-045. Infrastructure MUST be generated from approved resource templates or reviewed modules. A
+preview/diff, cost estimate, state lock, resource ownership tags and rollback/compensation
+classification MUST precede application. The build must not run unconstrained infrastructure code with
+broad cloud authority.
+
+PL-046. ReleaseManifest MUST bind workflow, connector, collector, model, prompt, policy, schema,
+infrastructure and evaluation versions through immutable digests. A release MUST be rejected if any
+required verification was produced for different bytes or a different scope.
+
+PL-047. Rollout MUST support shadow, bounded canary, active, paused, rolled-back and retired states.
+New cases use a resolved release version; in-flight cases stay pinned unless an explicit migration is
+validated. Pausing an intervention blocks new external effects while preserving visibility and recovery.
+
+Pulumi Automation API can programmatically preview, apply and refresh infrastructure changes [S05].
+Plumb should expose a narrow deployment adapter around those functions, maintaining a stable
+approval boundary. A preview itself can execute provider/program logic; generated code still runs in an
+isolated environment with appropriate credentials and egress controls.
+
+Use expand/contract database changes. Introduce compatible fields first, backfill and validate, deploy
+readers/writers, then retire old fields after all relevant versions drain. Destructive migrations need
+explicit authorization and a verified backup/restore strategy. Application rollback does not restore
+destroyed source data or unsend messages.
+
+Artifacts are built from pinned dependencies and stored with content digests, provenance and a
+software bill of materials. The release executor receives a short-lived grant for specific resources. The
+builder cannot replace an already verified artifact under the same identifier. Verification of container
+isolation, signing, network policy and cloud IAM is a production gate; the reference package does not
+implement those controls.
+
+
+
+
+20. Maintenance and autonomous improvement
+PL-048. Every active intervention MUST have monitors for connector freshness, schema changes,
+execution failures, quality drift, review burden, cost and outcome. Monitoring MUST link failures to
+affected cases and releases, not merely show global uptime.
+
+PL-049. A maintenance agent MUST create a new change plan and repeat the applicable verification
+gates. It MUST NOT silently alter a live policy, evaluation threshold or authorized processor to restore a
+green status.
+
+PL-050. Model/provider changes MUST be evaluated against the current full system. A lower
+advertised inference price is insufficient to justify migration if review load, latency, data terms or failure
+rates worsen.
+
+Maintenance begins by identifying the failed contract: access, schema, data quality, business rule,
+model behavior or infrastructure. Some failures need reconnection or a human domain decision. Others
+
+October 2, 2026 | Proposed system design                                                                     15
+PLUMB / AUTONOMOUS IMPLEMENTATION                                             ENGINEERING SPECIFICATION 0.2
+
+
+
+permit automatic repair, such as updating a schema mapping after a backward-compatible field
+addition. A repair inherits the current envelope and has bounded attempts and budget.
+
+Keep an opportunity backlog with blockers expressed as requirements: model accuracy, price ceiling,
+available API operation, sufficient labeled cases or missing authorization. New capability information
+triggers targeted re-evaluation of relevant opportunities. The system can then create, test and deploy a
+new intervention within existing authority. Broad daily reevaluation of every model on every customer
+is neither necessary nor economical.
+
+Use lineage to identify affected artifacts when a source, label definition, model or policy changes.
+OpenLineage's job/run/dataset objects are useful interoperable metadata, but Plumb also needs action
+and policy lineage [S13]. Retire or quarantine datasets and models affected by a removal request when
+required; do not promise instant exact unlearning from already trained weights. Stop serving an
+affected model if continued use is impermissible and follow the applicable provider/remediation path.
+
+
+
+
+21. Security, data rights and hostile inputs
+PL-051. Untrusted documents, emails, web pages, tool results and API descriptions MUST NOT change
+instruction authority, permissions, destinations or the verification standard. Treat embedded
+instructions as content unless an authorized workflow explicitly uses them as business data.
+
+PL-052. Tenant isolation MUST apply to database queries, object storage, embeddings/search, caches,
+workspaces, training jobs, model routes, logs and exports. Platform roles and migration roles must be
+separated from ordinary service roles. PostgreSQL row security has owner/superuser exceptions;
+merely enabling RLS is not a complete isolation design [S14].
+
+PL-053. Data-purpose authorization MUST be enforced at collection, transformation, evaluation,
+training and export. Derived data inherits restrictions. Plumb MUST NOT infer permission to train from
+permission to read. It MUST NOT assume that a tenant-specific model is permitted for every source or
+principal.
+
+Google's Workspace policy places specific restrictions on accessed data, including uses beyond the
+specific user's personalized model [S15]. The source-rights registry therefore needs policy rules and
+actual customer grants, not a single tenant-wide checkbox. Vendor terms can change; retain the
+version used for a decision and re-evaluate affected operations when necessary.
+
+PL-054. Secret values MUST stay outside prompts, generated artifacts and ordinary telemetry.
+Network egress MUST be mediated and destinations allowlisted for the operation. Callback/webhook
+URLs need SSRF protection, signature verification, replay defenses and bounded payload parsing.
+
+Use adversarial tests for prompt injection, malicious documents, forged tool descriptions, confused
+account identity, poisoned labels, unauthorized recipients and exfiltration attempts. No detector is a
+complete boundary. The safe property is that a compromised reasoning step cannot obtain an effect
+outside its enforced capability and data scope. This must be tested with actual gateway and sandbox
+infrastructure before customer deployment.
+
+
+
+
+22. Control-plane API and event protocol
+PL-055. Long-running mutations MUST return a job identity and durable status, normally HTTP 202.
+Repeated requests with the same tenant-scoped idempotency key and payload MUST return the
+original operation; the same key with a different payload MUST return a conflict. Server-assigned state
+must not be overwritten by client claims.
+
+
+October 2, 2026 | Proposed system design                                                                 16
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                   ENGINEERING SPECIFICATION 0.2
+
+
+
+PL-056. Updates to versioned resources MUST use optimistic concurrency, such as If-Match. A stale
+version returns 412 and an authorization failure must not reveal another tenant's resource details.
+Pagination MUST use stable opaque cursors with bounded page sizes.
+
+The included OpenAPI contract covers envelope creation, inventory jobs, opportunity discovery, build
+creation/status/events, connection intents, collection jobs, dataset and training jobs, evaluations,
+release creation/activation/pause, action dispatch/reconciliation and outcome queries. It defines object
+schemas and the shared job/error envelope. Provider adapter APIs are internal and separately
+authenticated.
+
+Events carry event_id, tenant_id, aggregate_id, aggregate_version, event_type, occurred_at,
+recorded_at, correlation_id, causation_id, schema_version and a payload reference. Use at-least-once
+delivery with consumer deduplication. A consumer records its processed event ID in the same local
+transaction as its state update. Event ordering is per aggregate; do not assume global ordering across
+systems.
+
+Initial error classes: AUTH_REQUIRED, SCOPE_DENIED, PURPOSE_DENIED, POLICY_STALE,
+STATE_CONFLICT, PAYLOAD_CONFLICT, BUDGET_EXCEEDED, CAPABILITY_UNSUPPORTED,
+SOURCE_STALE, DATA_QUALITY_FAILED, VERIFICATION_FAILED, EFFECT_UNKNOWN and
+RETRY_EXHAUSTED. Errors include retryability, dependency identity and operator action where
+appropriate. Raw secrets, source content or other tenants' identifiers must not appear in error
+messages.
+
+The OpenAPI document is a proposed interface, not a running endpoint. Its reference validation checks
+JSON validity and local schema references; authentication, serialization compatibility and complete
+OpenAPI conformance need implementation-time tests [S16].
+
+
+
+
+23. Persistence and state machines
+PL-057. Authoritative state transitions MUST be transactional, versioned and auditable. A worker lease
+cannot be the only record that an external action was attempted. Audit retention must follow
+source/customer obligations and contain minimal necessary data.
+
+
+ Aggregate                          Allowed lifecycle
+
+
+ Build                              DRAFT, VALIDATED, RUNNING, WAITING_AUTH, WAITING_INPUT, VERIFYING,
+                                    VERIFIED, FAILED, CANCELLED
+
+
+ Build step                         PENDING, READY, RUNNING, VERIFYING, VERIFIED, FAILED, BLOCKED, CANCELLED
+
+
+ Collector                          PLANNED, SHADOW, BACKFILLING, RECONCILING, ACTIVE, DEGRADED, PAUSED,
+                                    RETIRED
+
+
+ Dataset                            PROPOSED, MATERIALIZING, QUARANTINED, VERIFIED, SUPERSEDED,
+                                    UNAVAILABLE
+
+
+ Training                           PLANNED, SUBMITTED, RUNNING, CANDIDATE, FAILED, CANCELLED
+
+
+ Release                            CANDIDATE, VERIFIED, SHADOW, CANARY, ACTIVE, PAUSED, ROLLED_BACK,
+                                    RETIRED
+
+
+ Effect                             RESERVED, DISPATCHED, UNKNOWN, CONFIRMED, FAILED_FINAL, COMPENSATED
+
+
+
+
+October 2, 2026 | Proposed system design                                                                       17
+PLUMB / AUTONOMOUS IMPLEMENTATION                                              ENGINEERING SPECIFICATION 0.2
+
+
+
+The transitions are not arbitrary enum updates. For example, VERIFIED build requires all required steps
+verified; an ACTIVE release requires current authority and accepted attestations; a CONFIRMED effect
+requires an external receipt/postcondition; UNKNOWN can leave that state only through a valid
+reconciliation result. Each service implements a transition function with guards and a persisted reason.
+
+The proposed PostgreSQL schema covers tenants, envelopes, capabilities, artifacts, evidence events,
+objects/facts, goals, opportunities, build jobs/steps, source grants, datasets, evaluations, approvals,
+releases, cases, effects, outbox and outcome observations. Use composite tenant/resource keys for
+relations where practical. Index case lookups, external source identity, job readiness and outstanding
+effects. Partition large append-only event tables after measured need, not by default.
+
+The package SQL is a design migration. It has not been executed against PostgreSQL in this
+environment. Production review must check grants, transaction isolation, migrations, indexes and
+workload behavior. The local simulation uses SQLite only for the smaller effect-ledger contract and
+must not be mistaken for the production persistence implementation.
+
+
+
+
+24. Economics, scale and observability
+PL-058. Cost reservations MUST be enforced before work starts, with recorded actual charges and
+release of unused reservations. Concurrent steps MUST NOT each spend against the same remaining
+budget without atomic reservation. The reference checker verifies declared worst-case budgets; it does
+not meter a live provider.
+
+PL-059. Plumb MUST measure customer review/rework and its own implementation/support labor
+alongside inference and infrastructure. It MUST distinguish model calls, completed cases, correct
+outcomes and realized business value.
+
+PL-060. Operational telemetry MUST correlate tenant, goal, build, case, release, step, model call and
+external action without logging sensitive content by default. Pin telemetry conventions; current
+OpenTelemetry GenAI conventions continue to evolve [S17].
+
+Illustrative sizing assumption: 100 tenants x 50 employees x 1,000 meaningful events per day yields 5
+million events/day, about 58/second on average. A 20x peak is approximately 1,160/second. This is a
+sizing exercise, not validated traffic. Batch low-level observations into meaningful events rather than
+starting a durable business workflow per click.
+
+Capture economics can dominate. At one 60 KB screenshot every five seconds for 100 employees over
+eight hours, raw volume is about 34.6 GB/day before retention and derived artifacts. Event-triggered
+capture, local semantic extraction and short retention should be evaluated against actual discovery
+value. Do not pay for continuous visual inference when structured source events answer the question.
+
+Proposed initial service targets: 99.9% monthly control-plane availability; p95 internal event-to-case
+propagation below 60 seconds after ingestion; visible connector staleness within five minutes of the
+configured health deadline; durable restart without losing acknowledged intents; and policy-gateway
+failure closed for writes. Report provider delay separately and also report end-to-end customer
+experience so exclusions cannot conceal unusable workflows.
+
+Quality targets are task-specific. No universal 99% score defines safe financial posting, identity
+resolution and route planning alike. Each release sets denominators, error severity, review thresholds
+and allowed effect classes. A run can be technically successful and commercially unsuccessful; record
+both.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                  18
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                           ENGINEERING SPECIFICATION 0.2
+
+
+
+
+25. Acceptance and the three reference scenarios
+PL-061. The release suite MUST include normal cases, boundary cases, corrupted inputs, stale/revoked
+access, duplicate/reordered events, crashes after dispatch, concurrent actors, source edits after
+approval and adversarial instructions. All high-severity failures block activation.
+
+PL-062. The implementation-autonomy metric MUST count manual engineering and failed eligible
+builds. Reporting only the successful cases or only runtime automation is insufficient. Measure
+end-to-end build completion, intervention hours, repair attempts and cost per verified deployment.
+
+The included synthetic plans exercise the same core contracts across three different outcomes:
+
+
+ Scenario                    Automatic implementation work                  Production boundary
+
+
+ Accounting evidence         Probe mail/document/ledger operations;         Accountant approval for configured
+ preparation                 deploy a collector; construct categorization   postings; source-specific training rights
+                             examples; evaluate a component; build
+                             and release a review workflow
+
+
+ Industrial RFQ              Connect request/inventory/pricing records;     Authorized commercial terms and
+ preparation                 map units and SKUs; collect quote              freshness checks before a binding quote
+                             revisions; evaluate matching; deploy draft
+                             quotation preparation
+
+
+ Laundry route               Connect orders and vehicle constraints;        Approved route publication and explicit
+ preparation                 collect actual durations; configure a          human/physical execution
+                             routing solver; evaluate constraint
+                             satisfaction; deploy the planning workflow
+
+
+
+These examples demonstrate representational reuse, not verified cross-industry autonomy. Their
+business data and identifiers are synthetic. No model, SaaS provider or infrastructure is invoked by the
+local tests.
+
+The package's tests cover malformed plans, missing capabilities/dependencies, cycles, oversized
+budgets, expired or mismatched scope, purpose mismatch, stale approvals, future information,
+duplicate dataset families, duplicate effects, changed payload conflicts and unknown-effect
+reconciliation. The production acceptance catalog additionally specifies tests requiring actual adapters,
+isolation, grants, deployments and prospective outcomes.
+
+
+
+
+26. Delivery sequence and engineering ownership
+PL-063. The first milestone MUST prove automatic construction of a complete
+integration-and-collection path, not just a manually configured workflow with a polished UI. The next
+milestone MUST prove that it can be reproduced for a new customer with explicit accounting of human
+labor.
+
+
+ Milestone                   Required deliverable                           Evidence before proceeding
+
+
+ M0: contracts and           Approved goal/envelope model, source           Domain owner can judge the outcome;
+ threat model                inventory, capability registry, test corpus    exact source operations are accessible
+
+
+ M1: integration             Agent configures or generates a connector      New permitted source event reaches
+ factory                     and deploys a collector                        verified storage with lineage
+
+
+
+October 2, 2026 | Proposed system design                                                                                19
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                        ENGINEERING SPECIFICATION 0.2
+
+
+
+
+ Milestone                   Required deliverable                         Evidence before proceeding
+
+
+ M2: learning factory        Agent locates input/target sources, builds   No future-data or duplicate-family leakage;
+                             dataset and candidate evaluation             expert-reviewed label sample
+
+
+ M3: workflow factory        Agent compiles a plan into a durable         Correct complete cases in sandbox;
+                             business workflow and test bundle            failures pause/reconcile correctly
+
+
+ M4: release and             Agent deploys within scope, monitors,        Canary results, effect receipts, recovery
+ operation                   diagnoses and repairs a permitted defect     drill and total support effort
+
+
+ M5: replication             Same factories used for new customers        Falling manual implementation effort with
+                             and several related workflows                stable quality and value
+
+
+ M6: broader capability      Add a second domain with domain-specific     Reused planner/compiler/runtime; new
+                             contracts, not a forked engine               adapter/domain work measured separately
+
+
+
+A team needs strong production integration, distributed-systems and applied evaluation skills. The hard
+work is not merely prompt writing. Assign an owner to the capability registry, action gateway,
+data/learning contracts and domain acceptance corpus. Domain experts define meaningful
+correctness; platform engineers establish enforcement; agents perform increasingly repeatable
+implementation tasks.
+
+An initial 90-day supervised reference deployment is a planning hypothesis contingent on access and
+staffing. Broad company-wide coverage across arbitrary software and roles is a later reliability and
+generalization objective, not something a timetable can guarantee.
+
+
+
+
+27. Architectural decisions and unresolved
+experiments
+ADR-001: Separate engineering and runtime credentials. Rationale: building an integration requires
+authority that normal business execution must not inherit.
+
+ADR-002: Keep plan state and artifacts outside the agent workspace. Rationale: sessions and
+sandboxes can fail or be replaced without losing authoritative progress.
+
+ADR-003: Use typed contracts and a registry-backed compiler. Rationale: generated prose must
+become bounded, inspectable operations before execution.
+
+ADR-004: Use one durable lifecycle owner. Rationale: overlapping schedulers create ambiguous retries
+and completion ownership.
+
+ADR-005: Store facts with provenance and multiple time axes. Rationale: corrections and backfills
+otherwise contaminate replay and training.
+
+ADR-006: Treat learning setup as an automatically generated deployment. Rationale: data collection is
+part of implementation, not customer homework.
+
+ADR-007: Gate promotion independently. Rationale: the builder must not certify success by editing its
+own tests or thresholds.
+
+ADR-008: Resolve model aliases to immutable versions per case. Rationale: reproducible behavior and
+approval binding require stable execution identity.
+
+
+
+October 2, 2026 | Proposed system design                                                                              20
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+ADR-009: Use explicit UNKNOWN for uncertain effects. Rationale: automatic retries can duplicate
+irreversible actions.
+
+ADR-010: Measure implementation autonomy separately from runtime autonomy. Rationale: a
+manually built automation cannot prove the platform's central claim.
+
+Experiments that remain necessary: whether richer observation materially improves deployable
+discovery; the rate at which inferred input/target joins are correct; whether agents can adapt existing
+adapters cheaply enough; the amount of domain clarification per workflow; the reliability of generated
+failure handling; and the rate of maintainable reuse across customers. None of these is resolved by the
+existence of a coding-agent API.
+
+
+
+
+28. Package contents and verification limits
+The source Markdown is the normative specification. Generated schemas express the included
+Pydantic contracts. The OpenAPI file is an interface proposal; the SQL file is a persistence proposal. The
+reference checker and effect ledger make selected contracts executable. The acceptance catalog
+identifies the much larger set of behaviors requiring real integration tests.
+
+The package README records exact commands, dependencies and what was executed. The validation
+report includes test counts, valid fixture plans, schema/API-reference checks and any unexecuted
+checks. File hashes in MANIFEST.json identify the delivered artifacts. No credentials, production data or
+network effects are included.
+
+Do not claim that passing local contract tests validates Plumb's models, business outcomes, tenant
+security, cloud isolation or third-party integrations. Those require the production gates in this
+specification. The local artifacts are designed to give a founding engineering team a concrete,
+reviewable starting point with fewer ambiguous interfaces.
+
+
+
+
+29. Primary sources and evidence boundaries
+Vendor and infrastructure documentation supports the feasibility of individual primitives. It does not
+establish that their composition already achieves Plumb's full promise. Architecture, requirements and
+examples in this document are proposed design decisions unless explicitly attributed. Sources were
+reviewed October 2, 2026, New York time.
+
+[S01] Anthropic, Effective harnesses for long-running agents. Explicit progress artifacts and
+incremental verified execution.
+https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
+
+[S02] Anthropic, Scaling Managed Agents. Separation of session, harness and sandbox responsibilities.
+https://www.anthropic.com/engineering/managed-agents
+
+[S03] Nango, How to build AI agent integrations using the Nango Management MCP. Programmatic
+integration setup, sync deployment and separate runtime credentials.
+https://nango.dev/blog/how-to-build-ai-agent-integrations-using-the-nango-management-mcp
+
+[S04] Airbyte, Connector Builder. Declarative HTTP source connectors, configuration and testing;
+source/destination limits. https://airbyte.com/connector-builder
+
+[S05] Pulumi, Automation API. Programmatic infrastructure preview, update, refresh and lifecycle
+operations. https://www.pulumi.com/docs/iac/concepts/automation-api/
+
+
+
+October 2, 2026 | Proposed system design                                                                  21
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                ENGINEERING SPECIFICATION 0.2
+
+
+
+[S06] LangChain, LangGraph interrupts. Persistent state and resumable human input.
+https://docs.langchain.com/oss/python/langgraph/interrupts
+
+[S07] Model Context Protocol, Security Best Practices. Authorization and token-handling risks.
+https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices
+
+[S08] Debezium, PostgreSQL connector. Snapshot, streaming, offsets and possible duplicate delivery
+after failure. https://debezium.io/documentation/reference/stable/connectors/postgresql.html
+
+[S09] Feast, Point-in-time joins. Event-time retrieval and availability-time constraints for backfilled
+values. https://docs.feast.dev/getting-started/concepts/point-in-time-joins
+
+[S10] AWS, CreateTrainingJob. Managed training input, resources, output and stopping configuration.
+https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTrainingJob.html
+
+[S11] MLflow, Model Registry Workflows. Model versions, aliases and lifecycle management.
+https://mlflow.org/docs/latest/ml/model-registry/workflow/
+
+[S12] Anthropic, Demystifying evals for AI agents. Outcome checks, repeatability and evaluation
+design. https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+
+[S13] OpenLineage, Object Model. Job, run and dataset metadata.
+https://openlineage.io/docs/spec/object-model/
+
+[S14] PostgreSQL, Row Security Policies. Policy behavior and privileged-role exceptions.
+https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+
+[S15] Google, Workspace user data and developer policy. Purpose, transfers, personalized-model
+restrictions and security requirements.
+https://developers.google.com/workspace/workspace-api-user-data-developer-policy
+
+[S16] OpenAPI Specification 3.1.1. Interface and schema contract reference.
+https://spec.openapis.org/oas/v3.1.1.html
+
+[S17] OpenTelemetry, semantic conventions. Stable naming requires version-aware instrumentation;
+GenAI conventions have moved to a dedicated repository.
+https://opentelemetry.io/docs/specs/semconv/
+
+[S18] Temporal, Durable AI and Activity Execution. Durable orchestration and activity lifecycle.
+https://docs.temporal.io/ai ; https://docs.temporal.io/activity-execution
+
+Product source: the user's attached Plumb ai English(1).mp4 and explicit clarification that
+implementation, collection and model routing are agentic. The video is a product scenario; no depicted
+commercial or performance result is treated as measured evidence.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                   22
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                        ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Appendix A. Agent execution protocol
+This design supplement makes the interaction among the planner, workers, gateway and verifier
+explicit. It is proposed production behavior. The package does not implement this distributed protocol.
+
+
+
+1. The unit of agent work
+An AgentTask is a bounded engineering assignment, not an open-ended instruction to improve a
+company. Its envelope contains task ID; authenticated tenant; parent build/step; goal and acceptance
+references; immutable input artifact IDs; permitted capabilities; source and destination scope;
+remaining spend/time/attempt budgets; workspace base digest; and a fencing token.
+
+The orchestrator obtains these values from trusted state. A model may propose a new subtask, but that
+proposal is compiled against the same or narrower authority. A generated artifact cannot grant access
+to itself. A retrieved document cannot redefine the task or its success condition.
+
+The worker receives a narrow tool surface:
+
+
+ Proposed tool               What it may do                              What it cannot decide
+ family
+
+
+ artifact.read /             Read permitted evidence; submit             Mark its own artifact trusted or
+ artifact.propose            versioned code, mappings and                production-ready
+                             specifications
+
+
+ source.describe /           Inspect authorized schemas and limited      Obtain a new source grant
+ source.sample               records
+
+
+ sandbox.run                 Execute generated code with bounded         Access production credentials or verifier
+                             resources and controlled network            secrets
+
+
+ integration.configure /     Request approved management operations      Turn a documented endpoint into a verified
+ integration.probe           through the gateway                         capability without evidence
+
+
+ collection.deploy /         Deploy a permitted collector and inspect    Claim a healthy stream from a successful
+ collection.inspect          its actual output                           deployment response alone
+
+
+ training.submit /           Start and follow a budgeted provider job    Promote its resulting model
+ training.inspect
+
+
+ verification.request        Submit a pinned artifact for independent    Change the protected test bundle or pass
+                             checks                                      threshold
+
+
+ deployment.preview /        Request a constrained infrastructure or     Add destinations, cloud accounts or
+ deployment.apply            release operation                           spending authority
+
+
+ dependency.raise            Record the precise external authorization   Convert missing authority into a generic
+                             or business decision required               retry
+
+
+
+The names above are interface proposals, not claims that these tools already exist. Provider adapters
+implement their operations. All sensitive calls pass through enforcement; ordinary artifact generation
+happens in the sandbox.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                             23
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                       ENGINEERING SPECIFICATION 0.2
+
+
+
+
+2. Scheduler and step protocol
+1. Read the build and active envelope from authoritative storage. Verify tenant, expiry, revocation,
+current policy and required prerequisite attestations.
+
+2. Select a ready step. Atomically acquire a lease/fencing token and reserve its permitted worst-case
+cost. Persist dispatch work in the same transaction.
+
+3. Start or restore the isolated workspace from its pinned base. Supply only task-relevant evidence and
+exact tool contracts; references to larger datasets remain out of the prompt.
+
+4. Run the worker. Each tool call is checked independently at dispatch time. Persist intermediate
+artifacts outside the sandbox. Record action identities before external writes.
+
+5. Receive a proposed result: artifact IDs, workspace digest, claimed postconditions and diagnostics. A
+worker's final message does not change the step to VERIFIED.
+
+6. Request independent verification using the immutable artifact digest and protected acceptance
+contract. Read actual provider or business state through separate verifier authority where necessary.
+
+7. Commit the result with compare-and-set on the build/step version and current fencing token. Emit an
+event through the outbox. Release or settle reserved cost.
+
+8. Continue to newly ready steps, or enter a named dependency/failure state. Make completion visible
+only when the product-level outcome conditions are satisfied.
+
+A lease expiry permits another worker to own unfinished computation. It does not prove an old network
+request was cancelled. The replacement worker first reconciles uncertain effects, then decides whether
+more work is eligible. Provider fencing is used where supported; otherwise a single gateway dispatcher
+and stable effect identity reduce the race surface. They do not create an impossible transaction across
+arbitrary APIs.
+
+
+
+3. Worker result contract and repair
+A proposed StepResult includes task/step/attempt IDs; fencing token; input and output digests;
+execution environment digest; tool-call/effect references; test-log references; claimed postconditions;
+cost usage; and unresolved dependencies. Verifier attestations are separate records issued by the
+verifier, not fields the builder may fill.
+
+Failure classification determines the next action:
+
+
+ Failure class               Automatic behavior                          Stop condition
+
+
+ Transient                   Apply provider-aware bounded backoff;       Retry/time budget exhausted or persistent
+ provider/infrastructure     reconcile possible writes first             outage
+ failure
+
+
+ Implementation defect       Restore known workspace, patch              Repair budget exhausted or same failure
+                             code/mapping, rerun required verification   recurs without new evidence
+
+
+ Source                      Quarantine affected path, generate a new    Unknown meaning or unsafe migration
+ schema/semantic             mapping/version, run semantic fixtures
+ change
+
+
+ Missing authorization       Preserve state and generate a precise       Authorized owner must supply access
+                             consent/access dependency
+
+
+
+October 2, 2026 | Proposed system design                                                                             24
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                         ENGINEERING SPECIFICATION 0.2
+
+
+
+
+ Failure class               Automatic behavior                             Stop condition
+
+
+ Missing business            Ask a focused question with evidence and       Owner must resolve ambiguity affecting
+ decision                    consequences                                   behavior
+
+
+ Unsupported                 Test a justified alternative such as           No supported authorized path meets the
+ capability                  export/import or another provider              goal
+
+
+ Poor model quality          Collect more valid labels or choose a better   No candidate meets task thresholds
+                             baseline; evaluate again within budget
+
+
+
+Repeatedly asking a model to try harder is not a recovery policy. Repair must change a specific
+hypothesis: cursor handling, field meaning, join key, deployment configuration, prompt or candidate
+method. Diagnostics and previous attempts remain available so the next worker does not repeat an
+exhausted approach.
+
+
+
+4. Model selection inside engineering work
+The platform uses models for source interpretation, opportunity hypotheses, code generation and
+ambiguous business decisions. Deterministic services own authentication, budgets, state transitions,
+arithmetic constraints, effect identity and release guards.
+
+Select an engineering model based on the task and tool support; select a business model based on a
+protected customer task evaluation. These are different selection problems. A strong coding model can
+construct a workflow served by a smaller classifier, a routing solver and no generative model at several
+steps.
+
+Context construction is also implementation work. Retrieve only relevant source/schema excerpts,
+known failure diagnostics and current artifact interfaces. Preserve original evidence references.
+Summaries may be lossy; they cannot be the sole source for financial amounts, source authority,
+approvals or completion state. Budget context growth and checkpoint progress outside the model
+session.
+
+
+
+5. How useful automation accumulates
+Every verified build yields reusable assets: adapter tests; field/identity mappings with applicability
+constraints; collection templates; training task definitions; failure fixtures; workflow primitives; and
+measured deployment/support cost. Reuse is conditional on provider versions, task semantics and
+customer permissions.
+
+Keep reusable engineering patterns separate from customer records. A connector's pagination repair
+may improve the platform broadly without moving the customer's documents or training examples.
+Cross-customer examples, labels and weights require their own permitted-use basis; successful
+operation for one tenant does not confer that right.
+
+The capability registry should record what a primitive can do, its tested environment, failure modes,
+required authority and observed maintenance burden. This turns previous implementation experience
+into better future build plans. It also lets a new provider feature unlock a previously blocked
+opportunity through a targeted re-evaluation.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                             25
+PLUMB / AUTONOMOUS IMPLEMENTATION                                              ENGINEERING SPECIFICATION 0.2
+
+
+
+
+6. Product surfaces the customer actually needs
+The customer should see a goal, current evidence, proposed measurable outcome, authorized scope,
+running progress, exceptions and demonstrated result. The normal interface should not require editing
+a DAG, writing SQL or choosing a training container.
+
+Before an authorized build starts, present a concise implementation card: what will change; which
+systems and data it uses; what actions it may take; maximum spend; expected benefit hypothesis; and
+any necessary owner decision. If the customer's standing envelope already covers it, the system
+proceeds. Novel permissions or material commitments require a concrete new decision.
+
+During execution, expose useful progress such as 'bank export mapped; collector verified; historical
+pairs being checked.' If blocked, identify the exact missing consent or policy, who can resolve it, and
+what resumes afterward. Avoid statuses that obscure manual engineering work. After activation, show
+eligible cases, correct completed outcomes, review effort, failures and cost, with supporting records.
+
+
+
+7. Staffing and sequencing assumptions
+A plausible initial team has a technical lead for durable execution/enforcement, an integration
+engineer, an applied ML/evaluation engineer, a product engineer and a domain expert working with the
+team. Some roles can be combined; doing so changes throughput and risk. This is an ownership model,
+not a promise of delivery time or headcount sufficiency.
+
+Build vertical proofs in dependency order: authorized source probe; generated adapter and collector;
+independently verified new event; generated business workflow; optional learned component;
+deployment and recovery; replication on a fresh customer. Build the product interface alongside those
+proofs. Avoid months of generic agent-platform construction before testing whether it can implement a
+real customer workflow.
+
+The full vision remains broad discovery across roles and systems. Initial certified operations should be
+narrow enough to verify well. Expanding operation coverage is different from making customers
+manually implement the missing parts: Plumb's engineering process should perform the adaptation,
+while the platform team supplies new primitives and tests when existing authority or interfaces are
+insufficient.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                 26
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Appendix B. First complete customer trace
+This is a synthetic production acceptance scenario. It is not an execution log or evidence of a
+connected customer. Its purpose is to specify exactly what an autonomous implementation must
+accomplish.
+
+
+
+Goal and authority
+Goal: reduce duplicated requests for missing monthly-close evidence and the accountant's time
+assembling a review package. The initial measurable deliverable is a complete, correctly attributed
+review package. A mandatory accountant sign-off remains part of the business process.
+
+The owner authorizes specific bookkeeping, document and email accounts; a tenant storage
+destination; required processors and region; a bounded implementation budget; reading and collecting
+specified records; preparation of suggestions; and consolidated reminders under an approved policy.
+Posting journal entries is a separate capability and is excluded unless specifically granted. This is a
+concrete scope choice, not a universal product restriction.
+
+
+
+Discovery and integration
+Plumb queries authorized accounts and tests the exact available operations. It identifies client IDs,
+accounting periods, existing document folders, requested-document status and previous reminder
+messages. It checks whether the authoritative engagement checklist is available. If that checklist
+cannot be inferred reliably, it asks the owner a focused question and continues unrelated integration
+work.
+
+The implementation agent first reuses a certified connector. If an operation needs adaptation, it
+generates the mapping/function, runs contract fixtures and deploys it through management tooling. It
+records the external account, granted scopes and supported operations. A test that reads an invoice
+does not establish access to bank statements.
+
+Output artifacts: EnvironmentInventory; operation capability records; IntegrationSpec; adapter
+code/configuration digest; scope/probe receipts; generated tests; and a resumable access dependency
+for any inaccessible application.
+
+
+
+Automatically create the collection apparatus
+Plumb deploys collectors for the permitted bookkeeping metadata, document arrival/change events
+and reminder history. It defines stable source IDs and object joins around client plus period plus
+obligation. It selects webhooks where reliable, polling with overlap where necessary, and an explicit
+historical backfill boundary.
+
+The collection deployment includes storage tables/object paths, schema mappings, cursors,
+source-count reconciliation, identity checks, lineage, permissions, retention and health monitoring. It
+observes a newly permitted document update, fetches authoritative content and verifies that the
+expected client/period record changed. Only then is the collection path considered working.
+
+If two users have already chased the same client, the implementation identifies the shared obligation
+and assigns one action owner. A per-person list of emails is insufficient. Duplicate prevention lives at
+the business obligation/effect level, including across later workflow releases.
+
+Output artifacts: CollectionSpec; backfill and live-capture jobs; transformation code; normalized
+evidence/object tables; quality report; and a source-to-storage verification receipt.
+
+
+October 2, 2026 | Proposed system design                                                                   27
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Find and construct the learning data
+For transaction categorization, Plumb looks for original transaction/document context and subsequent
+accountant-confirmed classifications or corrections. It proposes joins using source transaction IDs and
+document links, then examines unmatched, ambiguous and revised cases. For document
+completeness, the target may instead be a confirmed obligation state; those labels should not be
+mixed into a categorization task.
+
+It constructs a dataset with the input known at the decision time, authoritative final label and its
+revision status. It isolates temporal and transaction-family holdouts. Expert review checks a sample of
+the join and label interpretation. No assumption that 1.2 million recorded transactions implies 1.2
+million usable supervised examples is allowed.
+
+If historical examples are insufficient, Plumb automatically adds a prospective feedback collector. Each
+future suggestion stores an input snapshot and case ID; the accountant's normal review records
+accepted value, correction and later amendment. Lack of an edit is weak evidence unless the workflow
+establishes explicit reviewed acceptance. The baseline workflow can operate while useful training data
+accumulates.
+
+Output artifacts: task definition; source-candidate table; join and exclusion logic; DatasetManifest;
+label-audit report; protected evaluation set; and the prospective correction collector.
+
+
+
+Choose and construct the working solution
+The agent compares a deterministic/native baseline, a general-model implementation with relevant
+context, and a trained component where the data supports it. Compare the complete workflow on
+meaningful errors and accountant review time as well as model score. The system uses tuning when it
+earns a deployment advantage.
+
+For a selected trained candidate, it generates the provider-specific job configuration, reserves budget,
+submits with persisted identity, follows completion, retrieves versioned artifacts, evaluates and
+provisions a permitted serving path. Data routing is explicit: selected fields, dataset version, processor,
+region, credential reference, retention and job identity. 'Send it to the model' is not an acceptable
+implementation record.
+
+The workflow combines document extraction/classification with deterministic obligation checks. It
+prepares one consolidated missing-item request, sends it only under the approved reminder policy,
+waits durably for responses, rechecks evidence freshness, and prepares a review package. Its runtime
+uses versioned cases and typed operations rather than free-form agent conversation as the source of
+truth.
+
+Output artifacts: candidate comparison; optional TrainingSpec and trained model version;
+WorkflowSpec; serving configuration; generated UI/review integration; and complete business
+acceptance fixtures.
+
+
+
+Test, deploy, operate and improve
+The protected verifier runs representative complete cases and failure cases: wrong client, ambiguous
+period, already-received document, corrected statement, duplicate request, expired permission,
+provider timeout after send, changed approval and stale source. It checks actual final state and
+external receipts. The builder cannot pass by changing the definition of completion.
+
+Plumb creates an infrastructure preview, applies within its envelope, activates shadow processing and
+advances through permitted rollout stages only when gates pass. It keeps the previous compatible
+
+
+October 2, 2026 | Proposed system design                                                                  28
+PLUMB / AUTONOMOUS IMPLEMENTATION                                               ENGINEERING SPECIFICATION 0.2
+
+
+
+release available. The first visible success is a real permitted source change moving through the
+released workflow and producing the expected review state.
+
+If the mail API times out after accepting a reminder, the effect becomes UNKNOWN. Plumb looks up the
+provider message/request identity and confirms what happened. It does not send another message
+because the agent restarted. If the source schema changes, affected work pauses while the agent
+creates and tests an updated adapter; unaffected work can continue.
+
+The feedback collector now supplies future learning data as part of normal business work. Drift and
+candidate improvements trigger evaluation, not automatic untested promotion. Measured review time,
+error severity, missing evidence and source coverage decide whether the next intervention is
+worthwhile.
+
+
+
+Success and its denominator
+Count all eligible implementation attempts, blocked attempts, engineering interventions, normal
+accountant reviews and runtime failures. Report time to verified deployment; manual engineering
+hours; connector/collector success; correct review packages; duplicate requests; review effort; and full
+operating/support cost.
+
+If a person manually wires the integrations or writes the production workflow, record that labor. If a
+case still requires the mandated accountant approval, report it as ready for review until approved.
+These definitions let Plumb demonstrate increasing implementation autonomy without disguising
+customer work or overstating completion.
+
+The expansion test is the same process on the next three customers: different folder structures,
+chart-of-account conventions and minor API differences, with the same core engine. A successful single
+custom integration is evidence for the initial workflow; repeated agent-built deployments are evidence
+for the platform.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                  29
+PLUMB / AUTONOMOUS IMPLEMENTATION                                                         ENGINEERING SPECIFICATION 0.2
+
+
+
+
+Appendix C. Delivered reference package and
+verification
+The engineering archive is a specification and reference implementation of selected controls. It
+contains no connected customer accounts or deployed services.
+
+
+ Check                              Executed result
+
+
+ Local contract and failure         56 passed; zero failures or errors
+ tests
+
+
+ Top-level contract schemas         17 generated; generation matches Pydantic models
+
+
+ API interface                      24 proposed operations; no running API server
+
+
+ Local schema/API references        103 resolved
+
+
+ Synthetic build plans              Accounting, industrial RFQ and laundry validated
+
+
+ Normative requirements             63 indexed requirements
+
+
+ Production acceptance              30 scenarios specified; none run against production
+
+
+ Tested environment                 Python 3.12.14; Pydantic 2.13.5
+
+
+
+The executed tests cover the structural/authority subset of build plans, declared retry-cost limits,
+dataset time/split checks, approval bindings and persistent effect identity/reconciliation. The report
+does not establish semantic label quality, actual source rights, robust multi-tenant security, model
+quality or customer business value.
+
+Not executed: live API or connector calls; authentication/security integration tests; PostgreSQL
+migration/roles; full OpenAPI/JSON Schema standards conformance; cloud sandbox isolation;
+training/serving; live budget accounting; real external effects or distributed concurrency; production
+deployments; or customer outcome measurements.
+
+The archive contains the source specification and supplements, contracts, generated schemas, API
+proposal, SQL design, fixtures, tests, production acceptance catalog, verification report and SHA-256
+manifest. README.md records reproduction commands and boundaries. These artifacts should be
+reviewed and extended by the founding engineering team before implementation.
+
+
+
+
+October 2, 2026 | Proposed system design                                                                            30
+
