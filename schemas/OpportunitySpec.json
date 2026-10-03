@@ -1,0 +1,544 @@
+{
+  "$defs": {
+    "BenefitRange": {
+      "additionalProperties": false,
+      "description": "Expected benefit as a range over a defined horizon (section 7).",
+      "properties": {
+        "high": {
+          "$ref": "#/$defs/Money"
+        },
+        "horizon_days": {
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "low": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "low",
+        "high",
+        "horizon_days"
+      ],
+      "title": "BenefitRange",
+      "type": "object"
+    },
+    "BlockingCondition": {
+      "additionalProperties": false,
+      "description": "Why feasibility failed, precisely enough to resume once resolved (section 7).",
+      "properties": {
+        "condition_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "failure_class": {
+          "$ref": "#/$defs/FailureClass"
+        },
+        "missing_authority": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Missing Authority",
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition_id",
+        "failure_class",
+        "description"
+      ],
+      "title": "BlockingCondition",
+      "type": "object"
+    },
+    "CandidateKind": {
+      "description": "Role of an entry in the candidate comparison (PL-013).",
+      "enum": [
+        "CURRENT_PROCESS",
+        "NATIVE_FEATURE",
+        "PROPOSED_SYSTEM",
+        "ALTERNATIVE"
+      ],
+      "title": "CandidateKind",
+      "type": "string"
+    },
+    "CandidateSystem": {
+      "additionalProperties": false,
+      "description": "One complete alternative in the comparison, costed end to end (PL-013).",
+      "properties": {
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "expected_benefit_range": {
+          "$ref": "#/$defs/BenefitRange"
+        },
+        "expected_cost": {
+          "$ref": "#/$defs/Money"
+        },
+        "kind": {
+          "$ref": "#/$defs/CandidateKind"
+        }
+      },
+      "required": [
+        "kind",
+        "description",
+        "expected_cost",
+        "expected_benefit_range"
+      ],
+      "title": "CandidateSystem",
+      "type": "object"
+    },
+    "EvidenceCoverage": {
+      "additionalProperties": false,
+      "description": "How much of the eligible population the available evidence actually covers (PL-012).",
+      "properties": {
+        "eligible_case_count": {
+          "minimum": 0,
+          "title": "Eligible Case Count",
+          "type": "integer"
+        },
+        "gaps": {
+          "description": "Known unobserved handoffs, systems or periods.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Gaps",
+          "type": "array"
+        },
+        "observed_case_count": {
+          "minimum": 0,
+          "title": "Observed Case Count",
+          "type": "integer"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "observed_case_count",
+        "eligible_case_count"
+      ],
+      "title": "EvidenceCoverage",
+      "type": "object"
+    },
+    "FailureClass": {
+      "description": "Failure classification that determines the next action (section 9, Appendix A.3).",
+      "enum": [
+        "TRANSIENT_INFRASTRUCTURE",
+        "IMPLEMENTATION_DEFECT",
+        "SOURCE_SCHEMA_CHANGE",
+        "MISSING_AUTHORIZATION",
+        "MISSING_BUSINESS_DECISION",
+        "UNSUPPORTED_CAPABILITY",
+        "POOR_MODEL_QUALITY",
+        "EXHAUSTED_RESOURCES"
+      ],
+      "title": "FailureClass",
+      "type": "string"
+    },
+    "InterventionKind": {
+      "description": "What kind of change is proposed; most are not machine learning (PL-013).",
+      "enum": [
+        "NATIVE_SETTING",
+        "DETERMINISTIC_AUTOMATION",
+        "GENERAL_MODEL_WORKFLOW",
+        "SPECIALIST_SERVICE",
+        "RETRIEVAL_SYSTEM",
+        "TRAINED_COMPONENT",
+        "REMOVE_STEP"
+      ],
+      "title": "InterventionKind",
+      "type": "string"
+    },
+    "MeasurementMethod": {
+      "description": "Prospective designs that can support a causal claim (section 7).",
+      "enum": [
+        "STAGED_ROLLOUT",
+        "COMPARABLE_CASE_COHORTS"
+      ],
+      "title": "MeasurementMethod",
+      "type": "string"
+    },
+    "MeasurementPlan": {
+      "additionalProperties": false,
+      "description": "How value will be measured once the change is live (PL-012).",
+      "properties": {
+        "confounders_accounted": {
+          "description": "Case mix, calendar effects, employee review and the like.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Confounders Accounted",
+          "type": "array"
+        },
+        "horizon_days": {
+          "minimum": 1,
+          "title": "Horizon Days",
+          "type": "integer"
+        },
+        "method": {
+          "$ref": "#/$defs/MeasurementMethod"
+        },
+        "metrics": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Metrics",
+          "type": "array"
+        },
+        "prospective": {
+          "description": "Must be true: historical replay alone cannot establish causal gains.",
+          "title": "Prospective",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prospective",
+        "method",
+        "metrics",
+        "horizon_days"
+      ],
+      "title": "MeasurementPlan",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "OpportunityStatus": {
+      "enum": [
+        "CANDIDATE",
+        "FEASIBLE",
+        "BLOCKED",
+        "SELECTED",
+        "REJECTED_NEGATIVE_VALUE"
+      ],
+      "title": "OpportunityStatus",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ProposedChange": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_steps": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Affected Steps",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "intervention_kind": {
+          "$ref": "#/$defs/InterventionKind"
+        },
+        "required_capability_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Required Capability Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "intervention_kind",
+        "description"
+      ],
+      "title": "ProposedChange",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/OpportunitySpec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A costed, measurable hypothesis about one improvement (PL-012, PL-013).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "baseline": {
+      "description": "The current process and its measured cost or cycle time.",
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Baseline",
+      "type": "string"
+    },
+    "blocking_conditions": {
+      "items": {
+        "$ref": "#/$defs/BlockingCondition"
+      },
+      "title": "Blocking Conditions",
+      "type": "array"
+    },
+    "business_objective": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Business Objective",
+      "type": "string"
+    },
+    "candidate_comparison": {
+      "items": {
+        "$ref": "#/$defs/CandidateSystem"
+      },
+      "minItems": 2,
+      "title": "Candidate Comparison",
+      "type": "array"
+    },
+    "change_management_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dependencies": {
+      "description": "Prerequisite opportunities, capabilities or dependency records.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "eligible_case_population": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Eligible Case Population",
+      "type": "string"
+    },
+    "evidence_coverage": {
+      "$ref": "#/$defs/EvidenceCoverage"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "expected_benefit_range": {
+      "$ref": "#/$defs/BenefitRange"
+    },
+    "failure_cost": {
+      "$ref": "#/$defs/Money"
+    },
+    "goal_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "implementation_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "kind": {
+      "const": "OpportunitySpec",
+      "default": "OpportunitySpec",
+      "title": "Kind",
+      "type": "string"
+    },
+    "measurement_plan": {
+      "$ref": "#/$defs/MeasurementPlan"
+    },
+    "operation_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "opportunity_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Opportunity Id",
+      "type": "string"
+    },
+    "overlap_refs": {
+      "description": "Other opportunity ids claiming the same labor or revenue.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Overlap Refs",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "proposed_change": {
+      "$ref": "#/$defs/ProposedChange"
+    },
+    "review_cost": {
+      "$ref": "#/$defs/Money"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/OpportunityStatus"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "opportunity_id",
+    "goal_id",
+    "business_objective",
+    "eligible_case_population",
+    "baseline",
+    "evidence_coverage",
+    "proposed_change",
+    "expected_benefit_range",
+    "failure_cost",
+    "review_cost",
+    "measurement_plan",
+    "candidate_comparison",
+    "status"
+  ],
+  "title": "OpportunitySpec",
+  "type": "object"
+}

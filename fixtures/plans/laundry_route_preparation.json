@@ -1,0 +1,1568 @@
+{
+  "artifact_id": "plan-lndry-route-preparation",
+  "tenant_id": "tnt_lndry001",
+  "kind": "BuildPlan",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:1c4a93e47445a4d165fff0e4eca4e8c1a50cf55b2a75f093553efee92217c09c",
+  "producer": {
+    "principal_id": "plumb-build-planner-lndry",
+    "principal_type": "BUILD_AGENT",
+    "authenticated_via": "spiffe:plumb-build-agent"
+  },
+  "created_at": "2026-10-02T08:00:00Z",
+  "evidence_links": [],
+  "plan_id": "plan-lndry-route-preparation",
+  "goal_id": "goal-lndry-route-plan-quality",
+  "opportunity_ref": {
+    "artifact_id": "opp-lndry-daily-route-preparation",
+    "kind": "OpportunitySpec",
+    "digest": "sha256:15e6b14c97db82d4abbde64f54d43e9eef96c8e960865f484ece09d87e6a5111",
+    "schema_version": "0.2.0"
+  },
+  "envelope_id": "env-lndry-route-preparation",
+  "envelope_version": 1,
+  "inputs": [
+    {
+      "artifact_id": "env-lndry-route-preparation",
+      "kind": "AutonomyEnvelope",
+      "digest": "sha256:dd46b37f6865c0434bccce07bba511766cc92c476d1702f0d7b01d3e104a8c23",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "opp-lndry-daily-route-preparation",
+      "kind": "OpportunitySpec",
+      "digest": "sha256:15e6b14c97db82d4abbde64f54d43e9eef96c8e960865f484ece09d87e6a5111",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "task-lndry-stop-duration-estimation",
+      "kind": "TaskDefinition",
+      "digest": "sha256:511d3f89c770e3aa0bca1ca42271456e2e1f557b1053709d53abbe44a7269756",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "tmpl-lndry-planning-workflow-serving",
+      "kind": "InfrastructurePlan",
+      "digest": "sha256:98031bdea585cdca7ff2902c5160aef854855f1169db1d7fe06363ba1d389741",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "apr-lndry-implement-operate-planning-workflow",
+      "kind": "ApprovalRecord",
+      "digest": "sha256:842ebf2762642a4fc934cd3ceea43d23b3f1857991fbe7f42ef560a270d3ace4",
+      "schema_version": "0.2.0"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "probe-operations-systems",
+      "step_type": "inventory.probe",
+      "description": "Query the authorized order-management, fleet and route-planning accounts through their management APIs and test the exact available operations: orders with addresses and time windows, vehicles, capacities and driver shifts, published routes and actual stop completion times. A probe that lists vehicles establishes nothing about dispatch messaging.",
+      "depends_on": [],
+      "inputs": [
+        {
+          "name": "envelope",
+          "kind": "AutonomyEnvelope",
+          "from_step": null,
+          "plan_input": "env-lndry-route-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory"
+        },
+        {
+          "name": "probe-receipts",
+          "kind": "ProbeReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.inventory.probe.management-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "probe_receipt_per_operation",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Every listed operation has a probe receipt naming the external account and the exact operation, without credentials."
+        },
+        {
+          "check": "coverage_report_present",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The inventory lists observed and unobserved applications rather than assuming coverage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "profile-orders-and-constraints",
+      "step_type": "source.profile",
+      "description": "Profile order volumes by day and depot, address quality, time-window conventions, vehicle capacity units, shift patterns and how actual stop durations are recorded in the planning tool.",
+      "depends_on": [
+        "probe-operations-systems"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-operations-systems",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-profile",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.source.profile.sampler"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "profile_sample_within_grant",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Sampled records come only from granted sources and the profile carries their digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "configure-order-and-fleet-connectors",
+      "step_type": "integration.configure",
+      "description": "Reuse the certified connectors for the order-management and route-planning accounts through the integration management API (verified adapter path): account identity, granted scopes, supported operations, cursor strategy, rate limits and deletion behavior.",
+      "depends_on": [
+        "probe-operations-systems",
+        "profile-orders-and-constraints"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-operations-systems",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec"
+        },
+        {
+          "name": "adapter-configuration",
+          "kind": "AdapterConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.configure.management-api"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 25000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "managed_connection_live_read",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Each configured connection performs a live read of one permitted record and the connection can be removed again."
+        },
+        {
+          "check": "integration_spec_scopes_match_grants",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Required scopes in the IntegrationSpec do not exceed the source grants."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "generate-fleet-constraint-adapter",
+      "step_type": "integration.generate_adapter",
+      "description": "Generate the declarative adapter that maps vehicle constraints and shifts from the fleet system into solver terms: capacity units (bags, hanging rails, weight), shift start and end with breaks, depot assignment and vehicle-type restrictions, with explicit null handling. Generated code path recorded with its maintenance exposure.",
+      "depends_on": [
+        "profile-orders-and-constraints",
+        "configure-order-and-fleet-connectors"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-order-and-fleet-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "source-profile",
+          "kind": "QualityReport",
+          "from_step": "profile-orders-and-constraints",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "constraint-adapter-code",
+          "kind": "AdapterCode"
+        },
+        {
+          "name": "constraint-adapter-configuration",
+          "kind": "AdapterConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.generate_adapter.declarative"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-fleet-constraints"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "constraint_fixtures_round_trip",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every capacity, shift and restriction fixture round-trips into solver terms; unmapped values are reported, never defaulted."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "contract-test-adapters",
+      "step_type": "integration.contract_test",
+      "description": "Run the contract fixtures against the configured connectors and the generated constraint adapter: pagination, empty pages, duplicates, rate limiting, authorization failure, malformed responses, schema changes and account boundaries.",
+      "depends_on": [
+        "configure-order-and-fleet-connectors",
+        "generate-fleet-constraint-adapter"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-order-and-fleet-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "constraint-adapter-code",
+          "kind": "AdapterCode",
+          "from_step": "generate-fleet-constraint-adapter",
+          "plan_input": null
+        },
+        {
+          "name": "constraint-adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "generate-fleet-constraint-adapter",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "contract-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.contract_test.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "contract_tests",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "All eight contract test families pass against the real sandbox accounts; the receipt is produced by the verifier, not by the builder."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "deploy-shadow-collectors",
+      "step_type": "collection.deploy_shadow",
+      "description": "Deploy shadow collectors for orders, vehicle constraints, published routes and actual stop completion times with stable source ids and object joins around service day plus depot plus stop, storage paths, cursors, lineage, permissions, retention and health monitoring.",
+      "depends_on": [
+        "configure-order-and-fleet-connectors",
+        "generate-fleet-constraint-adapter",
+        "contract-test-adapters"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-order-and-fleet-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "constraint-adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "generate-fleet-constraint-adapter",
+          "plan_input": null
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "contract-test-adapters",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.deploy_shadow.management-api"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "shadow_collector_health_published",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The shadow collector publishes freshness, lag, completeness and failure state and writes only to tenant storage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "backfill-route-history",
+      "step_type": "collection.backfill",
+      "description": "Backfill twelve months of service days: orders as they stood at planning time, vehicle constraints, the routes actually published and actual stop durations and completion times, up to the explicit backfill boundary, deduplicated by idempotent event identity.",
+      "depends_on": [
+        "deploy-shadow-collectors"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket"
+        },
+        {
+          "name": "backfill-quality-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.backfill.durable-workflow"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 21600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "backfill_boundary_and_identity",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every event carries source identity, external version, time axes and content digest; no event beyond the backfill boundary."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "reconcile-source-counts",
+      "step_type": "collection.reconcile",
+      "description": "Reconcile order, vehicle, route and stop counts against stored evidence per depot and service day and issue the source-to-storage verification receipt.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "backfill-route-history"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-route-history",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt"
+        },
+        {
+          "name": "reconciliation-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.reconcile.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "source_to_storage_receipt",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Source counts and stored counts agree per depot and service day without silent gaps or duplicates."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "enable-incremental-capture",
+      "step_type": "collection.enable_incremental",
+      "description": "Switch to live capture: webhooks for new and changed orders, polling with overlap for fleet changes and completed stops. Working only once a new order is observed, fetched and reflected in the service-day record with its constraints.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "reconcile-source-counts"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "reconcile-source-counts",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.enable_incremental.webhooks"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "new_order_observed_end_to_end",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "A new order is observed, fetched and reflected in the service-day record; webhook subscriptions can be removed again."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "discover-duration-examples",
+      "step_type": "dataset.discover_sources",
+      "description": "Locate decision boundaries for stop-duration estimation and constraint satisfaction: stops, constraints and route assignment as known at planning time versus actual completion times. Produce a source-candidate table with join keys, access state, sample quality, permitted purposes and confidence.",
+      "depends_on": [
+        "backfill-route-history"
+      ],
+      "inputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-route-history",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-lndry-daily-route-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.discover_sources.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "candidate_table_counts_usable_pairs",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The table reports usable planned-to-actual stop pairs, ambiguous joins and stops without completion times with counts."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "build-route-evaluation-dataset",
+      "step_type": "dataset.build",
+      "description": "Construct the held-out route dataset: service-day inputs as known at planning time (orders, windows, vehicles, shifts), the route actually driven and observed stop durations as the outcome; isolate temporal and depot-disjoint holdouts. The dataset is for evaluation only; no grant carries TRAIN.",
+      "depends_on": [
+        "backfill-route-history",
+        "discover-duration-examples"
+      ],
+      "inputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable",
+          "from_step": "discover-duration-examples",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-route-history",
+          "plan_input": null
+        },
+        {
+          "name": "task-definition",
+          "kind": "TaskDefinition",
+          "from_step": null,
+          "plan_input": "task-lndry-stop-duration-estimation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest"
+        },
+        {
+          "name": "transformation-code",
+          "kind": "TransformationCode"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.build.builder"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 14400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "dataset_checker_clean",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The dataset checker reports no future information, target leak, cross-split family or quarantined row in any split used."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "audit-route-labels",
+      "step_type": "dataset.label_audit",
+      "description": "Dispatcher review of a sample of planned-to-actual stop joins; quarantine stops with missing or implausible completion times and days where the published route was overridden on the road.",
+      "depends_on": [
+        "build-route-evaluation-dataset"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-route-evaluation-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "label-audit-report",
+          "kind": "LabelAuditReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.label_audit.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "label_audit_sample_reviewed",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The audit covers the planned sample size and records quarantine reasons per row."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "evaluate-routing-candidates",
+      "step_type": "evaluation.run",
+      "description": "Compare the current manual plans with the configured routing solver under historical duration estimates and under observed durations on the held-out set: hard-constraint violations, late stops, total distance and dispatcher edits. No trained component is in scope.",
+      "depends_on": [
+        "build-route-evaluation-dataset",
+        "audit-route-labels"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-route-evaluation-dataset",
+          "plan_input": null
+        },
+        {
+          "name": "label-audit-report",
+          "kind": "LabelAuditReport",
+          "from_step": "audit-route-labels",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport"
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison"
+        }
+      ],
+      "required_capabilities": [
+        "cap.evaluation.run.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu",
+          "proc-routing-solver-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 70000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "constraint_satisfaction_with_denominators",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Violations and late stops carry denominators per depot and holdout; every solver run stayed within its time bound."
+        },
+        {
+          "check": "evaluation_data_segregated",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The segregation statement shows no evaluation day was used to tune solver parameters."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "compile-route-planning-workflow",
+      "step_type": "workflow.compile",
+      "description": "Compile the planning workflow from certified primitives: fetch the day's orders and constraints, validate addresses and windows, calculate duration estimates, optimize with the routing solver under hard constraints and a bounded run time, prepare the plan for dispatcher review and wait durably for the review decision. Publication to the planning tool is a separate reversible write behind the human decision point; no operation contacts drivers or customers.",
+      "depends_on": [
+        "configure-order-and-fleet-connectors",
+        "evaluate-routing-candidates"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-order-and-fleet-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison",
+          "from_step": "evaluate-routing-candidates",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-lndry-daily-route-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec"
+        },
+        {
+          "name": "serving-configuration",
+          "kind": "ServingConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.compile.compiler"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu",
+          "proc-routing-solver-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "workflow_bounds_and_effect_flags",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The WorkflowSpec declares iteration, time and cost bounds, a bounded solver run, a human decision point before publication and an effect class per operation; no operation has EXTERNAL_COMMUNICATION or physical-execution effects."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "test-workflow-bundle",
+      "step_type": "workflow.test_bundle",
+      "description": "Run the business acceptance fixtures through the compiled workflow: infeasible day (demand exceeds capacity), overlapping time windows, vehicle out of service, driver shift change after planning, duplicate order, cancelled order after plan, stale constraint data, expired authorization and solver time-out.",
+      "depends_on": [
+        "build-route-evaluation-dataset",
+        "compile-route-planning-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-route-planning-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-route-evaluation-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.test_bundle.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu",
+          "proc-routing-solver-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "business_acceptance_fixtures",
+          "level": "BUSINESS_OUTCOME",
+          "description": "All failure cases and the normal cases reach the expected final plan state; infeasible days are escalated, never solved by relaxing hard constraints."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "preview-serving-infrastructure",
+      "step_type": "infrastructure.preview",
+      "description": "Preview the serving infrastructure for the planning workflow and the solver runner from the approved resource template: diff, cost estimate, state lock, ownership tags and rollback classification per resource.",
+      "depends_on": [
+        "compile-route-planning-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-template",
+          "kind": "InfrastructurePlan",
+          "from_step": null,
+          "plan_input": "tmpl-lndry-planning-workflow-serving"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview"
+        },
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.preview.automation-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 10000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "preview_diff_cost_and_rollback",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The preview carries a diff, a cost estimate within budget and a rollback classification for every resource; no destructive change."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "apply-serving-infrastructure",
+      "step_type": "infrastructure.apply",
+      "description": "Apply exactly the previewed change in the production region with the short-lived deployment grant; expand/contract only, no destructive change.",
+      "depends_on": [
+        "preview-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "implement-operate-approval",
+          "kind": "ApprovalRecord",
+          "from_step": null,
+          "plan_input": "apr-lndry-implement-operate-planning-workflow"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        },
+        {
+          "name": "infrastructure-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.apply.automation-api"
+      ],
+      "effect_class": "INFRASTRUCTURE_CHANGE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "resource_state_matches_preview",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Refreshed resource state equals the previewed plan; ownership tags present; cost within estimate."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "create-planning-workflow-release",
+      "step_type": "release.create",
+      "description": "Bind workflow, connector, collector, solver configuration, policy, schema, infrastructure and evaluation versions by immutable digest into a release manifest (model component omitted with reason: deterministic solver, no model) with SHADOW to CANARY to ACTIVE gates, denominators and review thresholds.",
+      "depends_on": [
+        "configure-order-and-fleet-connectors",
+        "enable-incremental-capture",
+        "evaluate-routing-candidates",
+        "compile-route-planning-workflow",
+        "test-workflow-bundle",
+        "apply-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-route-planning-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-order-and-fleet-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "enable-incremental-capture",
+          "plan_input": null
+        },
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "apply-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport",
+          "from_step": "evaluate-routing-candidates",
+          "plan_input": null
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "test-workflow-bundle",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.create.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "component_digests_bound",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every component digest matches the verified artifact bytes; omitted components carry a reason."
+        },
+        {
+          "check": "business_scenario_suite_bound",
+          "level": "BUSINESS_OUTCOME",
+          "description": "The release references the passed business acceptance bundle for these exact bytes and scope."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "activate-shadow-planning",
+      "step_type": "release.activate_shadow",
+      "description": "Activate shadow planning: the workflow prepares a route plan for each live service day without publishing it; plans are compared with the routes the dispatcher actually published and with observed completion times.",
+      "depends_on": [
+        "create-planning-workflow-release"
+      ],
+      "inputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "create-planning-workflow-release",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.activate_shadow.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 1814400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "no_external_effect_in_shadow",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The effect ledger records zero dispatched external effects during shadow; no route reached the planning tool, a driver or a customer."
+        },
+        {
+          "check": "shadow_plans_feasible_against_actuals",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Shadow plans satisfy hard constraints against observed durations and need fewer dispatcher edits than the baseline within the release thresholds."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "request-release-attestation",
+      "step_type": "verification.request",
+      "description": "Request the protected verifier's attestation over the shadow release: actual plan states, constraint satisfaction against observed completion times, denominators and the absence of any published route or dispatch message.",
+      "depends_on": [
+        "activate-shadow-planning"
+      ],
+      "inputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "activate-shadow-planning",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-attestation",
+          "kind": "VerificationAttestation"
+        }
+      ],
+      "required_capabilities": [
+        "cap.verification.request.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-lndry-order-system",
+          "src-lndry-fleet-constraints",
+          "src-lndry-route-planning-tool"
+        ],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "GBP"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "independent_attestation_recorded",
+          "level": "BUSINESS_OUTCOME",
+          "description": "A VerificationAttestation from the VERIFIER principal covers these exact artifact digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "raise-route-publication-boundary",
+      "step_type": "dependency.raise",
+      "description": "Record the production boundary as a resumable dependency: advancing beyond shadow requires approved route publication (a HUMAN_APPROVER decision by the dispatcher before any reversible write of a route plan into the planning tool) and explicit human/physical execution: drivers, vehicles and depots move the garments, and no instruction to them, no customer message and no irreversible write is authorized under this envelope. A prepared plan is reported as ready for dispatcher review, never as a completed route.",
+      "depends_on": [
+        "request-release-attestation"
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "dependency-record",
+          "kind": "DependencyRecord"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dependency.raise.control-plane"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-lndry-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-2"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 1000,
+          "currency": "GBP"
+        },
+        "max_attempts": 1,
+        "max_elapsed_seconds": 600,
+        "max_model_calls": null
+      },
+      "verification": [],
+      "required": true,
+      "environment": null
+    }
+  ],
+  "total_budget": {
+    "spend": {
+      "minor_units": 700000,
+      "currency": "GBP"
+    },
+    "max_attempts": 3,
+    "max_elapsed_seconds": 5184000,
+    "max_model_calls": null
+  },
+  "planned_at": "2026-10-02T08:00:00Z"
+}

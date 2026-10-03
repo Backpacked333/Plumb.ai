@@ -1,0 +1,603 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "description": "Worst-case reservation for a unit of work (PL-014, PL-018, PL-058).",
+      "properties": {
+        "max_attempts": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_elapsed_seconds": {
+          "minimum": 1,
+          "title": "Max Elapsed Seconds",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Model Calls"
+        },
+        "spend": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "spend",
+        "max_attempts",
+        "max_elapsed_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "BuildStep": {
+      "additionalProperties": false,
+      "description": "One typed node of the build graph (PL-014).",
+      "properties": {
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "depends_on": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/EffectClass"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Deployment environment for infrastructure/release steps; checked against the envelope.",
+          "title": "Environment"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/StepInput"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/StepOutput"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "purposes": {
+          "items": {
+            "$ref": "#/$defs/DataPurpose"
+          },
+          "title": "Purposes",
+          "type": "array"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "required_capabilities": {
+          "description": "capability_ids in the registry.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Required Capabilities",
+          "type": "array"
+        },
+        "scope": {
+          "$ref": "#/$defs/ResourceScope"
+        },
+        "step_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "step_type": {
+          "description": "Must exist in the capability registry (checked by the checker).",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Step Type",
+          "type": "string"
+        },
+        "verification": {
+          "description": "At least one unless step_type == dependency.raise.",
+          "items": {
+            "$ref": "#/$defs/VerificationObligation"
+          },
+          "title": "Verification",
+          "type": "array"
+        }
+      },
+      "required": [
+        "step_id",
+        "step_type",
+        "description",
+        "effect_class",
+        "scope",
+        "budget"
+      ],
+      "title": "BuildStep",
+      "type": "object"
+    },
+    "DataPurpose": {
+      "description": "Data-purpose authorization is enforced per stage (PL-053).",
+      "enum": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE",
+        "TRAIN",
+        "SERVE",
+        "EXPORT"
+      ],
+      "title": "DataPurpose",
+      "type": "string"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ResourceScope": {
+      "additionalProperties": false,
+      "description": "Sources, destinations, processors and regions an operation may touch.",
+      "properties": {
+        "destination_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Destination Ids",
+          "type": "array"
+        },
+        "processor_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Processor Ids",
+          "type": "array"
+        },
+        "regions": {
+          "items": {
+            "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Regions",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "title": "ResourceScope",
+      "type": "object"
+    },
+    "StepInput": {
+      "additionalProperties": false,
+      "description": "An artifact a step consumes: produced by another step or supplied to the plan.",
+      "properties": {
+        "from_step": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Producing step id; None means a plan-level input artifact.",
+          "title": "From Step"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "plan_input": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "artifact_id of a BuildPlan.inputs entry.",
+          "title": "Plan Input"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "StepInput",
+      "type": "object"
+    },
+    "StepOutput": {
+      "additionalProperties": false,
+      "description": "A typed artifact a step promises to produce.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "StepOutput",
+      "type": "object"
+    },
+    "VerificationLevel": {
+      "description": "The five verification levels (section 18).",
+      "enum": [
+        "SCHEMA_VALIDITY",
+        "ARTIFACT_INTEGRITY",
+        "INTEGRATION_BEHAVIOR",
+        "BUSINESS_OUTCOME",
+        "ECONOMIC_RESULT"
+      ],
+      "title": "VerificationLevel",
+      "type": "string"
+    },
+    "VerificationObligation": {
+      "additionalProperties": false,
+      "description": "A check the verifier must pass before the step becomes VERIFIED (PL-016).",
+      "properties": {
+        "check": {
+          "description": "e.g. \"contract_tests\", \"source_to_storage_receipt\".",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Check",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "level": {
+          "$ref": "#/$defs/VerificationLevel"
+        }
+      },
+      "required": [
+        "check",
+        "level",
+        "description"
+      ],
+      "title": "VerificationObligation",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/BuildPlan.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A finite, typed, budgeted implementation graph compiled against one envelope version.",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "envelope_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "envelope_version": {
+      "minimum": 1,
+      "title": "Envelope Version",
+      "type": "integer"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "goal_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "inputs": {
+      "description": "Plan-level immutable inputs.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "kind": {
+      "const": "BuildPlan",
+      "default": "BuildPlan",
+      "title": "Kind",
+      "type": "string"
+    },
+    "opportunity_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "plan_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "planned_at": {
+      "format": "date-time",
+      "title": "Planned At",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/BuildStep"
+      },
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "total_budget": {
+      "$ref": "#/$defs/Budget",
+      "description": "Declared worst case for the whole plan."
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "plan_id",
+    "goal_id",
+    "envelope_id",
+    "envelope_version",
+    "steps",
+    "total_budget",
+    "planned_at"
+  ],
+  "title": "BuildPlan",
+  "type": "object"
+}

@@ -1,0 +1,1645 @@
+{
+  "artifact_id": "plan-acct-evidence-preparation",
+  "tenant_id": "tnt_acct0001",
+  "kind": "BuildPlan",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:5716645162efb4dfc8ec838a201986af2e4317a84cc961465f1f9acda7792a63",
+  "producer": {
+    "principal_id": "plumb-build-planner-acct",
+    "principal_type": "BUILD_AGENT",
+    "authenticated_via": "spiffe:plumb-build-agent"
+  },
+  "created_at": "2026-10-02T08:00:00Z",
+  "evidence_links": [],
+  "plan_id": "plan-acct-evidence-preparation",
+  "goal_id": "goal-acct-monthly-close-evidence",
+  "opportunity_ref": {
+    "artifact_id": "opp-acct-missing-evidence-review-package",
+    "kind": "OpportunitySpec",
+    "digest": "sha256:4559fe3c52e35855397494defd94f485182b06f72b99dc84ae750bc616d1cd21",
+    "schema_version": "0.2.0"
+  },
+  "envelope_id": "env-acct-evidence-preparation",
+  "envelope_version": 1,
+  "inputs": [
+    {
+      "artifact_id": "env-acct-evidence-preparation",
+      "kind": "AutonomyEnvelope",
+      "digest": "sha256:01e3239779de4ab5f8c23273e4045e9148de3c3afd8e2fd5c8fddb58cb29afa2",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "opp-acct-missing-evidence-review-package",
+      "kind": "OpportunitySpec",
+      "digest": "sha256:4559fe3c52e35855397494defd94f485182b06f72b99dc84ae750bc616d1cd21",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "task-acct-transaction-categorization",
+      "kind": "TaskDefinition",
+      "digest": "sha256:bb1b71a2ef12367183e5d6fa5efde11e19fabbc952e9cef78e3f64e4b791f01f",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "tmpl-acct-review-workflow-serving",
+      "kind": "InfrastructurePlan",
+      "digest": "sha256:fec1db7c71df00bbafaa11e70cffc63a647537c416c6635aeb8336cf638802c2",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "apr-acct-implement-operate-review-workflow",
+      "kind": "ApprovalRecord",
+      "digest": "sha256:9cc9cfd7cf128af36790d36b6d87e69d42f104fda5329af15ab3751907f01495",
+      "schema_version": "0.2.0"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "probe-authorized-accounts",
+      "step_type": "inventory.probe",
+      "description": "Query the authorized bookkeeping, document-store and mailbox accounts through their management APIs and test the exact available operations: client ids, accounting periods, document folders, requested-document status and previous reminder messages. A probe that reads an invoice establishes nothing about bank statements.",
+      "depends_on": [],
+      "inputs": [
+        {
+          "name": "envelope",
+          "kind": "AutonomyEnvelope",
+          "from_step": null,
+          "plan_input": "env-acct-evidence-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory"
+        },
+        {
+          "name": "probe-receipts",
+          "kind": "ProbeReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.inventory.probe.management-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "probe_receipt_per_operation",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Every listed operation has a probe receipt naming the external account and the exact operation, without credentials."
+        },
+        {
+          "check": "coverage_report_present",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The inventory lists observed and unobserved applications rather than assuming coverage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "profile-evidence-sources",
+      "step_type": "source.profile",
+      "description": "Profile schemas, volumes, freshness and permitted samples of the ledger, the document folders and the reminder history; record which fields identify client, period and obligation.",
+      "depends_on": [
+        "probe-authorized-accounts"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-authorized-accounts",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-profile",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.source.profile.sampler"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "profile_sample_within_grant",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Sampled records come only from granted sources and the profile carries their digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "configure-certified-connectors",
+      "step_type": "integration.configure",
+      "description": "Reuse the certified connectors for the three accounts through the integration management API (verified adapter path, PL-020): record external account identity, granted scopes, supported operations, cursor strategy and rate limits. No adapter code is generated for this customer.",
+      "depends_on": [
+        "probe-authorized-accounts",
+        "profile-evidence-sources"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-authorized-accounts",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec"
+        },
+        {
+          "name": "adapter-configuration",
+          "kind": "AdapterConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.configure.management-api"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 25000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "managed_connection_live_read",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Each configured connection performs a live read of one permitted record and the connection can be removed again."
+        },
+        {
+          "check": "integration_spec_scopes_match_grants",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Required scopes in the IntegrationSpec do not exceed the source grants."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "contract-test-connectors",
+      "step_type": "integration.contract_test",
+      "description": "Run the contract fixtures against the configured connectors: pagination, empty pages, duplicates, rate limiting, authorization failure, malformed responses, schema changes and account boundaries, for each account separately.",
+      "depends_on": [
+        "configure-certified-connectors"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "contract-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.contract_test.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "contract_tests",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "All eight contract test families pass against the real sandbox accounts; the receipt is produced by the verifier, not by the builder."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "deploy-shadow-collectors",
+      "step_type": "collection.deploy_shadow",
+      "description": "Deploy collectors in shadow mode for permitted bookkeeping metadata, document arrival and change events and reminder history, with stable source ids and object joins around client plus period plus obligation, storage paths, schema mappings, cursors, lineage, permissions, retention and health monitoring.",
+      "depends_on": [
+        "configure-certified-connectors",
+        "contract-test-connectors"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "contract-test-connectors",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.deploy_shadow.management-api"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "shadow_collector_health_published",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The shadow collector publishes freshness, lag, completeness and failure state and writes only to tenant storage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "backfill-close-history",
+      "step_type": "collection.backfill",
+      "description": "Backfill twenty-four months of closes up to the explicit historical boundary: ledger transactions and confirmed classifications, document events and reminder history, deduplicated by idempotent event identity.",
+      "depends_on": [
+        "deploy-shadow-collectors"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket"
+        },
+        {
+          "name": "backfill-quality-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.backfill.durable-workflow"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 21600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "backfill_boundary_and_identity",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every event carries source identity, external version, time axes and content digest; no event beyond the backfill boundary."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "reconcile-source-counts",
+      "step_type": "collection.reconcile",
+      "description": "Reconcile source counts against stored evidence per account and period, check object identity for client plus period plus obligation and issue the source-to-storage verification receipt.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "backfill-close-history"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-close-history",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt"
+        },
+        {
+          "name": "reconciliation-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.reconcile.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "source_to_storage_receipt",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Source counts and stored counts agree per account and period without silent gaps or duplicates."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "enable-incremental-capture",
+      "step_type": "collection.enable_incremental",
+      "description": "Switch the collectors to live capture: webhooks where reliable, polling with overlap otherwise. The path counts as working only once a newly permitted document update is observed, its authoritative content fetched and the expected client-period record changes.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "reconcile-source-counts"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "reconcile-source-counts",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.enable_incremental.webhooks"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store",
+          "src-acct-mailbox"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "permitted_update_observed_end_to_end",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "A permitted document update is observed, fetched and reflected in the client-period record; webhook subscriptions can be removed again."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "discover-categorization-sources",
+      "step_type": "dataset.discover_sources",
+      "description": "Locate decision boundaries and outcomes for transaction categorization: original transaction and document context, accountant-confirmed classifications and later corrections. Produce a source-candidate table with join keys, access state, sample quality, permitted purposes and confidence; confirmed obligation states are a different task and are not mixed in.",
+      "depends_on": [
+        "backfill-close-history"
+      ],
+      "inputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-close-history",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-acct-missing-evidence-review-package"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.discover_sources.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "candidate_table_counts_usable_pairs",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The table reports usable pairs, ambiguous joins and missing documents with counts, not a 'training data found' label."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "build-categorization-dataset",
+      "step_type": "dataset.build",
+      "description": "Construct the categorization dataset from ledger transaction context known at decision time and the authoritative final classification with its revision status; isolate temporal and transaction-family holdouts. Document-store content is excluded from training inputs because that grant carries no TRAIN purpose (PL-053).",
+      "depends_on": [
+        "backfill-close-history",
+        "discover-categorization-sources"
+      ],
+      "inputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable",
+          "from_step": "discover-categorization-sources",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-close-history",
+          "plan_input": null
+        },
+        {
+          "name": "task-definition",
+          "kind": "TaskDefinition",
+          "from_step": null,
+          "plan_input": "task-acct-transaction-categorization"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest"
+        },
+        {
+          "name": "transformation-code",
+          "kind": "TransformationCode"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.build.builder"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 14400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "dataset_checker_clean",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The dataset checker reports no future information, target leak, cross-split family or quarantined training row."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "audit-categorization-labels",
+      "step_type": "dataset.label_audit",
+      "description": "Expert review of a sample of joins and label interpretation; quarantine ambiguous matches, inconsistent labels and disputed outcomes. Lack of an accountant edit is weak evidence, not acceptance.",
+      "depends_on": [
+        "build-categorization-dataset"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-categorization-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "label-audit-report",
+          "kind": "LabelAuditReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.label_audit.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "label_audit_sample_reviewed",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The audit covers the planned sample size and records quarantine reasons per row."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "train-categorization-candidate",
+      "step_type": "training.submit",
+      "description": "Submit one bounded managed open-model training job for the categorization candidate with persisted submission identity, pinned dataset revision, explicit processor, region, retention and credential reference. Only the ledger grant carries TRAIN; the mailbox and document store are never training inputs.",
+      "depends_on": [
+        "build-categorization-dataset",
+        "audit-categorization-labels"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-categorization-dataset",
+          "plan_input": null
+        },
+        {
+          "name": "task-definition",
+          "kind": "TaskDefinition",
+          "from_step": null,
+          "plan_input": "task-acct-transaction-categorization"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model-version",
+          "kind": "ModelVersion"
+        },
+        {
+          "name": "training-spec",
+          "kind": "TrainingSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.training.submit.managed-open-model"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "TRAIN"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-managed-open-model-training-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 250000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 43200,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "training_spec_pinned_and_supported",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The TrainingSpec pins dataset, base model and method and the supported-combination check passed before submission."
+        },
+        {
+          "check": "submission_identity_persisted",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The provider job id matches the persisted submission identity; no duplicate job exists."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "evaluate-candidate-systems",
+      "step_type": "evaluation.run",
+      "description": "Compare the deterministic obligation-check baseline, a general-model implementation with retrieved context and the trained candidate on the protected held-out set: meaningful error severity, accountant review time and cost, not model score alone.",
+      "depends_on": [
+        "build-categorization-dataset",
+        "train-categorization-candidate"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-categorization-dataset",
+          "plan_input": null
+        },
+        {
+          "name": "model-version",
+          "kind": "ModelVersion",
+          "from_step": "train-categorization-candidate",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport"
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison"
+        }
+      ],
+      "required_capabilities": [
+        "cap.evaluation.run.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 80000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": 5000
+      },
+      "verification": [
+        {
+          "check": "held_out_evaluation_with_denominators",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Metrics carry denominators and an error severity breakdown on the temporal and family holdouts."
+        },
+        {
+          "check": "evaluation_data_segregated",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The segregation statement shows no evaluation row was used for tuning."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "compile-review-workflow",
+      "step_type": "workflow.compile",
+      "description": "Compile the review workflow from certified primitives: resolve client and period, reconcile existing evidence, consolidate missing items into one request, send only under the approved reminder policy, wait durably, recheck evidence freshness, validate received documents and prepare the review package for accountant sign-off. External effects are flagged per operation.",
+      "depends_on": [
+        "configure-certified-connectors",
+        "train-categorization-candidate",
+        "evaluate-candidate-systems"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "model-version",
+          "kind": "ModelVersion",
+          "from_step": "train-categorization-candidate",
+          "plan_input": null
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison",
+          "from_step": "evaluate-candidate-systems",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-acct-missing-evidence-review-package"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec"
+        },
+        {
+          "name": "serving-configuration",
+          "kind": "ServingConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.compile.compiler"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "workflow_bounds_and_effect_flags",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The WorkflowSpec declares iteration, time and cost bounds, durable waits, human decision points and an effect class per operation; no operation posts to the ledger."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "test-workflow-bundle",
+      "step_type": "workflow.test_bundle",
+      "description": "Run the business acceptance fixtures through the compiled workflow: wrong client, ambiguous period, already-received document, corrected statement, duplicate request, expired permission, provider timeout after send, changed approval and stale source. The builder cannot pass by redefining completion.",
+      "depends_on": [
+        "build-categorization-dataset",
+        "compile-review-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-review-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-categorization-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.test_bundle.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": 2000
+      },
+      "verification": [
+        {
+          "check": "business_acceptance_fixtures",
+          "level": "BUSINESS_OUTCOME",
+          "description": "All nine Appendix B failure cases and the normal cases reach the expected final review state."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "preview-serving-infrastructure",
+      "step_type": "infrastructure.preview",
+      "description": "Preview the serving infrastructure for the review workflow from the approved resource template: diff, cost estimate, state lock, ownership tags and rollback classification per resource.",
+      "depends_on": [
+        "compile-review-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-template",
+          "kind": "InfrastructurePlan",
+          "from_step": null,
+          "plan_input": "tmpl-acct-review-workflow-serving"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview"
+        },
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.preview.automation-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 10000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "preview_diff_cost_and_rollback",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The preview carries a diff, a cost estimate within budget and a rollback classification for every resource; no destructive change."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "apply-serving-infrastructure",
+      "step_type": "infrastructure.apply",
+      "description": "Apply exactly the previewed change in the production region with the short-lived deployment grant; expand/contract only, no destructive change.",
+      "depends_on": [
+        "preview-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "implement-operate-approval",
+          "kind": "ApprovalRecord",
+          "from_step": null,
+          "plan_input": "apr-acct-implement-operate-review-workflow"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        },
+        {
+          "name": "infrastructure-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.apply.automation-api"
+      ],
+      "effect_class": "INFRASTRUCTURE_CHANGE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "resource_state_matches_preview",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Refreshed resource state equals the previewed plan; ownership tags present; cost within estimate."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "create-review-workflow-release",
+      "step_type": "release.create",
+      "description": "Bind workflow, connector, collector, model, prompt, policy, schema, infrastructure and evaluation versions by immutable digest into a release manifest with SHADOW to CANARY to ACTIVE gates, resolved model version, denominators and review thresholds.",
+      "depends_on": [
+        "configure-certified-connectors",
+        "enable-incremental-capture",
+        "train-categorization-candidate",
+        "evaluate-candidate-systems",
+        "compile-review-workflow",
+        "test-workflow-bundle",
+        "apply-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-review-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-certified-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "enable-incremental-capture",
+          "plan_input": null
+        },
+        {
+          "name": "model-version",
+          "kind": "ModelVersion",
+          "from_step": "train-categorization-candidate",
+          "plan_input": null
+        },
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "apply-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport",
+          "from_step": "evaluate-candidate-systems",
+          "plan_input": null
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "test-workflow-bundle",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.create.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "component_digests_bound",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every component digest matches the verified artifact bytes; omitted components carry a reason."
+        },
+        {
+          "check": "business_scenario_suite_bound",
+          "level": "BUSINESS_OUTCOME",
+          "description": "The release references the passed business acceptance bundle for these exact bytes and scope."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "activate-shadow-processing",
+      "step_type": "release.activate_shadow",
+      "description": "Activate shadow processing: the workflow runs on live permitted source changes and prepares review packages without sending any reminder; outputs are compared with the accountant's actual decisions.",
+      "depends_on": [
+        "create-review-workflow-release"
+      ],
+      "inputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "create-review-workflow-release",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.activate_shadow.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 1209600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "no_external_effect_in_shadow",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The effect ledger records zero dispatched external effects during shadow."
+        },
+        {
+          "check": "shadow_review_state_matches_accountant",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Prepared review packages match the accountant's actual attribution within the release thresholds."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "canary-consolidated-reminders",
+      "step_type": "release.canary",
+      "description": "Bounded canary on a small set of client-periods: send one consolidated missing-item request per client, period and obligation under the approved reminder policy, wait durably, recheck evidence freshness and prepare the review package. Each send is a reserved effect slot with a provider receipt; a timeout after send becomes UNKNOWN and is reconciled, never resent.",
+      "depends_on": [
+        "activate-shadow-processing"
+      ],
+      "inputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "activate-shadow-processing",
+          "plan_input": null
+        },
+        {
+          "name": "implement-operate-approval",
+          "kind": "ApprovalRecord",
+          "from_step": null,
+          "plan_input": "apr-acct-implement-operate-review-workflow"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "canary-report",
+          "kind": "CanaryReport"
+        },
+        {
+          "name": "canary-release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.canary.executor"
+      ],
+      "effect_class": "EXTERNAL_COMMUNICATION",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 1814400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "provider_receipt_per_reminder",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Every reminder has a provider message id in the effect ledger and no client-period-obligation received two requests."
+        },
+        {
+          "check": "canary_review_packages_correct",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Canary review packages are complete and correctly attributed at or above the release thresholds."
+        }
+      ],
+      "required": true,
+      "environment": "canary"
+    },
+    {
+      "step_id": "request-release-attestation",
+      "step_type": "verification.request",
+      "description": "Request the protected verifier's attestation over the canary release: actual final review states, external receipts, denominators and the absence of any ledger posting. The builder's own claim of completion is not accepted.",
+      "depends_on": [
+        "canary-consolidated-reminders"
+      ],
+      "inputs": [
+        {
+          "name": "canary-release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "canary-consolidated-reminders",
+          "plan_input": null
+        },
+        {
+          "name": "canary-report",
+          "kind": "CanaryReport",
+          "from_step": "canary-consolidated-reminders",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-attestation",
+          "kind": "VerificationAttestation"
+        }
+      ],
+      "required_capabilities": [
+        "cap.verification.request.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-acct-bookkeeping-ledger",
+          "src-acct-document-store"
+        ],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "EUR"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "independent_attestation_recorded",
+          "level": "BUSINESS_OUTCOME",
+          "description": "A VerificationAttestation from the VERIFIER principal covers these exact artifact digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "raise-accountant-approval-boundary",
+      "step_type": "dependency.raise",
+      "description": "Record the production boundary as a resumable dependency: accountant approval (a CASE_LEVEL_BUSINESS decision by a HUMAN_APPROVER) is required before any configured posting to the ledger, and posting journal entries stays excluded from this envelope as a FINANCIAL_COMMITMENT; training rights remain source-specific (ledger only, no TRAIN on documents or mail). Review packages are reported as ready for review until approved, never as an autonomous close.",
+      "depends_on": [
+        "request-release-attestation"
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "dependency-record",
+          "kind": "DependencyRecord"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dependency.raise.control-plane"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-acct-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-eu"
+        ],
+        "regions": [
+          "eu-west-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 1000,
+          "currency": "EUR"
+        },
+        "max_attempts": 1,
+        "max_elapsed_seconds": 600,
+        "max_model_calls": null
+      },
+      "verification": [],
+      "required": true,
+      "environment": null
+    }
+  ],
+  "total_budget": {
+    "spend": {
+      "minor_units": 1200000,
+      "currency": "EUR"
+    },
+    "max_attempts": 3,
+    "max_elapsed_seconds": 5184000,
+    "max_model_calls": null
+  },
+  "planned_at": "2026-10-02T08:00:00Z"
+}

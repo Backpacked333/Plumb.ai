@@ -1,0 +1,305 @@
+{
+  "$defs": {
+    "AttestationResult": {
+      "description": "Overall result of an attestation; FAIL whenever any check failed.",
+      "enum": [
+        "PASS",
+        "FAIL"
+      ],
+      "title": "AttestationResult",
+      "type": "string"
+    },
+    "CheckOutcome": {
+      "description": "Result of one check inside an attestation.",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "SKIPPED"
+      ],
+      "title": "CheckOutcome",
+      "type": "string"
+    },
+    "CheckResult": {
+      "additionalProperties": false,
+      "description": "One verifier check with the evidence that supports its outcome (PL-042).",
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable detail; required when SKIPPED.",
+          "title": "Detail"
+        },
+        "evidence_refs": {
+          "description": "References to logs, receipts or observed state; required for PASS.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "level": {
+          "$ref": "#/$defs/VerificationLevel"
+        },
+        "name": {
+          "description": "Stable check name, e.g. contract_tests or adversarial_prompt_injection.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/CheckOutcome"
+        }
+      },
+      "required": [
+        "name",
+        "level",
+        "result"
+      ],
+      "title": "CheckResult",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ResourceScope": {
+      "additionalProperties": false,
+      "description": "Sources, destinations, processors and regions an operation may touch.",
+      "properties": {
+        "destination_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Destination Ids",
+          "type": "array"
+        },
+        "processor_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Processor Ids",
+          "type": "array"
+        },
+        "regions": {
+          "items": {
+            "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Regions",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "title": "ResourceScope",
+      "type": "object"
+    },
+    "VerificationLevel": {
+      "description": "The five verification levels (section 18).",
+      "enum": [
+        "SCHEMA_VALIDITY",
+        "ARTIFACT_INTEGRITY",
+        "INTEGRATION_BEHAVIOR",
+        "BUSINESS_OUTCOME",
+        "ECONOMIC_RESULT"
+      ],
+      "title": "VerificationLevel",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/VerificationAttestation.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Independent verification of one artifact digest in one environment and scope (PL-042, PL-043).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "assessed_producer": {
+      "$ref": "#/$defs/Principal",
+      "description": "Principal of the implementation job whose output is assessed."
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CheckResult"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "environment": {
+      "description": "Environment the checks ran against, e.g. sandbox or production.",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Environment",
+      "type": "string"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "input_artifact_digest": {
+      "description": "Exact bytes that were verified.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Input Artifact Digest",
+      "type": "string"
+    },
+    "kind": {
+      "const": "VerificationAttestation",
+      "default": "VerificationAttestation",
+      "title": "Kind",
+      "type": "string"
+    },
+    "level": {
+      "$ref": "#/$defs/VerificationLevel",
+      "description": "Highest verification level this attestation establishes."
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "protected_bundle_digest": {
+      "description": "Digest of the protected test bundle that was run.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Protected Bundle Digest",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/AttestationResult"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ResourceScope",
+      "description": "Sources, destinations, processors and regions the verification covered."
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "verifier": {
+      "$ref": "#/$defs/Principal",
+      "description": "The verifier identity; must be a VERIFIER principal."
+    },
+    "verifier_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Verifier Version",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "verifier",
+    "verifier_version",
+    "input_artifact_digest",
+    "level",
+    "checks",
+    "result",
+    "timestamp",
+    "environment",
+    "protected_bundle_digest",
+    "assessed_producer"
+  ],
+  "title": "VerificationAttestation",
+  "type": "object"
+}

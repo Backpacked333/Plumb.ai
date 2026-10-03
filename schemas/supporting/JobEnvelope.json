@@ -1,0 +1,278 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ErrorClass": {
+      "description": "Initial error classes of the control-plane protocol (section 22).",
+      "enum": [
+        "AUTH_REQUIRED",
+        "SCOPE_DENIED",
+        "PURPOSE_DENIED",
+        "POLICY_STALE",
+        "STATE_CONFLICT",
+        "PAYLOAD_CONFLICT",
+        "BUDGET_EXCEEDED",
+        "CAPABILITY_UNSUPPORTED",
+        "SOURCE_STALE",
+        "DATA_QUALITY_FAILED",
+        "VERIFICATION_FAILED",
+        "EFFECT_UNKNOWN",
+        "RETRY_EXHAUSTED"
+      ],
+      "title": "ErrorClass",
+      "type": "string"
+    },
+    "ErrorEnvelope": {
+      "additionalProperties": false,
+      "description": "Shared error shape of every control-plane response (section 22).",
+      "properties": {
+        "correlation_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "dependency_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dependency record that resolves the error.",
+          "title": "Dependency Id"
+        },
+        "error_class": {
+          "$ref": "#/$defs/ErrorClass"
+        },
+        "message": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "operator_action": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator Action"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "tenant_id": {
+          "anyOf": [
+            {
+              "pattern": "^tnt_[a-z0-9]{4,32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tenant the error belongs to, when known.",
+          "title": "Tenant Id"
+        }
+      },
+      "required": [
+        "error_class",
+        "message",
+        "retryable",
+        "correlation_id"
+      ],
+      "title": "ErrorEnvelope",
+      "type": "object"
+    },
+    "JobStatus": {
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "WAITING"
+      ],
+      "title": "JobStatus",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/supporting/JobEnvelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Durable status of a long-running mutation (PL-055).",
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "idempotency_key": {
+      "description": "Client key, scoped to the tenant by the server.",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "operation": {
+      "description": "OpenAPI operationId that started the job.",
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Operation",
+      "type": "string"
+    },
+    "request_payload_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Digest of the original request so a repeated key with another payload conflicts.",
+      "title": "Request Payload Digest"
+    },
+    "result_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "server_assigned_version": {
+      "description": "Set only by the server; client values are ignored.",
+      "minimum": 1,
+      "title": "Server Assigned Version",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/JobStatus"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "tenant_id",
+    "status",
+    "idempotency_key",
+    "operation",
+    "created_at",
+    "updated_at",
+    "server_assigned_version"
+  ],
+  "title": "JobEnvelope",
+  "type": "object"
+}

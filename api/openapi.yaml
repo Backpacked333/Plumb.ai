@@ -1319,7 +1319,7 @@ components:
     JobStatus:
       type: string
       description: Durable job status (PL-055). Server-assigned; never taken from a client.
-      enum: [ACCEPTED, RUNNING, WAITING, SUCCEEDED, FAILED, CANCELLED]
+      enum: [PENDING, RUNNING, SUCCEEDED, FAILED, WAITING]
 
     # ------------------------------------------------------------------
     # Shared value objects
@@ -1514,10 +1514,8 @@ components:
     JobEnvelope:
       x-plumb-contract: JobEnvelope
       type: object
-      description: |
-        Durable identity and status of a long-running mutation (PL-055). `status` and
-        `result_ref` are server-assigned.
-      required: [job_id, tenant_id, status, idempotency_key]
+      description: Durable status of a long-running mutation (PL-055).
+      required: [job_id, tenant_id, status, idempotency_key, operation, created_at, updated_at, server_assigned_version]
       additionalProperties: false
       properties:
         job_id:
@@ -1529,23 +1527,38 @@ components:
         idempotency_key:
           type: string
           minLength: 1
-          maxLength: 255
+          maxLength: 256
+          description: Client key, scoped to the tenant by the server.
+        operation:
+          $ref: '#/components/schemas/Identifier'
+          description: OpenAPI operationId that started the job.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
         result_ref:
           oneOf:
             - $ref: '#/components/schemas/ArtifactRef'
             - type: 'null'
-          description: Artifact produced by the job once `status` is `SUCCEEDED`.
         error:
           oneOf:
             - $ref: '#/components/schemas/ErrorEnvelope'
             - type: 'null'
+        server_assigned_version:
+          type: integer
+          minimum: 1
+          description: Set only by the server; client values are ignored.
+        request_payload_digest:
+          oneOf:
+            - $ref: '#/components/schemas/Sha256Digest'
+            - type: 'null'
+          description: Digest of the original request so a repeated key with another payload conflicts.
     ErrorEnvelope:
       x-plumb-contract: ErrorEnvelope
       type: object
-      description: |
-        Shared error shape (section 22). Includes retryability, dependency identity and
-        operator action where appropriate. Raw secrets, source content and other tenants'
-        identifiers never appear in `message`.
+      description: Shared error shape of every control-plane response (section 22).
       required: [error_class, message, retryable, correlation_id]
       additionalProperties: false
       properties:
@@ -1561,32 +1574,23 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Identifier'
             - type: 'null'
-          description: The `DependencyRecord` that must be resolved before retrying, if any.
+          description: Dependency record that resolves the error.
         operator_action:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
-          description: What an operator or owner must do, when the error is not self-healing.
         correlation_id:
           $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          oneOf:
+            - $ref: '#/components/schemas/TenantId'
+            - type: 'null'
+          description: Tenant the error belongs to, when known.
     EventEnvelope:
       x-plumb-contract: EventEnvelope
       type: object
-      description: |
-        Event published through the outbox with at-least-once delivery and consumer
-        deduplication (section 22). Ordering is per aggregate (`aggregate_version`), never
-        global.
-      required:
-        - event_id
-        - tenant_id
-        - aggregate_id
-        - aggregate_version
-        - event_type
-        - occurred_at
-        - recorded_at
-        - correlation_id
-        - causation_id
-        - schema_version
-        - payload_ref
+      description: Domain event as published through the outbox (section 22).
+      required: [event_id, tenant_id, aggregate_id, aggregate_version, event_type, occurred_at, recorded_at, correlation_id, causation_id, schema_version, payload_ref]
       additionalProperties: false
       properties:
         event_id:
@@ -1598,6 +1602,7 @@ components:
         aggregate_version:
           type: integer
           minimum: 1
+          description: Per-aggregate ordering; never compare across aggregates.
         event_type:
           $ref: '#/components/schemas/Identifier'
         occurred_at:
@@ -1612,11 +1617,14 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Identifier'
             - type: 'null'
-          description: The event or command that caused this event; `null` for a root cause.
+          description: Event or command that caused this one.
         schema_version:
           $ref: '#/components/schemas/SemVer'
         payload_ref:
-          $ref: '#/components/schemas/ArtifactRef'
+          type: string
+          pattern: ^\S+$
+          minLength: 1
+          maxLength: 512
 
     # ------------------------------------------------------------------
     # Contract schemas (mirror plumb/contracts; see x-plumb-contract)
@@ -1743,82 +1751,97 @@ components:
 
     OperationCapability:
       type: object
-      description: One probed operation of an application account (PL-008).
-      required: [operation, direction, maturity]
+      description: One exact operation on one account, with the evidence behind its maturity (PL-008).
+      required: [operation, direction, maturity, account_id]
       additionalProperties: false
       properties:
         operation:
           type: string
           minLength: 1
           maxLength: 256
+          description: Exact provider operation, e.g. GET /v1/invoices; never a product name.
         direction:
           type: string
           enum: [READ, WRITE]
+          description: Whether an operation reads from or writes to the application.
         maturity:
           $ref: '#/components/schemas/CapabilityMaturity'
-        probe_receipt_id:
+        probe_receipt_ref:
           oneOf:
             - $ref: '#/components/schemas/Identifier'
             - type: 'null'
+          description: Receipt of the successful probe that established the maturity.
         last_probed_at:
           type: [string, 'null']
           format: date-time
+        account_id:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: 'Account the capability was established for: a source_id or external_account_id of the owning application''s accounts.'
     ApplicationRecord:
       type: object
-      required: [application_id, provider, accounts, operations, authorization_status, update_mechanism]
+      description: One application observed during inventory (PL-007).
+      required: [application_id, name, authorization_status, update_mechanism]
       additionalProperties: false
       properties:
         application_id:
           $ref: '#/components/schemas/Identifier'
-        provider:
+        name:
           type: string
           minLength: 1
           maxLength: 256
         accounts:
           type: array
           items:
-            type: string
-            minLength: 1
-            maxLength: 256
-          description: Provider account identities (opaque, non-secret).
+            $ref: '#/components/schemas/SourceRef'
         entities:
           type: array
           items:
             type: string
             minLength: 1
             maxLength: 256
+          description: Business entities exposed, e.g. invoice.
         schema_versions:
           type: object
           additionalProperties:
             type: string
+            minLength: 1
+            maxLength: 256
+          description: Entity or API surface -> observed schema version.
         operations:
           type: array
           items:
             $ref: '#/components/schemas/OperationCapability'
         authorization_status:
           type: string
-          enum: [AUTHORIZED, PARTIAL, PENDING_CONSENT, DENIED, EXPIRED]
+          enum: [AUTHORIZED, CONSENT_REQUIRED, DENIED, UNKNOWN]
+          description: Whether Plumb currently holds authorization for an application (section 5).
         available_history_from:
           type: [string, 'null']
           format: date-time
+          description: Earliest record time the account exposes; None when unknown.
         quotas:
-          type: object
-          additionalProperties:
-            type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/Quota'
         update_mechanism:
           type: string
-          enum: [WEBHOOK, POLLING, CDC, EXPORT]
+          enum: [WEBHOOK, POLLING, CDC, EXPORT, NONE]
+          description: How changes in the application can be observed (PL-007, section 11).
         freshness_seconds:
           type: [integer, 'null']
           minimum: 0
+          description: Observed delay between a change at the source and its visibility.
         owners:
           type: array
           items:
             $ref: '#/components/schemas/Identifier'
+          description: Principal ids accountable for the application.
     CoverageReport:
       type: object
-      description: Discloses what was not observed (PL-007, section 5).
-      required: [observed_applications, unobserved_applications, observed_employees, unobserved_employees]
+      description: What the inventory did and did not observe; the limitation must be disclosed (section 5).
+      required: [observed_employee_count, unobserved_employee_count, capture_scope, retention_days, disclosure]
       additionalProperties: false
       properties:
         observed_applications:
@@ -1831,35 +1854,78 @@ components:
             type: string
             minLength: 1
             maxLength: 256
-        observed_employees:
+          description: Applications known to exist but not observed (names, not ids).
+        observed_employee_count:
           type: integer
           minimum: 0
-        unobserved_employees:
+        unobserved_employee_count:
           type: integer
           minimum: 0
-        notes:
-          type: [string, 'null']
+        capture_scope:
+          type: string
+          minLength: 1
           maxLength: 4000
+          description: What capture covers, as shown on the enrollment screen.
+        exclusions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        retention_days:
+          type: integer
+          minimum: 0
+        disclosure:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: Customer-facing statement of the coverage limitation.
+    Quota:
+      type: object
+      description: A provider-imposed limit on an application or account.
+      required: [name, limit]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        limit:
+          type: integer
+          minimum: 0
+        window_seconds:
+          type: [integer, 'null']
+          minimum: 1
+          description: None for absolute (non-rolling) quotas.
     EnvironmentInventory:
       x-plumb-contract: EnvironmentInventory
-      description: Accessible applications, operations and coverage (PL-007, PL-008).
+      description: Inventory produced before any production build is proposed (PL-007).
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required: [applications, coverage_report]
+          required: [kind, inventory_id, applications, coverage_report]
           properties:
             kind:
               const: EnvironmentInventory
+            inventory_id:
+              $ref: '#/components/schemas/Identifier'
             applications:
               type: array
+              minItems: 1
               items:
                 $ref: '#/components/schemas/ApplicationRecord'
             coverage_report:
               $ref: '#/components/schemas/CoverageReport'
+            low_confidence_assumptions:
+              type: array
+              items:
+                type: string
+              description: Assumptions that remain visible while unaffected work progresses.
       unevaluatedProperties: false
 
     BenefitRange:
       type: object
+      description: Expected benefit as a range over a defined horizon (section 7).
       required: [low, high, horizon_days]
       additionalProperties: false
       properties:
@@ -1877,37 +1943,127 @@ components:
       properties:
         intervention_kind:
           type: string
-          enum:
-            - NATIVE_SETTING
-            - DETERMINISTIC_AUTOMATION
-            - GENERAL_MODEL_WORKFLOW
-            - SPECIALIST_SERVICE
-            - RETRIEVAL_SYSTEM
-            - TRAINED_COMPONENT
-            - REMOVE_STEP
+          enum: [NATIVE_SETTING, DETERMINISTIC_AUTOMATION, GENERAL_MODEL_WORKFLOW, SPECIALIST_SERVICE, RETRIEVAL_SYSTEM, TRAINED_COMPONENT, REMOVE_STEP]
+          description: What kind of change is proposed; most are not machine learning (PL-013).
         description:
           type: string
           minLength: 1
           maxLength: 4000
+        affected_steps:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        required_capability_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+    EvidenceCoverage:
+      type: object
+      description: How much of the eligible population the available evidence actually covers (PL-012).
+      required: [observed_case_count, eligible_case_count]
+      additionalProperties: false
+      properties:
+        observed_case_count:
+          type: integer
+          minimum: 0
+        eligible_case_count:
+          type: integer
+          minimum: 0
+        source_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        gaps:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+          description: Known unobserved handoffs, systems or periods.
+    MeasurementPlan:
+      type: object
+      description: How value will be measured once the change is live (PL-012).
+      required: [prospective, method, metrics, horizon_days]
+      additionalProperties: false
+      properties:
+        prospective:
+          type: boolean
+          description: 'Must be true: historical replay alone cannot establish causal gains.'
+        method:
+          type: string
+          enum: [STAGED_ROLLOUT, COMPARABLE_CASE_COHORTS]
+          description: Prospective designs that can support a causal claim (section 7).
+        metrics:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        confounders_accounted:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+          description: Case mix, calendar effects, employee review and the like.
+        horizon_days:
+          type: integer
+          minimum: 1
+    CandidateSystem:
+      type: object
+      description: One complete alternative in the comparison, costed end to end (PL-013).
+      required: [kind, description, expected_cost, expected_benefit_range]
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [CURRENT_PROCESS, NATIVE_FEATURE, PROPOSED_SYSTEM, ALTERNATIVE]
+          description: Role of an entry in the candidate comparison (PL-013).
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        expected_cost:
+          $ref: '#/components/schemas/Money'
+        expected_benefit_range:
+          $ref: '#/components/schemas/BenefitRange'
+    BlockingCondition:
+      type: object
+      description: Why feasibility failed, precisely enough to resume once resolved (section 7).
+      required: [condition_id, failure_class, description]
+      additionalProperties: false
+      properties:
+        condition_id:
+          $ref: '#/components/schemas/Identifier'
+        failure_class:
+          $ref: '#/components/schemas/FailureClass'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        missing_authority:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
     OpportunitySpec:
       x-plumb-contract: OpportunitySpec
-      description: A candidate intervention with its economics and measurement plan (PL-012, PL-013).
+      description: A costed, measurable hypothesis about one improvement (PL-012, PL-013).
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required:
-            - business_objective
-            - eligible_case_population
-            - baseline
-            - evidence_coverage
-            - proposed_change
-            - expected_benefit_range
-            - failure_cost
-            - review_cost
-            - measurement_plan
+          required: [kind, opportunity_id, goal_id, business_objective, eligible_case_population, baseline, evidence_coverage, proposed_change, expected_benefit_range, failure_cost, review_cost, measurement_plan, candidate_comparison, status]
           properties:
             kind:
               const: OpportunitySpec
+            opportunity_id:
+              $ref: '#/components/schemas/Identifier'
+            goal_id:
+              $ref: '#/components/schemas/Identifier'
             business_objective:
               type: string
               minLength: 1
@@ -1920,39 +2076,53 @@ components:
               type: string
               minLength: 1
               maxLength: 4000
+              description: The current process and its measured cost or cycle time.
             evidence_coverage:
-              type: number
-              minimum: 0
-              maximum: 1
+              $ref: '#/components/schemas/EvidenceCoverage'
             proposed_change:
               $ref: '#/components/schemas/ProposedChange'
             dependencies:
               type: array
               items:
-                type: string
-                minLength: 1
-                maxLength: 4000
+                $ref: '#/components/schemas/Identifier'
+              description: Prerequisite opportunities, capabilities or dependency records.
             expected_benefit_range:
               $ref: '#/components/schemas/BenefitRange'
             failure_cost:
               $ref: '#/components/schemas/Money'
             review_cost:
               $ref: '#/components/schemas/Money'
+            implementation_cost:
+              oneOf:
+                - $ref: '#/components/schemas/Money'
+                - type: 'null'
+            operation_cost:
+              oneOf:
+                - $ref: '#/components/schemas/Money'
+                - type: 'null'
+            change_management_cost:
+              oneOf:
+                - $ref: '#/components/schemas/Money'
+                - type: 'null'
             measurement_plan:
-              type: string
-              minLength: 1
-              maxLength: 4000
-              description: Prospective plan; never retrofitted after the fact.
+              $ref: '#/components/schemas/MeasurementPlan'
+            candidate_comparison:
+              type: array
+              minItems: 2
+              items:
+                $ref: '#/components/schemas/CandidateSystem'
             blocking_conditions:
               type: array
               items:
-                type: string
-                minLength: 1
-                maxLength: 4000
+                $ref: '#/components/schemas/BlockingCondition'
             overlap_refs:
               type: array
               items:
-                $ref: '#/components/schemas/ArtifactRef'
+                $ref: '#/components/schemas/Identifier'
+              description: Other opportunity ids claiming the same labor or revenue.
+            status:
+              type: string
+              enum: [CANDIDATE, FEASIBLE, BLOCKED, SELECTED, REJECTED_NEGATIVE_VALUE]
       unevaluatedProperties: false
 
     StepInput:
@@ -2260,32 +2430,155 @@ components:
           type: integer
           minimum: 1
           description: Staleness must be visible within this many seconds (section 24).
+    JoinStrategy:
+      type: object
+      required: [kind, keys]
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [EXACT_KEY, NORMALIZED_IDENTITY, RESOLVED_OBJECT]
+        keys:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+    Watermark:
+      type: object
+      description: Agreed point from which backfill proceeds (section 11).
+      required: [field, value, as_of]
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          minLength: 1
+          maxLength: 256
+        value:
+          type: string
+          minLength: 1
+          maxLength: 256
+        as_of:
+          type: string
+          format: date-time
+    BackfillBoundary:
+      type: object
+      required: [start, agreed_by]
+      additionalProperties: false
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: [string, 'null']
+          format: date-time
+          description: None while backfill is open-ended.
+        agreed_by:
+          $ref: '#/components/schemas/Identifier'
+          description: Principal who agreed the boundary.
+    SourceCursor:
+      type: object
+      description: Current position in one source (PL-024).
+      required: [source_id, cursor, processing_offset, updated_at]
+      additionalProperties: false
+      properties:
+        source_id:
+          $ref: '#/components/schemas/Identifier'
+        cursor:
+          type: string
+          minLength: 1
+          maxLength: 512
+        processing_offset:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
+    Reconciliation:
+      type: object
+      description: How backfill and live capture are shown to converge (PL-024).
+      required: [source_count_reconciliation, sample_size]
+      additionalProperties: false
+      properties:
+        source_count_reconciliation:
+          type: boolean
+          description: 'Must be true: counts are compared against the source.'
+        sampled_identity_reconciliation:
+          type: boolean
+          default: true
+        sample_size:
+          type: integer
+          minimum: 1
+    Retention:
+      type: object
+      required: [retention_days, deletion_handling]
+      additionalProperties: false
+      properties:
+        retention_days:
+          type: integer
+          minimum: 0
+        deletion_handling:
+          type: string
+          enum: [PROPAGATE_DELETE, TOMBSTONE, RETAIN_WITH_FLAG]
+    Destination:
+      type: object
+      required: [destination_id, region, schema_ref]
+      additionalProperties: false
+      properties:
+        destination_id:
+          $ref: '#/components/schemas/Identifier'
+        region:
+          $ref: '#/components/schemas/Region'
+        schema_ref:
+          type: string
+          pattern: ^\S+$
+          minLength: 1
+          maxLength: 512
+    QualityCheck:
+      type: object
+      required: [name, expression]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/Identifier'
+        expression:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        severity:
+          type: string
+          enum: [BLOCK, WARN]
+    HealthContract:
+      type: object
+      description: What the collector publishes; all four signals are mandatory (PL-025).
+      required: [freshness_deadline_seconds, lag_metric, completeness_metric, failure_state_metric]
+      additionalProperties: false
+      properties:
+        freshness_deadline_seconds:
+          type: integer
+          minimum: 1
+        lag_metric:
+          $ref: '#/components/schemas/Identifier'
+        completeness_metric:
+          $ref: '#/components/schemas/Identifier'
+        failure_state_metric:
+          $ref: '#/components/schemas/Identifier'
     CollectionSpec:
       x-plumb-contract: CollectionSpec
-      description: What a collector gathers, from where, for which purpose (PL-023..PL-025).
+      description: Specification of one collector (PL-023..PL-025).
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required:
-            - objective_ref
-            - allowed_sources
-            - selected_fields
-            - join_strategy
-            - incremental_mechanism
-            - watermark
-            - backfill_boundary
-            - retention
-            - destination
-            - access_policy_ref
-            - quality_checks
-            - permitted_purpose_evidence
-            - health
-            - idempotent_event_identity
+          required: [kind, collection_id, objective_ref, allowed_sources, selected_fields, join_strategy, incremental_mechanism, reordering_policy, correction_policy, watermark, backfill_boundary, idempotent_event_identity, reconciliation, retention, destination, access_policy_ref, quality_checks, permitted_purpose_evidence_ref, health, downstream_block_on_missing_coverage]
           properties:
             kind:
               const: CollectionSpec
+            collection_id:
+              $ref: '#/components/schemas/Identifier'
             objective_ref:
-              $ref: '#/components/schemas/ArtifactRef'
+              $ref: '#/components/schemas/Identifier'
+              description: Goal or opportunity the collection serves.
             allowed_sources:
               type: array
               minItems: 1
@@ -2295,49 +2588,74 @@ components:
               type: array
               minItems: 1
               items:
-                $ref: '#/components/schemas/Identifier'
+                type: string
+                minLength: 1
+                maxLength: 256
             join_strategy:
-              type: string
-              minLength: 1
-              maxLength: 4000
+              $ref: '#/components/schemas/JoinStrategy'
             incremental_mechanism:
               type: string
-              enum: [WEBHOOK, POLLING_OVERLAP, CDC]
+              enum: [WEBHOOK, POLLING_OVERLAP, CDC, EXPORT]
+              description: How continuing changes are captured (PL-023, section 11).
+            overlap_seconds:
+              type: [integer, 'null']
+              minimum: 1
+              description: Polling window overlap.
+            webhook_fetches_authoritative_state:
+              type: boolean
+              default: false
+              description: A webhook is a signal to fetch authoritative state; must be true for WEBHOOK.
+            reordering_policy:
+              type: string
+              enum: [SOURCE_VERSION_WINS, LATEST_OBSERVATION_WINS, QUARANTINE_OUT_OF_ORDER]
+              description: How out-of-order events are handled; it must be chosen explicitly (PL-024).
+            correction_policy:
+              type: string
+              enum: [NEW_VERSION_SUPERSEDES, QUARANTINE_FOR_REVIEW]
+              description: How later corrections to already-captured records are handled (PL-024).
             watermark:
-              type: string
-              minLength: 1
-              maxLength: 256
+              $ref: '#/components/schemas/Watermark'
             backfill_boundary:
-              type: string
-              format: date-time
-            retention:
-              type: string
-              minLength: 1
-              maxLength: 256
-            destination:
-              $ref: '#/components/schemas/Identifier'
-            access_policy_ref:
-              $ref: '#/components/schemas/NonSecretRef'
-            quality_checks:
+              $ref: '#/components/schemas/BackfillBoundary'
+            idempotent_event_identity:
               type: array
               minItems: 1
               items:
                 type: string
                 minLength: 1
-                maxLength: 4000
-            permitted_purpose_evidence:
+                maxLength: 256
+              description: Fields forming the stable event key.
+            cursors:
+              type: array
+              items:
+                $ref: '#/components/schemas/SourceCursor'
+            reconciliation:
+              $ref: '#/components/schemas/Reconciliation'
+            retention:
+              $ref: '#/components/schemas/Retention'
+            destination:
+              $ref: '#/components/schemas/Destination'
+            access_policy_ref:
+              type: string
+              pattern: ^\S+$
+              minLength: 1
+              maxLength: 512
+            quality_checks:
               type: array
               minItems: 1
-              description: Source grant references proving the purpose is permitted (PL-053).
               items:
-                $ref: '#/components/schemas/Identifier'
-            health:
-              $ref: '#/components/schemas/CollectorHealth'
-            idempotent_event_identity:
+                $ref: '#/components/schemas/QualityCheck'
+            permitted_purpose_evidence_ref:
               type: string
+              pattern: ^\S+$
               minLength: 1
-              maxLength: 4000
-              description: How a source record maps to one event identity across backfill and live capture (PL-024).
+              maxLength: 512
+              description: Grant or approval that justifies collecting these fields for this objective.
+            health:
+              $ref: '#/components/schemas/HealthContract'
+            downstream_block_on_missing_coverage:
+              type: boolean
+              description: 'Must be true: downstream work blocks or degrades explicitly when coverage is missing.'
       unevaluatedProperties: false
     CollectionJobStatus:
       type: object
@@ -2412,18 +2730,21 @@ components:
           description: Required when `label_status` is not `ACCEPTED`.
     LabelDefinition:
       type: object
-      required: [text, label_kind]
+      description: What the label means and how long it takes to mature (section 13).
+      required: [text, label_kind, maturation_window_days]
       additionalProperties: false
       properties:
         text:
           type: string
           minLength: 1
           maxLength: 4000
+          description: Human-readable definition of the target.
         label_kind:
           $ref: '#/components/schemas/LabelKind'
         maturation_window_days:
-          type: [integer, 'null']
+          type: integer
           minimum: 0
+          description: Days after the decision before the label is considered settled.
     SplitRule:
       type: object
       required: [name, question_answered, rule]
@@ -2792,6 +3113,7 @@ components:
 
     Metric:
       type: object
+      description: A rate with an explicit denominator; a bare percentage is not a metric (section 13).
       required: [name, numerator, denominator]
       additionalProperties: false
       properties:
@@ -2803,11 +3125,14 @@ components:
         denominator:
           type: integer
           minimum: 1
+          description: Cases, fields or trials the numerator is measured over.
         description:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
     ErrorSeverityBreakdown:
       type: object
+      description: Observed errors by severity; releases set thresholds per severity (section 24).
       required: [low, medium, high]
       additionalProperties: false
       properties:
@@ -2822,17 +3147,19 @@ components:
           minimum: 0
     CandidateComparison:
       type: object
-      description: Baseline vs general model vs trained candidate (PL-031).
+      description: One candidate's complete task performance and total operating cost (PL-031).
       required: [candidate, total_operating_cost, task_performance, review_time_minutes]
       additionalProperties: false
       properties:
         candidate:
           type: string
-          enum: [BASELINE, RULES, GENERAL_MODEL, RETRIEVAL, SPECIALIST_API, TRAINED]
+          enum: [BASELINE_NATIVE_RULES, PROMPTED_GENERAL_MODEL, RETRIEVAL, SPECIALIST_API, TRAINED]
+          description: The implementation options the model planner compares (PL-031).
         candidate_ref:
           oneOf:
             - $ref: '#/components/schemas/ArtifactRef'
             - type: 'null'
+          description: Pinned artifact of the candidate (model version, workflow, ...).
         total_operating_cost:
           $ref: '#/components/schemas/Money'
         task_performance:
@@ -2842,9 +3169,11 @@ components:
           minimum: 0
         notes:
           type: [string, 'null']
+          minLength: 1
           maxLength: 4000
     SegregationStatement:
       type: object
+      description: Attestation that evaluation data was not used for tuning or repair (PL-044).
       required: [evaluation_data_disjoint_from_tuning, basis]
       additionalProperties: false
       properties:
@@ -2854,24 +3183,14 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+          description: How disjointness was established, e.g. by split content hashes.
     EvaluationReport:
       x-plumb-contract: EvaluationReport
-      description: Held-out evaluation with denominators and cost comparison (PL-031, PL-034, PL-044).
+      description: Held-out evaluation of one subject with denominators, severities, cost and trials.
       allOf:
         - $ref: '#/components/schemas/ArtifactHeader'
         - type: object
-          required:
-            - subject_ref
-            - dataset_ref
-            - held_out_split
-            - level
-            - case_count
-            - metrics
-            - error_severity_breakdown
-            - review_time_minutes
-            - cost_comparison
-            - trials
-            - segregation_statement
+          required: [kind, subject_ref, dataset_ref, held_out_split, level, case_count, metrics, error_severity_breakdown, review_time_minutes, cost_comparison, nondeterministic, trials, segregation_statement]
           properties:
             kind:
               const: EvaluationReport
@@ -2881,18 +3200,23 @@ components:
               $ref: '#/components/schemas/ArtifactRef'
             held_out_split:
               type: string
-              enum: [test_temporal, test_client_disjoint]
+              enum: [validation, test_temporal, test_client_disjoint]
             level:
               $ref: '#/components/schemas/VerificationLevel'
             case_count:
               type: integer
               minimum: 1
+              description: Held-out cases the evaluation ran on.
             excluded_case_count:
               type: integer
               minimum: 0
+              default: 0
+              description: Eligible cases excluded from the run; part of the audit trail.
             exclusion_summary:
               type: [string, 'null']
+              minLength: 1
               maxLength: 4000
+              description: Why cases were excluded; required when excluded_case_count > 0.
             metrics:
               type: array
               minItems: 1
@@ -2903,6 +3227,7 @@ components:
             review_time_minutes:
               type: integer
               minimum: 0
+              description: Human review time spent over the evaluated cases.
             cost_comparison:
               type: array
               minItems: 1
@@ -2910,9 +3235,11 @@ components:
                 $ref: '#/components/schemas/CandidateComparison'
             nondeterministic:
               type: boolean
+              description: Whether the subject's output varies between identical runs.
             trials:
               type: integer
               minimum: 1
+              description: Independent runs over the held-out cases.
             segregation_statement:
               $ref: '#/components/schemas/SegregationStatement'
       unevaluatedProperties: false

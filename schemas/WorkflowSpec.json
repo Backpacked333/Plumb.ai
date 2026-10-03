@@ -1,0 +1,631 @@
+{
+  "$defs": {
+    "CaseIdentity": {
+      "additionalProperties": false,
+      "description": "Fields that identify one case, e.g. client + period (PL-035).",
+      "properties": {
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fields",
+        "description"
+      ],
+      "title": "CaseIdentity",
+      "type": "object"
+    },
+    "CompletionCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "rule_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Ref"
+        },
+        "terminal_state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Terminal State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "terminal_state",
+        "description"
+      ],
+      "title": "CompletionCondition",
+      "type": "object"
+    },
+    "CustomPrimitive": {
+      "additionalProperties": false,
+      "description": "A generated primitive; it meets the same adapter and verification requirements as a connector.",
+      "properties": {
+        "adapter_verification_ref": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Adapter Verification Ref",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "adapter_verification_ref",
+        "description"
+      ],
+      "title": "CustomPrimitive",
+      "type": "object"
+    },
+    "DeterministicRule": {
+      "additionalProperties": false,
+      "description": "A business rule enforced by the runtime, not by model text (PL-036).",
+      "properties": {
+        "enforced_outside_model": {
+          "default": true,
+          "title": "Enforced Outside Model",
+          "type": "boolean"
+        },
+        "expression": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Expression",
+          "type": "string"
+        },
+        "rule_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "expression"
+      ],
+      "title": "DeterministicRule",
+      "type": "object"
+    },
+    "DurableWait": {
+      "additionalProperties": false,
+      "properties": {
+        "on_timeout_state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "On Timeout State",
+          "type": "string"
+        },
+        "state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "State",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "state",
+        "timeout_seconds",
+        "on_timeout_state"
+      ],
+      "title": "DurableWait",
+      "type": "object"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "HumanDecisionPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "decider_role": {
+          "$ref": "#/$defs/PrincipalType"
+        },
+        "decision": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Decision",
+          "type": "string"
+        },
+        "state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "decision",
+        "decider_role"
+      ],
+      "title": "HumanDecisionPoint",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "from_state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "From State",
+          "type": "string"
+        },
+        "guard_rule_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Deterministic rule that must hold.",
+          "title": "Guard Rule Ref"
+        },
+        "to_state": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "To State",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "Operation name, timeout or decision that fires the transition.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "title": "Transition",
+      "type": "object"
+    },
+    "Trigger": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/TriggerKind"
+        },
+        "source": {
+          "description": "Event type, schedule expression or manual entry point.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source"
+      ],
+      "title": "Trigger",
+      "type": "object"
+    },
+    "TriggerKind": {
+      "enum": [
+        "EVENT",
+        "SCHEDULE",
+        "MANUAL"
+      ],
+      "title": "TriggerKind",
+      "type": "string"
+    },
+    "TypedInput": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type_ref": {
+          "description": "Schema or contract the input must satisfy.",
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Type Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type_ref"
+      ],
+      "title": "TypedInput",
+      "type": "object"
+    },
+    "WorkflowOperation": {
+      "additionalProperties": false,
+      "description": "One permitted operation and whether it touches the world (PL-035, PL-036).",
+      "properties": {
+        "deterministic_rule_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rule enforced outside the model that gates this operation.",
+          "title": "Deterministic Rule Ref"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/EffectClass"
+        },
+        "external_effect": {
+          "title": "External Effect",
+          "type": "boolean"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "primitive": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Primitive",
+          "type": "string"
+        },
+        "requires_case_state_version_check": {
+          "title": "Requires Case State Version Check",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "primitive",
+        "external_effect",
+        "effect_class",
+        "requires_case_state_version_check"
+      ],
+      "title": "WorkflowOperation",
+      "type": "object"
+    },
+    "WorkflowState": {
+      "additionalProperties": false,
+      "properties": {
+        "durable_wait": {
+          "default": false,
+          "description": "True when the case may rest here across restarts.",
+          "title": "Durable Wait",
+          "type": "boolean"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "terminal": {
+          "default": false,
+          "title": "Terminal",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "WorkflowState",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/WorkflowSpec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A bounded, auditable workflow built from certified primitives (PL-035, PL-036).",
+  "properties": {
+    "allowed_operations": {
+      "items": {
+        "$ref": "#/$defs/WorkflowOperation"
+      },
+      "minItems": 1,
+      "title": "Allowed Operations",
+      "type": "array"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "case_identity": {
+      "$ref": "#/$defs/CaseIdentity"
+    },
+    "completion_conditions": {
+      "items": {
+        "$ref": "#/$defs/CompletionCondition"
+      },
+      "minItems": 1,
+      "title": "Completion Conditions",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "custom_primitives": {
+      "items": {
+        "$ref": "#/$defs/CustomPrimitive"
+      },
+      "title": "Custom Primitives",
+      "type": "array"
+    },
+    "deterministic_rules": {
+      "items": {
+        "$ref": "#/$defs/DeterministicRule"
+      },
+      "title": "Deterministic Rules",
+      "type": "array"
+    },
+    "durable_waits": {
+      "items": {
+        "$ref": "#/$defs/DurableWait"
+      },
+      "minItems": 1,
+      "title": "Durable Waits",
+      "type": "array"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "human_decision_points": {
+      "items": {
+        "$ref": "#/$defs/HumanDecisionPoint"
+      },
+      "minItems": 1,
+      "title": "Human Decision Points",
+      "type": "array"
+    },
+    "initial_state": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Initial State",
+      "type": "string"
+    },
+    "kind": {
+      "const": "WorkflowSpec",
+      "default": "WorkflowSpec",
+      "title": "Kind",
+      "type": "string"
+    },
+    "max_cost": {
+      "$ref": "#/$defs/Money"
+    },
+    "max_duration_seconds": {
+      "minimum": 1,
+      "title": "Max Duration Seconds",
+      "type": "integer"
+    },
+    "max_iterations": {
+      "minimum": 1,
+      "title": "Max Iterations",
+      "type": "integer"
+    },
+    "model_output_validation_required": {
+      "description": "Must be true: the runtime validates model outputs before tool execution.",
+      "title": "Model Output Validation Required",
+      "type": "boolean"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "states": {
+      "items": {
+        "$ref": "#/$defs/WorkflowState"
+      },
+      "minItems": 2,
+      "title": "States",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transitions": {
+      "items": {
+        "$ref": "#/$defs/Transition"
+      },
+      "minItems": 1,
+      "title": "Transitions",
+      "type": "array"
+    },
+    "triggers": {
+      "items": {
+        "$ref": "#/$defs/Trigger"
+      },
+      "minItems": 1,
+      "title": "Triggers",
+      "type": "array"
+    },
+    "typed_inputs": {
+      "items": {
+        "$ref": "#/$defs/TypedInput"
+      },
+      "minItems": 1,
+      "title": "Typed Inputs",
+      "type": "array"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Workflow Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "workflow_id",
+    "case_identity",
+    "triggers",
+    "typed_inputs",
+    "states",
+    "initial_state",
+    "transitions",
+    "allowed_operations",
+    "max_iterations",
+    "max_duration_seconds",
+    "max_cost",
+    "durable_waits",
+    "human_decision_points",
+    "completion_conditions",
+    "model_output_validation_required"
+  ],
+  "title": "WorkflowSpec",
+  "type": "object"
+}

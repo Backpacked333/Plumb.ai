@@ -375,7 +375,11 @@ def test_jobs_are_idempotent_per_tenant_with_payload_digest(tables: dict[str, st
     body = tables["jobs"]
     assert "UNIQUE (tenant_id, idempotency_key)" in body
     assert re.search(r"payload_digest\s+plumb\.sha256_digest NOT NULL", body)
-    assert _check_values(body, "status") == ["ACCEPTED", "RUNNING", "WAITING", "SUCCEEDED", "FAILED", "CANCELLED"]
+    # Job status vocabulary mirrors plumb.contracts.api.JobStatus (the OpenAPI JobStatus component too).
+    from plumb.contracts.api import JobStatus
+
+    assert set(_check_values(body, "status")) == {status.value for status in JobStatus}
+    assert _check_values(body, "status") == ["PENDING", "RUNNING", "WAITING", "SUCCEEDED", "FAILED"]
     match = re.search(r"error_class IN \(([^)]*)\)", body)
     assert match and re.findall(r"'([^']*)'", match.group(1)) == ERROR_CLASSES
 

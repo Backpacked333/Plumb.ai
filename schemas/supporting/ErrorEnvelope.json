@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "ErrorClass": {
+      "description": "Initial error classes of the control-plane protocol (section 22).",
+      "enum": [
+        "AUTH_REQUIRED",
+        "SCOPE_DENIED",
+        "PURPOSE_DENIED",
+        "POLICY_STALE",
+        "STATE_CONFLICT",
+        "PAYLOAD_CONFLICT",
+        "BUDGET_EXCEEDED",
+        "CAPABILITY_UNSUPPORTED",
+        "SOURCE_STALE",
+        "DATA_QUALITY_FAILED",
+        "VERIFICATION_FAILED",
+        "EFFECT_UNKNOWN",
+        "RETRY_EXHAUSTED"
+      ],
+      "title": "ErrorClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/supporting/ErrorEnvelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Shared error shape of every control-plane response (section 22).",
+  "properties": {
+    "correlation_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "dependency_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Dependency record that resolves the error.",
+      "title": "Dependency Id"
+    },
+    "error_class": {
+      "$ref": "#/$defs/ErrorClass"
+    },
+    "message": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "operator_action": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operator Action"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "tenant_id": {
+      "anyOf": [
+        {
+          "pattern": "^tnt_[a-z0-9]{4,32}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Tenant the error belongs to, when known.",
+      "title": "Tenant Id"
+    }
+  },
+  "required": [
+    "error_class",
+    "message",
+    "retryable",
+    "correlation_id"
+  ],
+  "title": "ErrorEnvelope",
+  "type": "object"
+}

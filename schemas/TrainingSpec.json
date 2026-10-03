@@ -1,0 +1,583 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "BaseModelRef": {
+      "additionalProperties": false,
+      "description": "Pinned base model: provider, capability and exact version (PL-032).",
+      "properties": {
+        "capability": {
+          "description": "Provider capability used, e.g. 'text-classification-tuning'.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Capability",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "version": {
+          "description": "Exact provider model version; never a mutable alias.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "capability",
+        "version"
+      ],
+      "title": "BaseModelRef",
+      "type": "object"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "description": "Worst-case reservation for a unit of work (PL-014, PL-018, PL-058).",
+      "properties": {
+        "max_attempts": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_elapsed_seconds": {
+          "minimum": 1,
+          "title": "Max Elapsed Seconds",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Model Calls"
+        },
+        "spend": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "spend",
+        "max_attempts",
+        "max_elapsed_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "DataHandling": {
+      "additionalProperties": false,
+      "description": "Where and how the training data is processed (PL-032, PL-053).",
+      "properties": {
+        "credential_ref": {
+          "description": "Reference resolved by the gateway; never a secret value.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Credential Ref",
+          "type": "string"
+        },
+        "processor": {
+          "description": "Approved data processor id from the envelope.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Processor",
+          "type": "string"
+        },
+        "region": {
+          "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+          "title": "Region",
+          "type": "string"
+        },
+        "retention": {
+          "description": "Retention the processor is held to, e.g. 'delete_after_job'.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Retention",
+          "type": "string"
+        },
+        "selected_fields": {
+          "description": "Dataset fields sent to the processor; empty means all row fields.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Selected Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "processor",
+        "region",
+        "retention",
+        "credential_ref"
+      ],
+      "title": "DataHandling",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "StoppingCondition": {
+      "additionalProperties": false,
+      "description": "Hard bounds on a training job; at least one bound is mandatory (PL-032).",
+      "properties": {
+        "early_stopping_metric": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Early Stopping Metric"
+        },
+        "early_stopping_patience": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Early Stopping Patience"
+        },
+        "max_elapsed_seconds": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Elapsed Seconds"
+        },
+        "max_epochs": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Epochs"
+        },
+        "max_steps": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Steps"
+        }
+      },
+      "title": "StoppingCondition",
+      "type": "object"
+    },
+    "SupportedCombinationCheck": {
+      "additionalProperties": false,
+      "description": "Build-time record that provider/method/modality support was verified (PL-032).",
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/$defs/TrainingMethod"
+        },
+        "modality": {
+          "description": "E.g. 'text', 'image', 'tabular'.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Modality",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "provider",
+        "method",
+        "modality",
+        "supported",
+        "checked_at"
+      ],
+      "title": "SupportedCombinationCheck",
+      "type": "object"
+    },
+    "TrainingMethod": {
+      "description": "How a trained component is produced; NONE records the decision not to train.",
+      "enum": [
+        "API_FINETUNE",
+        "MANAGED_OPEN_MODEL",
+        "NONE"
+      ],
+      "title": "TrainingMethod",
+      "type": "string"
+    },
+    "TrainingState": {
+      "enum": [
+        "PLANNED",
+        "SUBMITTED",
+        "RUNNING",
+        "CANDIDATE",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "TrainingState",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/TrainingSpec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Complete, pinned description of one training decision (PL-032, PL-033).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "base_model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BaseModelRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "budget": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Budget"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_handling": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DataHandling"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dataset_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "Pinned DatasetManifest the job trains on."
+    },
+    "evaluation_plan_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "Pinned plan the candidate will be evaluated against."
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "kind": {
+      "const": "TrainingSpec",
+      "default": "TrainingSpec",
+      "title": "Kind",
+      "type": "string"
+    },
+    "method": {
+      "$ref": "#/$defs/TrainingMethod"
+    },
+    "objective": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Objective",
+      "type": "string"
+    },
+    "output_location": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where versioned artifacts are written, e.g. a registry path.",
+      "title": "Output Location"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/TrainingState",
+      "default": "PLANNED",
+      "description": "Lifecycle state. CANDIDATE is the end of a successful job; approval is a release decision."
+    },
+    "stopping_condition": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StoppingCondition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "submission_identity": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Stable identity persisted before the provider job is submitted (PL-033).",
+      "title": "Submission Identity"
+    },
+    "supported_combination_check": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SupportedCombinationCheck"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "dataset_ref",
+    "method",
+    "objective",
+    "evaluation_plan_ref"
+  ],
+  "title": "TrainingSpec",
+  "type": "object"
+}

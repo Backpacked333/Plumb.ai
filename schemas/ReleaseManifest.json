@@ -1,0 +1,416 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ReleaseComponent": {
+      "additionalProperties": false,
+      "description": "A component slot: either a pinned artifact or an explicit reason for its absence (PL-046).",
+      "properties": {
+        "omitted_reason": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Omitted Reason"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ReleaseComponent",
+      "type": "object"
+    },
+    "ResourceScope": {
+      "additionalProperties": false,
+      "description": "Sources, destinations, processors and regions an operation may touch.",
+      "properties": {
+        "destination_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Destination Ids",
+          "type": "array"
+        },
+        "processor_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Processor Ids",
+          "type": "array"
+        },
+        "regions": {
+          "items": {
+            "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Regions",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "title": "ResourceScope",
+      "type": "object"
+    },
+    "RolloutStage": {
+      "additionalProperties": false,
+      "description": "One rollout stage with its gate, environment and bounded case fraction (PL-047).",
+      "properties": {
+        "environment": {
+          "description": "Environment this stage runs in; attestations must cover it.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Environment",
+          "type": "string"
+        },
+        "gate": {
+          "description": "Condition that must hold before entering this stage.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Gate",
+          "type": "string"
+        },
+        "max_case_fraction": {
+          "description": "Upper bound on the fraction of eligible cases routed here.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Max Case Fraction",
+          "type": "number"
+        },
+        "state": {
+          "enum": [
+            "SHADOW",
+            "CANARY",
+            "ACTIVE"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "gate",
+        "environment",
+        "max_case_fraction"
+      ],
+      "title": "RolloutStage",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/ReleaseManifest.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything a release deploys, bound by digest, with its rollout policy (PL-034, PL-046, PL-047).",
+  "properties": {
+    "allowed_effect_classes": {
+      "items": {
+        "$ref": "#/$defs/EffectClass"
+      },
+      "minItems": 1,
+      "title": "Allowed Effect Classes",
+      "type": "array"
+    },
+    "approval_refs": {
+      "description": "ApprovalRecord artifacts authorizing this release.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Approval Refs",
+      "type": "array"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "attestation_refs": {
+      "description": "VerificationAttestation artifacts that verified the components.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "minItems": 1,
+      "title": "Attestation Refs",
+      "type": "array"
+    },
+    "components": {
+      "description": "Component slots keyed by name; must include every REQUIRED_COMPONENTS key.",
+      "patternProperties": {
+        "^[a-z][a-z0-9_.:/-]{0,159}$": {
+          "$ref": "#/$defs/ReleaseComponent"
+        }
+      },
+      "title": "Components",
+      "type": "object"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "denominators": {
+      "description": "Case counts behind every reported rate, so no rate is shown without one.",
+      "patternProperties": {
+        "^[a-z][a-z0-9_.:/-]{0,159}$": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "title": "Denominators",
+      "type": "object"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "in_flight_pinning": {
+      "default": true,
+      "description": "In-flight cases stay on their release; must be true (PL-047).",
+      "title": "In Flight Pinning",
+      "type": "boolean"
+    },
+    "kind": {
+      "const": "ReleaseManifest",
+      "default": "ReleaseManifest",
+      "title": "Kind",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "resolved_model_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Immutable model version in use; required iff the model component is present.",
+      "title": "Resolved Model Version"
+    },
+    "review_thresholds": {
+      "description": "Fractions (0..1) above/below which a case goes to human review.",
+      "patternProperties": {
+        "^[a-z][a-z0-9_.:/-]{0,159}$": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "title": "Review Thresholds",
+      "type": "object"
+    },
+    "rollout_policy": {
+      "items": {
+        "$ref": "#/$defs/RolloutStage"
+      },
+      "minItems": 1,
+      "title": "Rollout Policy",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ResourceScope",
+      "description": "Sources, destinations, processors and regions the release touches."
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "components",
+    "attestation_refs",
+    "rollout_policy",
+    "allowed_effect_classes"
+  ],
+  "title": "ReleaseManifest",
+  "type": "object"
+}

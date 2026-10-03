@@ -1,0 +1,89 @@
+{
+  "$id": "https://plumb.example/schemas/0.2/supporting/EventEnvelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Domain event as published through the outbox (section 22).",
+  "properties": {
+    "aggregate_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Aggregate Id",
+      "type": "string"
+    },
+    "aggregate_version": {
+      "description": "Per-aggregate ordering; never compare across aggregates.",
+      "minimum": 1,
+      "title": "Aggregate Version",
+      "type": "integer"
+    },
+    "causation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Event or command that caused this one.",
+      "title": "Causation Id"
+    },
+    "correlation_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "event_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_type": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "payload_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "pattern": "^\\S+$",
+      "title": "Payload Ref",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "schema_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "tenant_id",
+    "aggregate_id",
+    "aggregate_version",
+    "event_type",
+    "occurred_at",
+    "recorded_at",
+    "correlation_id",
+    "schema_version",
+    "payload_ref"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

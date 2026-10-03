@@ -1,0 +1,742 @@
+{
+  "$defs": {
+    "BackoffStrategy": {
+      "enum": [
+        "EXPONENTIAL",
+        "LINEAR",
+        "PROVIDER_RETRY_AFTER",
+        "NONE"
+      ],
+      "title": "BackoffStrategy",
+      "type": "string"
+    },
+    "CurrencySemantics": {
+      "additionalProperties": false,
+      "description": "Currency on both sides; a field mapping never performs currency conversion.",
+      "properties": {
+        "source_currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Source Currency",
+          "type": "string"
+        },
+        "target_currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Target Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_currency",
+        "target_currency"
+      ],
+      "title": "CurrencySemantics",
+      "type": "object"
+    },
+    "CursorKind": {
+      "enum": [
+        "OPAQUE_CURSOR",
+        "UPDATED_SINCE_OVERLAP",
+        "CHANGE_FEED",
+        "FULL_SNAPSHOT"
+      ],
+      "title": "CursorKind",
+      "type": "string"
+    },
+    "CursorStrategy": {
+      "additionalProperties": false,
+      "description": "How incremental reads resume (PL-021, section 11).",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/CursorKind"
+        },
+        "overlap_seconds": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overlap Seconds"
+        },
+        "stable_version_field": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Record version used to deduplicate overlapping windows.",
+          "title": "Stable Version Field"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "CursorStrategy",
+      "type": "object"
+    },
+    "DeletionBehavior": {
+      "description": "How the provider exposes deletions (PL-021).",
+      "enum": [
+        "TOMBSTONE",
+        "SOFT_DELETE_FLAG",
+        "HARD_DELETE_VISIBLE_BY_DIFF",
+        "NOT_OBSERVABLE"
+      ],
+      "title": "DeletionBehavior",
+      "type": "string"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "FieldMapping": {
+      "additionalProperties": false,
+      "description": "One source field mapped onto one target field with explicit semantics (PL-021).",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CurrencySemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "enum_map": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Source enum value -> target enum value.",
+          "title": "Enum Map",
+          "type": "object"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "null_semantics": {
+          "$ref": "#/$defs/NullSemantics"
+        },
+        "source_field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Field",
+          "type": "string"
+        },
+        "target_field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Field",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimezoneSemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UnitSemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "source_field",
+        "target_field",
+        "null_semantics"
+      ],
+      "title": "FieldMapping",
+      "type": "object"
+    },
+    "IntegrationOperation": {
+      "additionalProperties": false,
+      "description": "One exact operation, how it was built and how it is verified (PL-020, PL-021).",
+      "properties": {
+        "configuration_change": {
+          "default": false,
+          "description": "True when the operation changes settings in the customer's application.",
+          "title": "Configuration Change",
+          "type": "boolean"
+        },
+        "direction": {
+          "$ref": "#/$defs/OperationDirection"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/EffectClass"
+        },
+        "maintenance_exposure": {
+          "$ref": "#/$defs/MaintenanceExposure"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "path_used": {
+          "$ref": "#/$defs/IntegrationPath"
+        },
+        "verification_probe_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Verification Probe Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "direction",
+        "effect_class",
+        "path_used",
+        "maintenance_exposure"
+      ],
+      "title": "IntegrationOperation",
+      "type": "object"
+    },
+    "IntegrationPath": {
+      "description": "Construction paths in the spec's order of preference (PL-020).",
+      "enum": [
+        "VERIFIED_ADAPTER",
+        "DECLARATIVE_CONFIG",
+        "GENERATED_CODE",
+        "UI_ADAPTER"
+      ],
+      "title": "IntegrationPath",
+      "type": "string"
+    },
+    "MaintenanceExposure": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "MaintenanceExposure",
+      "type": "string"
+    },
+    "NullSemantics": {
+      "description": "What a null in the source field means (section 10).",
+      "enum": [
+        "NULL_MEANS_UNKNOWN",
+        "NULL_MEANS_ABSENT",
+        "NULL_MEANS_ZERO",
+        "NULL_NOT_ALLOWED"
+      ],
+      "title": "NullSemantics",
+      "type": "string"
+    },
+    "OperationDirection": {
+      "description": "Whether an operation reads from or writes to the application.",
+      "enum": [
+        "READ",
+        "WRITE"
+      ],
+      "title": "OperationDirection",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "RateLimit": {
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "minimum": 1,
+          "title": "Requests",
+          "type": "integer"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "e.g. per account, per endpoint.",
+          "title": "Scope"
+        },
+        "window_seconds": {
+          "minimum": 1,
+          "title": "Window Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "requests",
+        "window_seconds"
+      ],
+      "title": "RateLimit",
+      "type": "object"
+    },
+    "RetrySemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "backoff": {
+          "$ref": "#/$defs/BackoffStrategy"
+        },
+        "max_attempts": {
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "reconcile_writes_before_retry": {
+          "default": true,
+          "description": "Uncertain writes are reconciled before any retry (Appendix A section 3).",
+          "title": "Reconcile Writes Before Retry",
+          "type": "boolean"
+        },
+        "retry_on": {
+          "description": "Provider statuses or codes that are retried.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Retry On",
+          "type": "array"
+        }
+      },
+      "required": [
+        "max_attempts",
+        "backoff"
+      ],
+      "title": "RetrySemantics",
+      "type": "object"
+    },
+    "SchemaDriftHandling": {
+      "description": "What happens when the source schema changes (PL-021, Appendix A section 3).",
+      "enum": [
+        "QUARANTINE_AND_REMAP",
+        "TOLERATE_ADDITIVE_FIELDS",
+        "FAIL_CLOSED"
+      ],
+      "title": "SchemaDriftHandling",
+      "type": "string"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "description": "A reference to an authorized external source/account. Never carries credentials.",
+      "properties": {
+        "external_account_id": {
+          "description": "Provider-assigned account identity (opaque, non-secret).",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Account Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resource within the account, e.g. mailbox or ledger name.",
+          "title": "Resource"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "external_account_id"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "StateCapture": {
+      "additionalProperties": false,
+      "description": "Before/after record of a configuration change in the customer's application (section 10).",
+      "properties": {
+        "affected_resources": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Affected Resources",
+          "type": "array"
+        },
+        "after_state_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "After State Ref",
+          "type": "string"
+        },
+        "before_state_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Before State Ref",
+          "type": "string"
+        },
+        "expected_effect": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Expected Effect",
+          "type": "string"
+        },
+        "operation_name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Operation Name",
+          "type": "string"
+        },
+        "reversal_limits": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Reversal Limits",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_name",
+        "before_state_ref",
+        "after_state_ref",
+        "affected_resources",
+        "expected_effect",
+        "reversal_limits"
+      ],
+      "title": "StateCapture",
+      "type": "object"
+    },
+    "TimezoneSemantics": {
+      "additionalProperties": false,
+      "description": "IANA time zones the source and target interpret naive timestamps in.",
+      "properties": {
+        "source_timezone": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Timezone",
+          "type": "string"
+        },
+        "target_timezone": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_timezone",
+        "target_timezone"
+      ],
+      "title": "TimezoneSemantics",
+      "type": "object"
+    },
+    "UnitSemantics": {
+      "additionalProperties": false,
+      "description": "Units on both sides of a mapping; differing units need an explicit factor (section 10).",
+      "properties": {
+        "conversion_factor": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "target = source * conversion_factor; required when the units differ.",
+          "title": "Conversion Factor"
+        },
+        "source_unit": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Unit",
+          "type": "string"
+        },
+        "target_unit": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Target Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_unit",
+        "target_unit"
+      ],
+      "title": "UnitSemantics",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/IntegrationSpec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Everything needed to operate one adapter against one account (PL-020..PL-022).",
+  "properties": {
+    "activated": {
+      "default": false,
+      "title": "Activated",
+      "type": "boolean"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "authentication_ref": {
+      "description": "Reference resolved by the gateway; never a credential.",
+      "maxLength": 512,
+      "minLength": 1,
+      "pattern": "^\\S+$",
+      "title": "Authentication Ref",
+      "type": "string"
+    },
+    "before_after_state_refs": {
+      "items": {
+        "$ref": "#/$defs/StateCapture"
+      },
+      "title": "Before After State Refs",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "contract_tests_passed": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Contract Tests Passed",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "cursor_strategy": {
+      "$ref": "#/$defs/CursorStrategy"
+    },
+    "deletion_behavior": {
+      "$ref": "#/$defs/DeletionBehavior"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "integration_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Integration Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "IntegrationSpec",
+      "default": "IntegrationSpec",
+      "title": "Kind",
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/IntegrationOperation"
+      },
+      "minItems": 1,
+      "title": "Operations",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "rate_limits": {
+      "items": {
+        "$ref": "#/$defs/RateLimit"
+      },
+      "title": "Rate Limits",
+      "type": "array"
+    },
+    "required_scopes": {
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Required Scopes",
+      "type": "array"
+    },
+    "retry_semantics": {
+      "$ref": "#/$defs/RetrySemantics"
+    },
+    "schema_drift_handling": {
+      "$ref": "#/$defs/SchemaDriftHandling"
+    },
+    "schema_mappings": {
+      "items": {
+        "$ref": "#/$defs/FieldMapping"
+      },
+      "title": "Schema Mappings",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceRef"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "verification_probes": {
+      "description": "Every probe receipt the operations' verification_probe_refs cite.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Verification Probes",
+      "type": "array"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "integration_id",
+    "source",
+    "operations",
+    "authentication_ref",
+    "cursor_strategy",
+    "retry_semantics",
+    "deletion_behavior",
+    "schema_drift_handling"
+  ],
+  "title": "IntegrationSpec",
+  "type": "object"
+}

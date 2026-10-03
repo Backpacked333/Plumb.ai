@@ -274,13 +274,18 @@ def test_synchronous_creates_return_201_not_202(spec: dict[str, Any], operations
 
 @pytest.mark.requirements("PL-055")
 def test_job_envelope_shape(spec: dict[str, Any]) -> None:
+    from plumb.contracts.api import JobEnvelope, JobStatus
+
     job = spec["components"]["schemas"]["JobEnvelope"]
     assert job["x-plumb-contract"] == "JobEnvelope"
-    assert set(job["properties"]) == {"job_id", "tenant_id", "status", "idempotency_key", "result_ref", "error"}
-    assert set(job["required"]) == {"job_id", "tenant_id", "status", "idempotency_key"}
+    # The component mirrors the package contract field for field (x-plumb-contract).
+    assert set(job["properties"]) == set(JobEnvelope.model_fields)
+    assert set(job["required"]) == {name for name, field in JobEnvelope.model_fields.items() if field.is_required()}
+    assert {"job_id", "tenant_id", "status", "idempotency_key", "result_ref", "error"} <= set(job["properties"])
     assert job["additionalProperties"] is False
     status_enum = spec["components"]["schemas"]["JobStatus"]["enum"]
-    assert {"ACCEPTED", "RUNNING", "SUCCEEDED", "FAILED"} <= set(status_enum)
+    assert status_enum == [status.value for status in JobStatus]
+    assert {"RUNNING", "SUCCEEDED", "FAILED", "WAITING"} <= set(status_enum)
 
 
 # --------------------------------------------------------------------------

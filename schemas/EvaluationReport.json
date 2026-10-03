@@ -1,0 +1,487 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "CandidateComparison": {
+      "additionalProperties": false,
+      "description": "One candidate's complete task performance and total operating cost (PL-031).",
+      "properties": {
+        "candidate": {
+          "$ref": "#/$defs/CandidateKind"
+        },
+        "candidate_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pinned artifact of the candidate (model version, workflow, ...)."
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "review_time_minutes": {
+          "minimum": 0,
+          "title": "Review Time Minutes",
+          "type": "integer"
+        },
+        "task_performance": {
+          "$ref": "#/$defs/Metric"
+        },
+        "total_operating_cost": {
+          "$ref": "#/$defs/Money",
+          "description": "Total cost for the evaluated cases including review and serving utilisation."
+        }
+      },
+      "required": [
+        "candidate",
+        "total_operating_cost",
+        "task_performance",
+        "review_time_minutes"
+      ],
+      "title": "CandidateComparison",
+      "type": "object"
+    },
+    "CandidateKind": {
+      "description": "The implementation options the model planner compares (PL-031).",
+      "enum": [
+        "BASELINE_NATIVE_RULES",
+        "PROMPTED_GENERAL_MODEL",
+        "RETRIEVAL",
+        "SPECIALIST_API",
+        "TRAINED"
+      ],
+      "title": "CandidateKind",
+      "type": "string"
+    },
+    "ErrorSeverityBreakdown": {
+      "additionalProperties": false,
+      "description": "Observed errors by severity; releases set thresholds per severity (section 24).",
+      "properties": {
+        "high": {
+          "minimum": 0,
+          "title": "High",
+          "type": "integer"
+        },
+        "low": {
+          "minimum": 0,
+          "title": "Low",
+          "type": "integer"
+        },
+        "medium": {
+          "minimum": 0,
+          "title": "Medium",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "ErrorSeverityBreakdown",
+      "type": "object"
+    },
+    "Metric": {
+      "additionalProperties": false,
+      "description": "A rate with an explicit denominator; a bare percentage is not a metric (section 13).",
+      "properties": {
+        "denominator": {
+          "description": "Cases, fields or trials the numerator is measured over.",
+          "minimum": 1,
+          "title": "Denominator",
+          "type": "integer"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "numerator": {
+          "minimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "numerator",
+        "denominator"
+      ],
+      "title": "Metric",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "SegregationStatement": {
+      "additionalProperties": false,
+      "description": "Attestation that evaluation data was not used for tuning or repair (PL-044).",
+      "properties": {
+        "basis": {
+          "description": "How disjointness was established, e.g. by split content hashes.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Basis",
+          "type": "string"
+        },
+        "evaluation_data_disjoint_from_tuning": {
+          "title": "Evaluation Data Disjoint From Tuning",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "evaluation_data_disjoint_from_tuning",
+        "basis"
+      ],
+      "title": "SegregationStatement",
+      "type": "object"
+    },
+    "VerificationLevel": {
+      "description": "The five verification levels (section 18).",
+      "enum": [
+        "SCHEMA_VALIDITY",
+        "ARTIFACT_INTEGRITY",
+        "INTEGRATION_BEHAVIOR",
+        "BUSINESS_OUTCOME",
+        "ECONOMIC_RESULT"
+      ],
+      "title": "VerificationLevel",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/EvaluationReport.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Held-out evaluation of one subject with denominators, severities, cost and trials.",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "case_count": {
+      "description": "Held-out cases the evaluation ran on.",
+      "minimum": 1,
+      "title": "Case Count",
+      "type": "integer"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "cost_comparison": {
+      "items": {
+        "$ref": "#/$defs/CandidateComparison"
+      },
+      "minItems": 1,
+      "title": "Cost Comparison",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "Pinned held-out DatasetManifest (PL-034)."
+    },
+    "error_severity_breakdown": {
+      "$ref": "#/$defs/ErrorSeverityBreakdown"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "excluded_case_count": {
+      "default": 0,
+      "description": "Eligible cases excluded from the run; part of the audit trail.",
+      "minimum": 0,
+      "title": "Excluded Case Count",
+      "type": "integer"
+    },
+    "exclusion_summary": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why cases were excluded; required when excluded_case_count > 0.",
+      "title": "Exclusion Summary"
+    },
+    "held_out_split": {
+      "enum": [
+        "validation",
+        "test_temporal",
+        "test_client_disjoint"
+      ],
+      "title": "Held Out Split",
+      "type": "string"
+    },
+    "kind": {
+      "const": "EvaluationReport",
+      "default": "EvaluationReport",
+      "title": "Kind",
+      "type": "string"
+    },
+    "level": {
+      "$ref": "#/$defs/VerificationLevel"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/Metric"
+      },
+      "minItems": 1,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "nondeterministic": {
+      "description": "Whether the subject's output varies between identical runs.",
+      "title": "Nondeterministic",
+      "type": "boolean"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "review_time_minutes": {
+      "description": "Human review time spent over the evaluated cases.",
+      "minimum": 0,
+      "title": "Review Time Minutes",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segregation_statement": {
+      "$ref": "#/$defs/SegregationStatement"
+    },
+    "subject_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "The model version, workflow or release being evaluated."
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "trials": {
+      "description": "Independent runs over the held-out cases.",
+      "minimum": 1,
+      "title": "Trials",
+      "type": "integer"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "subject_ref",
+    "dataset_ref",
+    "held_out_split",
+    "level",
+    "case_count",
+    "metrics",
+    "error_severity_breakdown",
+    "review_time_minutes",
+    "cost_comparison",
+    "nondeterministic",
+    "trials",
+    "segregation_statement"
+  ],
+  "title": "EvaluationReport",
+  "type": "object"
+}

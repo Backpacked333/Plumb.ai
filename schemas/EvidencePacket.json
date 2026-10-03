@@ -1,0 +1,770 @@
+{
+  "$defs": {
+    "DerivedFact": {
+      "additionalProperties": false,
+      "description": "A statement derived from evidence; status and presence are explicit (PL-010).",
+      "properties": {
+        "confidence": {
+          "description": "Derivation confidence; never a substitute for authority.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "derivation_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Derivation Version",
+          "type": "string"
+        },
+        "fact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Fact Id",
+          "type": "string"
+        },
+        "predicate": {
+          "description": "What is asserted about the subject, e.g. total_amount_minor.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Predicate",
+          "type": "string"
+        },
+        "presence": {
+          "$ref": "#/$defs/Presence"
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus"
+        },
+        "subject_object_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Subject Object Id",
+          "type": "string"
+        },
+        "supporting_evidence_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "valid_from": {
+          "format": "date-time",
+          "title": "Valid From",
+          "type": "string"
+        },
+        "valid_to": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valid To"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "fact_id",
+        "subject_object_id",
+        "predicate",
+        "supporting_evidence_ids",
+        "derivation_version",
+        "valid_from",
+        "status",
+        "presence",
+        "confidence"
+      ],
+      "title": "DerivedFact",
+      "type": "object"
+    },
+    "EvidenceEvent": {
+      "additionalProperties": false,
+      "description": "One observed record from one source at one point in time (PL-009).",
+      "properties": {
+        "access_policy_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Access Policy Ref",
+          "type": "string"
+        },
+        "content_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "event_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "external_record_id": {
+          "description": "Identifier the source assigned to the record.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Record Id",
+          "type": "string"
+        },
+        "external_version": {
+          "description": "Source-assigned version, etag or revision of the record.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Version",
+          "type": "string"
+        },
+        "extraction_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Extraction Version",
+          "type": "string"
+        },
+        "object_ids": {
+          "description": "Business objects this event relates to (many-to-many).",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Object Ids",
+          "type": "array"
+        },
+        "raw_content_ref": {
+          "description": "Where the raw content is stored; never the content itself.",
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Raw Content Ref",
+          "type": "string"
+        },
+        "retention_class": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Retention Class",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "time": {
+          "$ref": "#/$defs/TimeAxes",
+          "description": "Event, observation and availability time."
+        }
+      },
+      "required": [
+        "event_id",
+        "source",
+        "external_record_id",
+        "external_version",
+        "time",
+        "content_digest",
+        "raw_content_ref",
+        "access_policy_ref",
+        "retention_class",
+        "extraction_version"
+      ],
+      "title": "EvidenceEvent",
+      "type": "object"
+    },
+    "ExternalId": {
+      "additionalProperties": false,
+      "description": "An identifier assigned by an external system, kept as assigned (section 6).",
+      "properties": {
+        "confirmed_financial_identity": {
+          "default": false,
+          "description": "True only for the source-confirmed financial or customer identity.",
+          "title": "Confirmed Financial Identity",
+          "type": "boolean"
+        },
+        "provisional": {
+          "default": false,
+          "description": "True when Plumb assigned or inferred the id.",
+          "title": "Provisional",
+          "type": "boolean"
+        },
+        "system": {
+          "description": "Namespace that assigned the id, e.g. the provider or ledger.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "system",
+        "value"
+      ],
+      "title": "ExternalId",
+      "type": "object"
+    },
+    "FactStatus": {
+      "description": "Status vocabulary for derived facts (PL-010).",
+      "enum": [
+        "OBSERVED",
+        "INFERRED",
+        "CONFIRMED",
+        "DISPUTED",
+        "STALE",
+        "SUPERSEDED"
+      ],
+      "title": "FactStatus",
+      "type": "string"
+    },
+    "MergeRecord": {
+      "additionalProperties": false,
+      "description": "Objects absorbed into this one; the absorbed ids stay recorded so the merge is reversible.",
+      "properties": {
+        "absorbed_object_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Absorbed Object Ids",
+          "type": "array"
+        },
+        "correction_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Scoped correction that caused the merge.",
+          "title": "Correction Id"
+        },
+        "merged_at": {
+          "format": "date-time",
+          "title": "Merged At",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "merged_at",
+        "absorbed_object_ids",
+        "reason"
+      ],
+      "title": "MergeRecord",
+      "type": "object"
+    },
+    "ObjectLink": {
+      "additionalProperties": false,
+      "description": "Directed many-to-many relation between events and business objects (section 6).",
+      "properties": {
+        "from_object_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "From Object Id",
+          "type": "string"
+        },
+        "relation": {
+          "description": "e.g. belongs_to_client, covers_period, evidences_obligation.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Relation",
+          "type": "string"
+        },
+        "to_object_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "To Object Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_object_id",
+        "to_object_id",
+        "relation"
+      ],
+      "title": "ObjectLink",
+      "type": "object"
+    },
+    "ObjectResolution": {
+      "additionalProperties": false,
+      "description": "The resolved identity of one business object and its history (PL-011).",
+      "properties": {
+        "candidates": {
+          "description": "Ambiguous alternatives still under consideration.",
+          "items": {
+            "$ref": "#/$defs/ResolutionCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "corrections": {
+          "items": {
+            "$ref": "#/$defs/ScopedCorrection"
+          },
+          "title": "Corrections",
+          "type": "array"
+        },
+        "external_ids": {
+          "items": {
+            "$ref": "#/$defs/ExternalId"
+          },
+          "title": "External Ids",
+          "type": "array"
+        },
+        "merge_history": {
+          "items": {
+            "$ref": "#/$defs/MergeRecord"
+          },
+          "title": "Merge History",
+          "type": "array"
+        },
+        "object_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "object_type": {
+          "description": "client, period, document, obligation, action, ...",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Object Type",
+          "type": "string"
+        },
+        "split_history": {
+          "items": {
+            "$ref": "#/$defs/SplitRecord"
+          },
+          "title": "Split History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "object_id",
+        "object_type"
+      ],
+      "title": "ObjectResolution",
+      "type": "object"
+    },
+    "Presence": {
+      "description": "Unknown absence must remain distinguishable from confirmed absence (PL-010).",
+      "enum": [
+        "PRESENT",
+        "CONFIRMED_ABSENT",
+        "UNKNOWN"
+      ],
+      "title": "Presence",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ResolutionCandidate": {
+      "additionalProperties": false,
+      "description": "One possible identity for an object, with the score that supports it (PL-011).",
+      "properties": {
+        "candidate_object_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Candidate Object Id",
+          "type": "string"
+        },
+        "rationale": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rationale"
+        },
+        "score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "candidate_object_id",
+        "score"
+      ],
+      "title": "ResolutionCandidate",
+      "type": "object"
+    },
+    "ScopedCorrection": {
+      "additionalProperties": false,
+      "description": "A reversible correction to the meaning of an object within an explicit scope (PL-011).\n\n``scope_object_ids`` is non-empty by construction: a correction always names\nthe contexts it applies to, so \"Square\" corrected in one engagement cannot\nrewrite every occurrence of the word.",
+      "properties": {
+        "applied_at": {
+          "format": "date-time",
+          "title": "Applied At",
+          "type": "string"
+        },
+        "correction_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Correction Id",
+          "type": "string"
+        },
+        "impact_set": {
+          "description": "Facts, datasets and plans to revalidate after the correction.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Impact Set",
+          "type": "array"
+        },
+        "new_meaning": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "New Meaning",
+          "type": "string"
+        },
+        "old_meaning": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Old Meaning",
+          "type": "string"
+        },
+        "reversible": {
+          "default": true,
+          "title": "Reversible",
+          "type": "boolean"
+        },
+        "scope_object_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Scope Object Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "correction_id",
+        "scope_object_ids",
+        "old_meaning",
+        "new_meaning",
+        "applied_at"
+      ],
+      "title": "ScopedCorrection",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "description": "A reference to an authorized external source/account. Never carries credentials.",
+      "properties": {
+        "external_account_id": {
+          "description": "Provider-assigned account identity (opaque, non-secret).",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Account Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resource within the account, e.g. mailbox or ledger name.",
+          "title": "Resource"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "external_account_id"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "SplitRecord": {
+      "additionalProperties": false,
+      "description": "This object was split into the listed objects.",
+      "properties": {
+        "correction_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Correction Id"
+        },
+        "reason": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "resulting_object_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Resulting Object Ids",
+          "type": "array"
+        },
+        "split_at": {
+          "format": "date-time",
+          "title": "Split At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "split_at",
+        "resulting_object_ids",
+        "reason"
+      ],
+      "title": "SplitRecord",
+      "type": "object"
+    },
+    "TimeAxes": {
+      "additionalProperties": false,
+      "description": "Separate time axes for evidence (PL-009, ADR-005).\n\n``event_time`` is when the described thing happened (valid time).\n``observation_time`` is when Plumb observed it at the source.\n``availability_time`` is when it became available to Plumb's decision\nboundary (knowledge time). Availability can never precede observation.",
+      "properties": {
+        "availability_time": {
+          "format": "date-time",
+          "title": "Availability Time",
+          "type": "string"
+        },
+        "event_time": {
+          "format": "date-time",
+          "title": "Event Time",
+          "type": "string"
+        },
+        "observation_time": {
+          "format": "date-time",
+          "title": "Observation Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_time",
+        "observation_time",
+        "availability_time"
+      ],
+      "title": "TimeAxes",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/EvidencePacket.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Evidence, derived facts, resolved objects and links for one tenant (PL-009, PL-010, PL-011).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "authoritative_source_ids": {
+      "description": "Sources the owner designated as authoritative; nothing is authoritative by default.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Authoritative Source Ids",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/EvidenceEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "external_object_ids": {
+      "description": "Objects resolved in another packet that links or facts may reference.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "External Object Ids",
+      "type": "array"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/DerivedFact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "kind": {
+      "const": "EvidencePacket",
+      "default": "EvidencePacket",
+      "title": "Kind",
+      "type": "string"
+    },
+    "links": {
+      "items": {
+        "$ref": "#/$defs/ObjectLink"
+      },
+      "title": "Links",
+      "type": "array"
+    },
+    "object_resolutions": {
+      "items": {
+        "$ref": "#/$defs/ObjectResolution"
+      },
+      "title": "Object Resolutions",
+      "type": "array"
+    },
+    "packet_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Packet Id",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "packet_id"
+  ],
+  "title": "EvidencePacket",
+  "type": "object"
+}

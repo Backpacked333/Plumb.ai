@@ -1,0 +1,1646 @@
+{
+  "artifact_id": "plan-rfq-quotation-preparation",
+  "tenant_id": "tnt_rfq00001",
+  "kind": "BuildPlan",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:db563f93e9ff767038fad3861a5dfc286be2b8a662dfda41437335219316a277",
+  "producer": {
+    "principal_id": "plumb-build-planner-rfq",
+    "principal_type": "BUILD_AGENT",
+    "authenticated_via": "spiffe:plumb-build-agent"
+  },
+  "created_at": "2026-10-02T08:00:00Z",
+  "evidence_links": [],
+  "plan_id": "plan-rfq-quotation-preparation",
+  "goal_id": "goal-rfq-draft-quotation-turnaround",
+  "opportunity_ref": {
+    "artifact_id": "opp-rfq-draft-quotation-preparation",
+    "kind": "OpportunitySpec",
+    "digest": "sha256:7694dffad8c46820eea1186c2b0b49a93ca11f5d7cc91662fc97d8f5de2a5071",
+    "schema_version": "0.2.0"
+  },
+  "envelope_id": "env-rfq-quotation-preparation",
+  "envelope_version": 1,
+  "inputs": [
+    {
+      "artifact_id": "env-rfq-quotation-preparation",
+      "kind": "AutonomyEnvelope",
+      "digest": "sha256:eb529e5f6b7aed5956a41466f7246962873d3d5857eaf79679155bbfc4e0157d",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "opp-rfq-draft-quotation-preparation",
+      "kind": "OpportunitySpec",
+      "digest": "sha256:7694dffad8c46820eea1186c2b0b49a93ca11f5d7cc91662fc97d8f5de2a5071",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "task-rfq-line-item-matching",
+      "kind": "TaskDefinition",
+      "digest": "sha256:774cbc6444adaa58015e7715e033829649aedb4f5f64f649db8f31042e648cdc",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "tmpl-rfq-quotation-workflow-serving",
+      "kind": "InfrastructurePlan",
+      "digest": "sha256:721feb5b807f6d17893cdeb884241eb52c17e4452e64e7c733c058dcce424304",
+      "schema_version": "0.2.0"
+    },
+    {
+      "artifact_id": "apr-rfq-implement-operate-quotation-workflow",
+      "kind": "ApprovalRecord",
+      "digest": "sha256:e234ec617b9def77b07cd52601f6672a90291e20110f2ac57b49fbce0bcf9215",
+      "schema_version": "0.2.0"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "probe-commercial-systems",
+      "step_type": "inventory.probe",
+      "description": "Query the authorized request-intake, inventory and pricing accounts through their management APIs and test the exact available operations: request records and revisions, stock positions by warehouse, price lists and validity periods. A probe that lists price books establishes nothing about order entry.",
+      "depends_on": [],
+      "inputs": [
+        {
+          "name": "envelope",
+          "kind": "AutonomyEnvelope",
+          "from_step": null,
+          "plan_input": "env-rfq-quotation-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory"
+        },
+        {
+          "name": "probe-receipts",
+          "kind": "ProbeReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.inventory.probe.management-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "probe_receipt_per_operation",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Every listed operation has a probe receipt naming the external account and the exact operation, without credentials."
+        },
+        {
+          "check": "coverage_report_present",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The inventory lists observed and unobserved applications rather than assuming coverage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "profile-request-and-catalog-data",
+      "step_type": "source.profile",
+      "description": "Profile request documents, line-item fields, unit-of-measure conventions, SKU identifiers, warehouse stock fields and price-list structure; record quote revision chains per request.",
+      "depends_on": [
+        "probe-commercial-systems"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-commercial-systems",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-profile",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.source.profile.sampler"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "profile_sample_within_grant",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Sampled records come only from granted sources and the profile carries their digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "configure-request-and-inventory-connectors",
+      "step_type": "integration.configure",
+      "description": "Reuse the certified connectors for the request-intake and inventory accounts through the integration management API (verified adapter path): account identity, granted scopes, supported operations, cursor strategy, rate limits and deletion behavior.",
+      "depends_on": [
+        "probe-commercial-systems",
+        "profile-request-and-catalog-data"
+      ],
+      "inputs": [
+        {
+          "name": "inventory",
+          "kind": "EnvironmentInventory",
+          "from_step": "probe-commercial-systems",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec"
+        },
+        {
+          "name": "adapter-configuration",
+          "kind": "AdapterConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.configure.management-api"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 25000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "managed_connection_live_read",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Each configured connection performs a live read of one permitted record and the connection can be removed again."
+        },
+        {
+          "check": "integration_spec_scopes_match_grants",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Required scopes in the IntegrationSpec do not exceed the source grants."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "generate-unit-and-sku-mapping-adapter",
+      "step_type": "integration.generate_adapter",
+      "description": "Generate the declarative mapping adapter for the pricing source: unit-of-measure normalization (pieces, cartons, pallets, metric and imperial lengths), SKU alias resolution and currency and validity semantics, with explicit null handling. Generated code path recorded with its maintenance exposure.",
+      "depends_on": [
+        "profile-request-and-catalog-data",
+        "configure-request-and-inventory-connectors"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-request-and-inventory-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "source-profile",
+          "kind": "QualityReport",
+          "from_step": "profile-request-and-catalog-data",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mapping-adapter-code",
+          "kind": "AdapterCode"
+        },
+        {
+          "name": "mapping-adapter-configuration",
+          "kind": "AdapterConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.generate_adapter.declarative"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-pricing-records",
+          "src-rfq-inventory-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "mapping_fixtures_round_trip",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every unit, SKU alias and currency mapping fixture round-trips; unmapped values are reported, never guessed."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "contract-test-adapters",
+      "step_type": "integration.contract_test",
+      "description": "Run the contract fixtures against the configured connectors and the generated mapping adapter: pagination, empty pages, duplicates, rate limiting, authorization failure, malformed responses, schema changes and account boundaries.",
+      "depends_on": [
+        "configure-request-and-inventory-connectors",
+        "generate-unit-and-sku-mapping-adapter"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-request-and-inventory-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "mapping-adapter-code",
+          "kind": "AdapterCode",
+          "from_step": "generate-unit-and-sku-mapping-adapter",
+          "plan_input": null
+        },
+        {
+          "name": "mapping-adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "generate-unit-and-sku-mapping-adapter",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "contract-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.integration.contract_test.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "contract_tests",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "All eight contract test families pass against the real sandbox accounts; the receipt is produced by the verifier, not by the builder."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "deploy-shadow-collectors",
+      "step_type": "collection.deploy_shadow",
+      "description": "Deploy shadow collectors for requests and their revisions, inventory positions and price lists with stable source ids and object joins around request plus line item plus SKU, storage paths, cursors, lineage, permissions, retention and health monitoring.",
+      "depends_on": [
+        "configure-request-and-inventory-connectors",
+        "generate-unit-and-sku-mapping-adapter",
+        "contract-test-adapters"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-request-and-inventory-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "mapping-adapter-configuration",
+          "kind": "AdapterConfiguration",
+          "from_step": "generate-unit-and-sku-mapping-adapter",
+          "plan_input": null
+        },
+        {
+          "name": "contract-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "contract-test-adapters",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.deploy_shadow.management-api"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "shadow_collector_health_published",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The shadow collector publishes freshness, lag, completeness and failure state and writes only to tenant storage."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "backfill-quote-history",
+      "step_type": "collection.backfill",
+      "description": "Backfill eighteen months of requests, quote revisions and outcomes with the inventory and price snapshots in force at each quote time, up to the explicit backfill boundary, deduplicated by idempotent event identity.",
+      "depends_on": [
+        "deploy-shadow-collectors"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket"
+        },
+        {
+          "name": "backfill-quality-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.backfill.durable-workflow"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 21600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "backfill_boundary_and_identity",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every event carries source identity, external version, time axes and content digest; no event beyond the backfill boundary."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "reconcile-source-counts",
+      "step_type": "collection.reconcile",
+      "description": "Reconcile request, revision, stock and price counts against stored evidence per account and period and issue the source-to-storage verification receipt.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "backfill-quote-history"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-quote-history",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt"
+        },
+        {
+          "name": "reconciliation-report",
+          "kind": "QualityReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.reconcile.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "source_to_storage_receipt",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Source counts and stored counts agree per account and period without silent gaps or duplicates."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "enable-incremental-capture",
+      "step_type": "collection.enable_incremental",
+      "description": "Switch to live capture: webhooks for new requests and revisions, polling with overlap for inventory and price changes. Working only once a new request is observed, fetched and reflected in the request record with its stock and price context.",
+      "depends_on": [
+        "deploy-shadow-collectors",
+        "reconcile-source-counts"
+      ],
+      "inputs": [
+        {
+          "name": "collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "deploy-shadow-collectors",
+          "plan_input": null
+        },
+        {
+          "name": "source-to-storage-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "reconcile-source-counts",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec"
+        }
+      ],
+      "required_capabilities": [
+        "cap.collection.enable_incremental.webhooks"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [
+        "COLLECT"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 20000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "new_request_observed_end_to_end",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "A new request is observed, fetched and reflected with current stock and price context; webhook subscriptions can be removed again."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "discover-matching-examples",
+      "step_type": "dataset.discover_sources",
+      "description": "Locate decision boundaries for line-item matching: request wording and attachments, inventory state at quote time, quoted SKUs and terms, subsequent revisions and outcomes. Produce a source-candidate table with join keys, access state, sample quality, permitted purposes and confidence.",
+      "depends_on": [
+        "backfill-quote-history"
+      ],
+      "inputs": [
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-quote-history",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-rfq-draft-quotation-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.discover_sources.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "INSPECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "candidate_table_counts_usable_pairs",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The table reports usable request-to-quote pairs, ambiguous joins and missing attachments with counts."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "build-matching-evaluation-dataset",
+      "step_type": "dataset.build",
+      "description": "Construct the held-out matching dataset: request line items as known at receipt, the final quoted SKU, unit and quantity after all revisions, and the revision status; isolate temporal and customer-disjoint holdouts. The dataset is for evaluation only; no grant carries TRAIN.",
+      "depends_on": [
+        "backfill-quote-history",
+        "discover-matching-examples"
+      ],
+      "inputs": [
+        {
+          "name": "source-candidate-table",
+          "kind": "SourceCandidateTable",
+          "from_step": "discover-matching-examples",
+          "plan_input": null
+        },
+        {
+          "name": "evidence-packet",
+          "kind": "EvidencePacket",
+          "from_step": "backfill-quote-history",
+          "plan_input": null
+        },
+        {
+          "name": "task-definition",
+          "kind": "TaskDefinition",
+          "from_step": null,
+          "plan_input": "task-rfq-line-item-matching"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest"
+        },
+        {
+          "name": "transformation-code",
+          "kind": "TransformationCode"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.build.builder"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "COLLECT",
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 14400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "dataset_checker_clean",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The dataset checker reports no future information, target leak, cross-split family or quarantined row in any split used."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "audit-matching-labels",
+      "step_type": "dataset.label_audit",
+      "description": "Commercial-team review of a sample of request-to-quote joins and SKU interpretations; quarantine ambiguous matches, inconsistent units and disputed revisions.",
+      "depends_on": [
+        "build-matching-evaluation-dataset"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-matching-evaluation-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "label-audit-report",
+          "kind": "LabelAuditReport"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dataset.label_audit.builder"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "label_audit_sample_reviewed",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The audit covers the planned sample size and records quarantine reasons per row."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "evaluate-matching-candidates",
+      "step_type": "evaluation.run",
+      "description": "Compare the deterministic catalog-lookup baseline with a general-model matcher given retrieved catalog context on the held-out set: wrong-SKU and wrong-unit error severity, lines changed by the commercial team and cost per draft. No trained component is in scope.",
+      "depends_on": [
+        "build-matching-evaluation-dataset",
+        "audit-matching-labels"
+      ],
+      "inputs": [
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-matching-evaluation-dataset",
+          "plan_input": null
+        },
+        {
+          "name": "label-audit-report",
+          "kind": "LabelAuditReport",
+          "from_step": "audit-matching-labels",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport"
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison"
+        }
+      ],
+      "required_capabilities": [
+        "cap.evaluation.run.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us",
+          "proc-general-model-gateway-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 90000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": 8000
+      },
+      "verification": [
+        {
+          "check": "held_out_evaluation_with_denominators",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Metrics carry denominators and an error severity breakdown on the temporal and customer-disjoint holdouts."
+        },
+        {
+          "check": "evaluation_data_segregated",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The segregation statement shows no evaluation row was used for prompt or retrieval tuning."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "compile-draft-quotation-workflow",
+      "step_type": "workflow.compile",
+      "description": "Compile the draft quotation workflow from certified primitives: fetch the request, extract line items, match SKUs, normalize units, calculate quantities and list prices from the authorized terms table, check inventory and price freshness, request missing information under the approved template, wait durably and write the draft for commercial review. No operation issues a binding quote.",
+      "depends_on": [
+        "configure-request-and-inventory-connectors",
+        "evaluate-matching-candidates"
+      ],
+      "inputs": [
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-request-and-inventory-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "candidate-comparison",
+          "kind": "CandidateComparison",
+          "from_step": "evaluate-matching-candidates",
+          "plan_input": null
+        },
+        {
+          "name": "opportunity",
+          "kind": "OpportunitySpec",
+          "from_step": null,
+          "plan_input": "opp-rfq-draft-quotation-preparation"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec"
+        },
+        {
+          "name": "serving-configuration",
+          "kind": "ServingConfiguration"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.compile.compiler"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [
+        "TRANSFORM"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "workflow_bounds_and_effect_flags",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The WorkflowSpec declares iteration, time and cost bounds, durable waits, a human decision point before any quote is issued and an effect class per operation; no FINANCIAL_COMMITMENT operation exists."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "test-workflow-bundle",
+      "step_type": "workflow.test_bundle",
+      "description": "Run the business acceptance fixtures through the compiled workflow: unknown SKU, mixed units, stale price list, out-of-stock line, duplicate request, revised request after draft, expired authorization, terms outside the authorized table and provider timeout after a clarification send.",
+      "depends_on": [
+        "build-matching-evaluation-dataset",
+        "compile-draft-quotation-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-draft-quotation-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "dataset-manifest",
+          "kind": "DatasetManifest",
+          "from_step": "build-matching-evaluation-dataset",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "workflow-test-bundle",
+          "kind": "TestBundle"
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.workflow.test_bundle.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us",
+          "proc-general-model-gateway-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": 3000
+      },
+      "verification": [
+        {
+          "check": "business_acceptance_fixtures",
+          "level": "BUSINESS_OUTCOME",
+          "description": "All failure cases and the normal cases reach the expected final draft state; no case issues a quote."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "preview-serving-infrastructure",
+      "step_type": "infrastructure.preview",
+      "description": "Preview the serving infrastructure for the quotation workflow from the approved resource template: diff, cost estimate, state lock, ownership tags and rollback classification per resource.",
+      "depends_on": [
+        "compile-draft-quotation-workflow"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-template",
+          "kind": "InfrastructurePlan",
+          "from_step": null,
+          "plan_input": "tmpl-rfq-quotation-workflow-serving"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview"
+        },
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.preview.automation-api"
+      ],
+      "effect_class": "READ",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 10000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "preview_diff_cost_and_rollback",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "The preview carries a diff, a cost estimate within budget and a rollback classification for every resource; no destructive change."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "apply-serving-infrastructure",
+      "step_type": "infrastructure.apply",
+      "description": "Apply exactly the previewed change in the production region with the short-lived deployment grant; expand/contract only, no destructive change.",
+      "depends_on": [
+        "preview-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "infrastructure-preview",
+          "kind": "InfrastructurePreview",
+          "from_step": "preview-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "implement-operate-approval",
+          "kind": "ApprovalRecord",
+          "from_step": null,
+          "plan_input": "apr-rfq-implement-operate-quotation-workflow"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan"
+        },
+        {
+          "name": "infrastructure-receipt",
+          "kind": "VerificationReceipt"
+        }
+      ],
+      "required_capabilities": [
+        "cap.infrastructure.apply.automation-api"
+      ],
+      "effect_class": "INFRASTRUCTURE_CHANGE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 50000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "resource_state_matches_preview",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Refreshed resource state equals the previewed plan; ownership tags present; cost within estimate."
+        }
+      ],
+      "required": true,
+      "environment": "production"
+    },
+    {
+      "step_id": "create-quotation-workflow-release",
+      "step_type": "release.create",
+      "description": "Bind workflow, connector, collector, prompt, policy, schema, infrastructure and evaluation versions by immutable digest into a release manifest (model component omitted with reason: general-model gateway, resolved version pinned in the serving configuration) with SHADOW to CANARY to ACTIVE gates, denominators and review thresholds.",
+      "depends_on": [
+        "configure-request-and-inventory-connectors",
+        "enable-incremental-capture",
+        "evaluate-matching-candidates",
+        "compile-draft-quotation-workflow",
+        "test-workflow-bundle",
+        "apply-serving-infrastructure"
+      ],
+      "inputs": [
+        {
+          "name": "workflow-spec",
+          "kind": "WorkflowSpec",
+          "from_step": "compile-draft-quotation-workflow",
+          "plan_input": null
+        },
+        {
+          "name": "integration-spec",
+          "kind": "IntegrationSpec",
+          "from_step": "configure-request-and-inventory-connectors",
+          "plan_input": null
+        },
+        {
+          "name": "live-collection-spec",
+          "kind": "CollectionSpec",
+          "from_step": "enable-incremental-capture",
+          "plan_input": null
+        },
+        {
+          "name": "applied-infrastructure-plan",
+          "kind": "InfrastructurePlan",
+          "from_step": "apply-serving-infrastructure",
+          "plan_input": null
+        },
+        {
+          "name": "evaluation-report",
+          "kind": "EvaluationReport",
+          "from_step": "evaluate-matching-candidates",
+          "plan_input": null
+        },
+        {
+          "name": "workflow-test-receipt",
+          "kind": "VerificationReceipt",
+          "from_step": "test-workflow-bundle",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.create.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 15000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "component_digests_bound",
+          "level": "ARTIFACT_INTEGRITY",
+          "description": "Every component digest matches the verified artifact bytes; omitted components carry a reason."
+        },
+        {
+          "check": "business_scenario_suite_bound",
+          "level": "BUSINESS_OUTCOME",
+          "description": "The release references the passed business acceptance bundle for these exact bytes and scope."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "activate-shadow-processing",
+      "step_type": "release.activate_shadow",
+      "description": "Activate shadow processing: the workflow prepares drafts for live incoming requests without writing to the quoting tool or contacting requesters; drafts are compared with the commercial team's actual quotes.",
+      "depends_on": [
+        "create-quotation-workflow-release"
+      ],
+      "inputs": [
+        {
+          "name": "release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "create-quotation-workflow-release",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.activate_shadow.executor"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 40000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 1209600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "no_external_effect_in_shadow",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "The effect ledger records zero dispatched external effects during shadow."
+        },
+        {
+          "check": "shadow_drafts_match_commercial_team",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Shadow drafts match the issued quotes' SKUs, units and quantities within the release thresholds."
+        }
+      ],
+      "required": true,
+      "environment": "shadow"
+    },
+    {
+      "step_id": "canary-draft-quotations",
+      "step_type": "release.canary",
+      "description": "Bounded canary on a small set of incoming requests: write draft quotations into the quoting tool as editable drafts (reversible) for commercial review and send at most one clarification request per RFQ under the approved template. Drafts carry the freshness check result; nothing is issued to a customer as a quote.",
+      "depends_on": [
+        "activate-shadow-processing"
+      ],
+      "inputs": [
+        {
+          "name": "shadow-release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "activate-shadow-processing",
+          "plan_input": null
+        },
+        {
+          "name": "implement-operate-approval",
+          "kind": "ApprovalRecord",
+          "from_step": null,
+          "plan_input": "apr-rfq-implement-operate-quotation-workflow"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "canary-report",
+          "kind": "CanaryReport"
+        },
+        {
+          "name": "canary-release-manifest",
+          "kind": "ReleaseManifest"
+        }
+      ],
+      "required_capabilities": [
+        "cap.release.canary.executor"
+      ],
+      "effect_class": "EXTERNAL_WRITE_REVERSIBLE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 60000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 1814400,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "draft_write_receipt_and_reversibility",
+          "level": "INTEGRATION_BEHAVIOR",
+          "description": "Every draft write has a provider receipt in the effect ledger, remains in draft status and can be withdrawn."
+        },
+        {
+          "check": "canary_drafts_accepted_by_commercial_team",
+          "level": "BUSINESS_OUTCOME",
+          "description": "Canary drafts need no more line changes than the release threshold allows and no binding quote was produced."
+        }
+      ],
+      "required": true,
+      "environment": "canary"
+    },
+    {
+      "step_id": "request-release-attestation",
+      "step_type": "verification.request",
+      "description": "Request the protected verifier's attestation over the canary release: actual draft states in the quoting tool, receipts, denominators and the absence of any issued quotation or order confirmation.",
+      "depends_on": [
+        "canary-draft-quotations"
+      ],
+      "inputs": [
+        {
+          "name": "canary-release-manifest",
+          "kind": "ReleaseManifest",
+          "from_step": "canary-draft-quotations",
+          "plan_input": null
+        },
+        {
+          "name": "canary-report",
+          "kind": "CanaryReport",
+          "from_step": "canary-draft-quotations",
+          "plan_input": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "release-attestation",
+          "kind": "VerificationAttestation"
+        }
+      ],
+      "required_capabilities": [
+        "cap.verification.request.verifier"
+      ],
+      "effect_class": "READ",
+      "purposes": [
+        "EVALUATE"
+      ],
+      "scope": {
+        "source_ids": [
+          "src-rfq-request-records",
+          "src-rfq-inventory-records",
+          "src-rfq-pricing-records"
+        ],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 30000,
+          "currency": "USD"
+        },
+        "max_attempts": 2,
+        "max_elapsed_seconds": 3600,
+        "max_model_calls": null
+      },
+      "verification": [
+        {
+          "check": "independent_attestation_recorded",
+          "level": "BUSINESS_OUTCOME",
+          "description": "A VerificationAttestation from the VERIFIER principal covers these exact artifact digests."
+        }
+      ],
+      "required": true,
+      "environment": null
+    },
+    {
+      "step_id": "raise-binding-quote-boundary",
+      "step_type": "dependency.raise",
+      "description": "Record the production boundary as a resumable dependency: a binding quote requires authorized commercial terms (a HUMAN_APPROVER decision against the terms table) and passing inventory and price freshness checks at issue time; issuing or confirming a quote is a FINANCIAL_COMMITMENT and an irreversible external write, both excluded from this envelope. Drafts are reported as ready for commercial review, never as issued quotes.",
+      "depends_on": [
+        "request-release-attestation"
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "dependency-record",
+          "kind": "DependencyRecord"
+        }
+      ],
+      "required_capabilities": [
+        "cap.dependency.raise.control-plane"
+      ],
+      "effect_class": "INTERNAL_WRITE",
+      "purposes": [],
+      "scope": {
+        "source_ids": [],
+        "destination_ids": [
+          "dst-rfq-tenant-storage"
+        ],
+        "processor_ids": [
+          "proc-plumb-control-plane-us"
+        ],
+        "regions": [
+          "us-east-1"
+        ]
+      },
+      "budget": {
+        "spend": {
+          "minor_units": 1000,
+          "currency": "USD"
+        },
+        "max_attempts": 1,
+        "max_elapsed_seconds": 600,
+        "max_model_calls": null
+      },
+      "verification": [],
+      "required": true,
+      "environment": null
+    }
+  ],
+  "total_budget": {
+    "spend": {
+      "minor_units": 1000000,
+      "currency": "USD"
+    },
+    "max_attempts": 3,
+    "max_elapsed_seconds": 5184000,
+    "max_model_calls": null
+  },
+  "planned_at": "2026-10-02T08:00:00Z"
+}

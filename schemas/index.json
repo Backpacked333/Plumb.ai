@@ -1,0 +1,136 @@
+{
+  "dialect": "https://json-schema.org/draft/2020-12/schema",
+  "id_base": "https://plumb.example/schemas/0.2/",
+  "schema_version": "0.2",
+  "supporting": [
+    {
+      "name": "JobEnvelope",
+      "path": "supporting/JobEnvelope.json",
+      "sha256": "c5349bcda8f10aba6d8290e7af88fa0538d2489b67b67077391f5679cac172c3"
+    },
+    {
+      "name": "ErrorEnvelope",
+      "path": "supporting/ErrorEnvelope.json",
+      "sha256": "b159da597b910c7df551c797105cd89bb19c7ac877888aab056b412fbc90e2d3"
+    },
+    {
+      "name": "EventEnvelope",
+      "path": "supporting/EventEnvelope.json",
+      "sha256": "d27048df1245f9021467550160cf4987714e5b403395a1f0c43554ad0750c32c"
+    },
+    {
+      "name": "AgentTask",
+      "path": "supporting/AgentTask.json",
+      "sha256": "0ecacaff47fcbd9f136b768f1bc850520bd31ced2f960c7bbc8f02f7582e4749"
+    },
+    {
+      "name": "StepResult",
+      "path": "supporting/StepResult.json",
+      "sha256": "ef5bef1015054b7a3099b4114f3e311d2872bb75fae724b18f14259de1c372b6"
+    }
+  ],
+  "top_level": [
+    {
+      "kind": "AutonomyEnvelope",
+      "name": "AutonomyEnvelope",
+      "path": "AutonomyEnvelope.json",
+      "sha256": "c805a8e3835b5af3b1dd3a71283ee737b1c08777bb1d15173a2d563fda5b44f7"
+    },
+    {
+      "kind": "CapabilityRecord",
+      "name": "CapabilityRecord",
+      "path": "CapabilityRecord.json",
+      "sha256": "e8d062e9493d469494369fa9dd60d807308fc3bda5819d9375117d832286cabd"
+    },
+    {
+      "kind": "EnvironmentInventory",
+      "name": "EnvironmentInventory",
+      "path": "EnvironmentInventory.json",
+      "sha256": "ac2bad6bef5c67bb8b7bdf55be2f827e85472451909eca2783ad0f3cca83a8e1"
+    },
+    {
+      "kind": "EvidencePacket",
+      "name": "EvidencePacket",
+      "path": "EvidencePacket.json",
+      "sha256": "0c62daedd48cb6958b2bcf42cfc6465a7dda326b582fe84d54bca14ee0ff83ec"
+    },
+    {
+      "kind": "OpportunitySpec",
+      "name": "OpportunitySpec",
+      "path": "OpportunitySpec.json",
+      "sha256": "5f98e998c90c499212df794853ea70c0a5d5d6bf27740b03230baf47fbf76185"
+    },
+    {
+      "kind": "BuildPlan",
+      "name": "BuildPlan",
+      "path": "BuildPlan.json",
+      "sha256": "86bb59e86bcbcf98a1ea880e8de5a54a90b2b85ada3984473ed21519a7f890d1"
+    },
+    {
+      "kind": "IntegrationSpec",
+      "name": "IntegrationSpec",
+      "path": "IntegrationSpec.json",
+      "sha256": "675c6dc328a3ccd88c2697f26c62a89d0612bf0433d4d8d3f5c3a08ca93615fc"
+    },
+    {
+      "kind": "CollectionSpec",
+      "name": "CollectionSpec",
+      "path": "CollectionSpec.json",
+      "sha256": "e49d4b49875dc977f1a9ea8a8132cba564935972d2cd5c9641cb01e266a3a154"
+    },
+    {
+      "kind": "DatasetManifest",
+      "name": "DatasetManifest",
+      "path": "DatasetManifest.json",
+      "sha256": "4b1068e613b451037bd2f8aa25623a8a79ed8d1d08041cd3b779e7a1cdd7ee82"
+    },
+    {
+      "kind": "TrainingSpec",
+      "name": "TrainingSpec",
+      "path": "TrainingSpec.json",
+      "sha256": "e6179df184a1ffe6626e4fda0d3891d3cc4cc66b16a1bce2e96dc033da0954f0"
+    },
+    {
+      "kind": "WorkflowSpec",
+      "name": "WorkflowSpec",
+      "path": "WorkflowSpec.json",
+      "sha256": "1a11b9a3f381e0c1fce3ede9661b1471d15e573424978ea84d0fc2c4c3b0c81a"
+    },
+    {
+      "kind": "EvaluationReport",
+      "name": "EvaluationReport",
+      "path": "EvaluationReport.json",
+      "sha256": "3ef49ac67114b2d5002c0bc2e5bc3e176723f096b32df7a2bf721c02894a585a"
+    },
+    {
+      "kind": "InfrastructurePlan",
+      "name": "InfrastructurePlan",
+      "path": "InfrastructurePlan.json",
+      "sha256": "23eb0a537cf2acca61694116b188f312a02c3ada8c6efcd44b661ed94d508fa6"
+    },
+    {
+      "kind": "ReleaseManifest",
+      "name": "ReleaseManifest",
+      "path": "ReleaseManifest.json",
+      "sha256": "c4485897af49d8bbbb2fbf05daea483d77b3ee23ee6bb9f3c373873cac519170"
+    },
+    {
+      "kind": "ActionIntent",
+      "name": "ActionIntent",
+      "path": "ActionIntent.json",
+      "sha256": "2a60a6122f2daa36fa7973f8dde7bb9456fba8088d342b623c269372175ceefa"
+    },
+    {
+      "kind": "ApprovalRecord",
+      "name": "ApprovalRecord",
+      "path": "ApprovalRecord.json",
+      "sha256": "00423943287e7f36db09e6a6bed9dc2ed132634d34d37d23bd5fda471cf9afb6"
+    },
+    {
+      "kind": "VerificationAttestation",
+      "name": "VerificationAttestation",
+      "path": "VerificationAttestation.json",
+      "sha256": "7e2d3d89f28256325d7cd3dfcc5f3fa95307eef864f80c7b7804f75e8b5b8e80"
+    }
+  ]
+}

@@ -1,0 +1,364 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ChangeAction": {
+      "enum": [
+        "CREATE",
+        "UPDATE",
+        "REPLACE",
+        "DELETE"
+      ],
+      "title": "ChangeAction",
+      "type": "string"
+    },
+    "ExpandContractPhase": {
+      "description": "Phase of an expand/contract migration; NONE when no schema change is involved.",
+      "enum": [
+        "EXPAND",
+        "MIGRATE",
+        "CONTRACT",
+        "NONE"
+      ],
+      "title": "ExpandContractPhase",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "ResourceChange": {
+      "additionalProperties": false,
+      "description": "One resource-level change with its ownership and rollback classification (PL-045).",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ChangeAction"
+        },
+        "estimated_cost": {
+          "$ref": "#/$defs/Money"
+        },
+        "ownership_tags": {
+          "additionalProperties": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Resource ownership tags applied on creation/update (owner, tenant, build ...).",
+          "minProperties": 1,
+          "propertyNames": {
+            "maxLength": 256,
+            "minLength": 1
+          },
+          "title": "Ownership Tags",
+          "type": "object"
+        },
+        "resource_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Resource Id",
+          "type": "string"
+        },
+        "rollback_classification": {
+          "$ref": "#/$defs/RollbackClassification"
+        }
+      },
+      "required": [
+        "resource_id",
+        "action",
+        "rollback_classification",
+        "ownership_tags",
+        "estimated_cost"
+      ],
+      "title": "ResourceChange",
+      "type": "object"
+    },
+    "RollbackClassification": {
+      "description": "How a change can be undone (PL-045).",
+      "enum": [
+        "ROLLBACK",
+        "COMPENSATE",
+        "IRREVERSIBLE"
+      ],
+      "title": "RollbackClassification",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/InfrastructurePlan.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A change set that may be applied only after preview, costing, locking and authorization (PL-045).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "backup_restore_strategy_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Verified backup/restore strategy covering the destructive changes.",
+      "title": "Backup Restore Strategy Ref"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/ResourceChange"
+      },
+      "title": "Changes",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "cost_estimate": {
+      "$ref": "#/$defs/Money",
+      "description": "Worst-case estimate for the whole plan; never below the per-resource sum."
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "destructive_authorization_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "ApprovalRecord or envelope clause authorizing destructive changes.",
+      "title": "Destructive Authorization Ref"
+    },
+    "environment": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Environment",
+      "type": "string"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "expand_contract_phase": {
+      "$ref": "#/$defs/ExpandContractPhase"
+    },
+    "kind": {
+      "const": "InfrastructurePlan",
+      "default": "InfrastructurePlan",
+      "title": "Kind",
+      "type": "string"
+    },
+    "preview_diff_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "The InfrastructurePreview (plan/diff) produced before application."
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state_lock_ref": {
+      "description": "Reference to the acquired state lock, never a lock token value.",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "State Lock Ref",
+      "type": "string"
+    },
+    "template_refs": {
+      "description": "Approved resource templates or reviewed modules the plan was generated from.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "minItems": 1,
+      "title": "Template Refs",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "template_refs",
+    "preview_diff_ref",
+    "cost_estimate",
+    "state_lock_ref",
+    "environment",
+    "expand_contract_phase"
+  ],
+  "title": "InfrastructurePlan",
+  "type": "object"
+}

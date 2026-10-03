@@ -1,0 +1,119 @@
+{
+  "artifact_id": "env-lndry-route-preparation",
+  "tenant_id": "tnt_lndry001",
+  "kind": "AutonomyEnvelope",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:dd46b37f6865c0434bccce07bba511766cc92c476d1702f0d7b01d3e104a8c23",
+  "producer": {
+    "principal_id": "owner-lndry-operations-manager",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "created_at": "2026-09-15T10:00:00Z",
+  "evidence_links": [],
+  "envelope_id": "env-lndry-route-preparation",
+  "envelope_version": 1,
+  "owner": {
+    "principal_id": "owner-lndry-operations-manager",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "goals": [
+    {
+      "goal_id": "goal-lndry-route-plan-quality",
+      "objective": "Prepare feasible daily pickup and delivery route plans that respect vehicle capacity, driver shifts and customer time windows, so the dispatcher reviews a plan instead of building one. Publishing routes to drivers and moving garments remain human steps.",
+      "success_metric": "Dispatcher edits per published route, late stops per route and planning minutes per day, measured prospectively against the current manual planning baseline.",
+      "horizon_days": 90
+    }
+  ],
+  "source_grants": [
+    {
+      "source_id": "src-lndry-order-system",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-lndry-operations-manager",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.0.0"
+    },
+    {
+      "source_id": "src-lndry-fleet-constraints",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-lndry-operations-manager",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.0.0"
+    },
+    {
+      "source_id": "src-lndry-route-planning-tool",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-lndry-operations-manager",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.0.0"
+    }
+  ],
+  "approved_destinations": [
+    "dst-lndry-tenant-storage"
+  ],
+  "approved_processors": [
+    "proc-plumb-control-plane-eu",
+    "proc-routing-solver-eu"
+  ],
+  "allowed_effect_classes": [
+    "READ",
+    "INTERNAL_WRITE",
+    "EXTERNAL_WRITE_REVERSIBLE",
+    "INFRASTRUCTURE_CHANGE"
+  ],
+  "spending_limit": {
+    "minor_units": 800000,
+    "currency": "GBP"
+  },
+  "per_step_attempt_limit": 3,
+  "deployment_environments": [
+    "shadow",
+    "canary",
+    "production"
+  ],
+  "allowed_regions": [
+    "eu-west-2"
+  ],
+  "expires_at": "2027-03-31T00:00:00Z",
+  "escalation_conditions": [
+    "A route would be published to drivers or dispatch outside the shadow environment; publication to the planning tool needs dispatcher approval.",
+    "Any instruction would be issued to a driver, vehicle or depot, or any message sent to a customer: physical execution and external communication are outside this envelope.",
+    "A solver run would exceed the per-run time or cost bound, or would relax a hard constraint (capacity, shift length, time window) to find a solution.",
+    "Order or vehicle data is older than the freshness threshold at planning time.",
+    "Any grant would need the TRAIN purpose; no training is authorized under this envelope."
+  ],
+  "policy_version": "1.0.0",
+  "revoked_at": null
+}

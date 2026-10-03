@@ -1,0 +1,557 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "DatasetCounts": {
+      "additionalProperties": false,
+      "description": "Declared row counts; the checker compares them with the rows (PL-030).",
+      "properties": {
+        "by_label_status": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/LabelStatus"
+          },
+          "title": "By Label Status",
+          "type": "object"
+        },
+        "by_split": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "train",
+              "validation",
+              "test_temporal",
+              "test_client_disjoint"
+            ]
+          },
+          "title": "By Split",
+          "type": "object"
+        }
+      },
+      "title": "DatasetCounts",
+      "type": "object"
+    },
+    "DatasetRow": {
+      "additionalProperties": false,
+      "description": "One training/evaluation example with its point-in-time bookkeeping (PL-028).",
+      "properties": {
+        "decision_time": {
+          "description": "When the decision the row models was made.",
+          "format": "date-time",
+          "title": "Decision Time",
+          "type": "string"
+        },
+        "example_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Example Id",
+          "type": "string"
+        },
+        "exclusion_reason": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why the row is not an accepted example; required when not ACCEPTED.",
+          "title": "Exclusion Reason"
+        },
+        "group_id": {
+          "description": "Transaction/document family. Near-duplicate families must not straddle splits.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Group Id",
+          "type": "string"
+        },
+        "input_availability_time": {
+          "description": "Latest availability time among the input snapshots (knowledge time).",
+          "format": "date-time",
+          "title": "Input Availability Time",
+          "type": "string"
+        },
+        "input_snapshot_refs": {
+          "description": "Evidence event ids whose values were known at the decision boundary.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Input Snapshot Refs",
+          "type": "array"
+        },
+        "label_kind": {
+          "$ref": "#/$defs/LabelKind"
+        },
+        "label_status": {
+          "$ref": "#/$defs/LabelStatus"
+        },
+        "purpose_authorization_ref": {
+          "description": "Grant that permits this row's source to be used for the dataset's purpose.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Purpose Authorization Ref",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test_temporal",
+            "test_client_disjoint"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "target_availability_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When the target became available. None means unknown, not 'at decision time'.",
+          "title": "Target Availability Time"
+        },
+        "target_evidence_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Evidence event id carrying the label; required for accepted rows.",
+          "title": "Target Evidence Ref"
+        }
+      },
+      "required": [
+        "example_id",
+        "group_id",
+        "input_snapshot_refs",
+        "input_availability_time",
+        "decision_time",
+        "label_kind",
+        "label_status",
+        "purpose_authorization_ref",
+        "split"
+      ],
+      "title": "DatasetRow",
+      "type": "object"
+    },
+    "LabelDefinition": {
+      "additionalProperties": false,
+      "description": "What the label means and how long it takes to mature (section 13).",
+      "properties": {
+        "label_kind": {
+          "$ref": "#/$defs/LabelKind"
+        },
+        "maturation_window_days": {
+          "description": "Days after the decision before the label is considered settled.",
+          "minimum": 0,
+          "title": "Maturation Window Days",
+          "type": "integer"
+        },
+        "text": {
+          "description": "Human-readable definition of the target.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "label_kind",
+        "maturation_window_days"
+      ],
+      "title": "LabelDefinition",
+      "type": "object"
+    },
+    "LabelKind": {
+      "description": "Observable outcomes, expert decisions, corrections, preferences and weak proxies differ (PL-026).",
+      "enum": [
+        "OBSERVED_OUTCOME",
+        "EXPERT_DECISION",
+        "CORRECTION",
+        "PREFERENCE",
+        "WEAK_PROXY"
+      ],
+      "title": "LabelKind",
+      "type": "string"
+    },
+    "LabelStatus": {
+      "description": "Row-level label status; quarantined rows never enter training inputs (PL-027).",
+      "enum": [
+        "ACCEPTED",
+        "QUARANTINED_AMBIGUOUS",
+        "QUARANTINED_INCONSISTENT",
+        "QUARANTINED_DISPUTED",
+        "REJECTED"
+      ],
+      "title": "LabelStatus",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "SplitRule": {
+      "additionalProperties": false,
+      "description": "How a split is populated and which question it answers (PL-030).",
+      "properties": {
+        "name": {
+          "enum": [
+            "train",
+            "validation",
+            "test_temporal",
+            "test_client_disjoint"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "question_answered": {
+          "description": "E.g. 'performance on future work' or 'generalisation to unseen clients'.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Question Answered",
+          "type": "string"
+        },
+        "rule": {
+          "description": "Deterministic assignment rule, e.g. a decision_time cut-off.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "question_answered",
+        "rule"
+      ],
+      "title": "SplitRule",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/DatasetManifest.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Immutable, reproducible description of one dataset revision (PL-028..PL-030).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "content_hashes": {
+      "additionalProperties": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "description": "Digest of the materialised rows of each split.",
+      "propertyNames": {
+        "enum": [
+          "train",
+          "validation",
+          "test_temporal",
+          "test_client_disjoint"
+        ]
+      },
+      "title": "Content Hashes",
+      "type": "object"
+    },
+    "counts": {
+      "$ref": "#/$defs/DatasetCounts"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "distributions": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "description": "Named distributions, e.g. label frequency per split.",
+      "title": "Distributions",
+      "type": "object"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "kind": {
+      "const": "DatasetManifest",
+      "default": "DatasetManifest",
+      "title": "Kind",
+      "type": "string"
+    },
+    "label_definition": {
+      "$ref": "#/$defs/LabelDefinition"
+    },
+    "lineage_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Lineage Refs",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "revision": {
+      "description": "Dataset revision; a new revision never mutates an old one.",
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "rows": {
+      "items": {
+        "$ref": "#/$defs/DatasetRow"
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "schema_ref": {
+      "description": "Row schema the materialised rows conform to.",
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Schema Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_rights_refs": {
+      "description": "Grants authorising the sources for the dataset's purpose.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Source Rights Refs",
+      "type": "array"
+    },
+    "source_versions": {
+      "description": "Pinned source artifacts the rows were derived from.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Source Versions",
+      "type": "array"
+    },
+    "split_rules": {
+      "items": {
+        "$ref": "#/$defs/SplitRule"
+      },
+      "minItems": 1,
+      "title": "Split Rules",
+      "type": "array"
+    },
+    "task_definition_ref": {
+      "$ref": "#/$defs/ArtifactRef",
+      "description": "Pinned TaskDefinition the rows were built for."
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transformation_refs": {
+      "description": "Pinned transformation code that produced the rows.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Transformation Refs",
+      "type": "array"
+    },
+    "unavailable_reason": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Set when required source material was deleted and the dataset is intentionally unreconstructable; the manifest is kept and marked, never falsified.",
+      "title": "Unavailable Reason"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "dataset_id",
+    "revision",
+    "task_definition_ref",
+    "label_definition",
+    "split_rules",
+    "schema_ref"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

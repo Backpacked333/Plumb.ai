@@ -1,0 +1,120 @@
+{
+  "artifact_id": "env-rfq-quotation-preparation",
+  "tenant_id": "tnt_rfq00001",
+  "kind": "AutonomyEnvelope",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:eb529e5f6b7aed5956a41466f7246962873d3d5857eaf79679155bbfc4e0157d",
+  "producer": {
+    "principal_id": "owner-rfq-commercial-director",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "created_at": "2026-09-15T10:00:00Z",
+  "evidence_links": [],
+  "envelope_id": "env-rfq-quotation-preparation",
+  "envelope_version": 1,
+  "owner": {
+    "principal_id": "owner-rfq-commercial-director",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "goals": [
+    {
+      "goal_id": "goal-rfq-draft-quotation-turnaround",
+      "objective": "Shorten the time from an incoming request for quotation to a complete draft quotation with matched SKUs, normalized units and current inventory and price context, ready for the commercial team. Binding quotes remain a human commercial decision.",
+      "success_metric": "Hours from request receipt to draft ready, draft line items changed by the commercial team and requests needing a clarification round, measured prospectively per quarter.",
+      "horizon_days": 120
+    }
+  ],
+  "source_grants": [
+    {
+      "source_id": "src-rfq-request-records",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-rfq-commercial-director",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "2.0.0"
+    },
+    {
+      "source_id": "src-rfq-inventory-records",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-rfq-commercial-director",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "2.0.0"
+    },
+    {
+      "source_id": "src-rfq-pricing-records",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-rfq-commercial-director",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "2.0.0"
+    }
+  ],
+  "approved_destinations": [
+    "dst-rfq-tenant-storage"
+  ],
+  "approved_processors": [
+    "proc-plumb-control-plane-us",
+    "proc-general-model-gateway-us"
+  ],
+  "allowed_effect_classes": [
+    "READ",
+    "INTERNAL_WRITE",
+    "EXTERNAL_WRITE_REVERSIBLE",
+    "EXTERNAL_COMMUNICATION",
+    "INFRASTRUCTURE_CHANGE"
+  ],
+  "spending_limit": {
+    "minor_units": 1200000,
+    "currency": "USD"
+  },
+  "per_step_attempt_limit": 3,
+  "deployment_environments": [
+    "shadow",
+    "canary",
+    "production"
+  ],
+  "allowed_regions": [
+    "us-east-1"
+  ],
+  "expires_at": "2027-03-31T00:00:00Z",
+  "escalation_conditions": [
+    "A binding quotation, order confirmation or any other FINANCIAL_COMMITMENT or irreversible external write would be produced.",
+    "Requested commercial terms (discount, validity, lead time, payment terms) fall outside the authorized terms table.",
+    "Inventory or price records are older than the freshness threshold at draft time; the draft is held for review instead of issued.",
+    "A clarification request to a requester would leave the approved template or exceed one open request per RFQ.",
+    "Any grant would need the TRAIN purpose; no training is authorized under this envelope."
+  ],
+  "policy_version": "2.0.0",
+  "revoked_at": null
+}

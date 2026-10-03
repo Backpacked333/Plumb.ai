@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "description": "Immutable reference to a stored artifact by digest (section 8).",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "schema_version": {
+          "default": "0.2.0",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "digest"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "description": "Worst-case reservation for a unit of work (PL-014, PL-018, PL-058).",
+      "properties": {
+        "max_attempts": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_elapsed_seconds": {
+          "minimum": 1,
+          "title": "Max Elapsed Seconds",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Model Calls"
+        },
+        "spend": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "spend",
+        "max_attempts",
+        "max_elapsed_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "ResourceScope": {
+      "additionalProperties": false,
+      "description": "Sources, destinations, processors and regions an operation may touch.",
+      "properties": {
+        "destination_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Destination Ids",
+          "type": "array"
+        },
+        "processor_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Processor Ids",
+          "type": "array"
+        },
+        "regions": {
+          "items": {
+            "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Regions",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "title": "ResourceScope",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/supporting/AgentTask.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A bounded engineering assignment compiled from trusted state (Appendix A §1).",
+  "properties": {
+    "acceptance_refs": {
+      "description": "Protected acceptance contracts the verifier will apply.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Acceptance Refs",
+      "type": "array"
+    },
+    "fencing_token": {
+      "description": "Monotonic lease epoch; a stale token cannot commit.",
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "goal_ref": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Goal Ref",
+      "type": "string"
+    },
+    "input_artifact_refs": {
+      "description": "Immutable, digest-pinned inputs; never mutable ids.",
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Input Artifact Refs",
+      "type": "array"
+    },
+    "parent_build_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Parent Build Id",
+      "type": "string"
+    },
+    "parent_step_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Parent Step Id",
+      "type": "string"
+    },
+    "permitted_capabilities": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Permitted Capabilities",
+      "type": "array"
+    },
+    "remaining_budget": {
+      "$ref": "#/$defs/Budget"
+    },
+    "scope": {
+      "$ref": "#/$defs/ResourceScope"
+    },
+    "task_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "workspace_base_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Workspace Base Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "tenant_id",
+    "parent_build_id",
+    "parent_step_id",
+    "goal_ref",
+    "acceptance_refs",
+    "permitted_capabilities",
+    "scope",
+    "remaining_budget",
+    "workspace_base_digest",
+    "fencing_token"
+  ],
+  "title": "AgentTask",
+  "type": "object"
+}

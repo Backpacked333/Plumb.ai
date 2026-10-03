@@ -1,0 +1,398 @@
+{
+  "$defs": {
+    "DataPurpose": {
+      "description": "Data-purpose authorization is enforced per stage (PL-053).",
+      "enum": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE",
+        "TRAIN",
+        "SERVE",
+        "EXPORT"
+      ],
+      "title": "DataPurpose",
+      "type": "string"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "Goal": {
+      "additionalProperties": false,
+      "description": "A business goal the owner has authorized Plumb to pursue (PL-005).",
+      "properties": {
+        "goal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Goal Id",
+          "type": "string"
+        },
+        "horizon_days": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Measurement horizon in days.",
+          "title": "Horizon Days"
+        },
+        "objective": {
+          "description": "What the owner wants changed, in business terms.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Objective",
+          "type": "string"
+        },
+        "success_metric": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the outcome will be measured prospectively, if already known.",
+          "title": "Success Metric"
+        }
+      },
+      "required": [
+        "goal_id",
+        "objective"
+      ],
+      "title": "Goal",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "SourceGrant": {
+      "additionalProperties": false,
+      "description": "An actual customer grant to use one source for specific purposes (PL-005, PL-053).\n\nA grant is the unit of data-purpose authority. It names who granted it,\nwhen, under which policy version, and optionally when it expires. Derived\ndata inherits these restrictions; nothing in this package infers a purpose\nthat is not listed here.",
+      "properties": {
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expires At"
+        },
+        "granted_at": {
+          "format": "date-time",
+          "title": "Granted At",
+          "type": "string"
+        },
+        "granted_by": {
+          "$ref": "#/$defs/Principal"
+        },
+        "policy_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "purposes": {
+          "items": {
+            "$ref": "#/$defs/DataPurpose"
+          },
+          "minItems": 1,
+          "title": "Purposes",
+          "type": "array"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "purposes",
+        "granted_by",
+        "granted_at",
+        "policy_version"
+      ],
+      "title": "SourceGrant",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/AutonomyEnvelope.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The versioned authority an accountable human owner delegates to Plumb (PL-005).",
+  "properties": {
+    "allowed_effect_classes": {
+      "items": {
+        "$ref": "#/$defs/EffectClass"
+      },
+      "minItems": 1,
+      "title": "Allowed Effect Classes",
+      "type": "array"
+    },
+    "allowed_regions": {
+      "items": {
+        "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "title": "Allowed Regions",
+      "type": "array"
+    },
+    "approved_destinations": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Approved Destinations",
+      "type": "array"
+    },
+    "approved_processors": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Approved Processors",
+      "type": "array"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deployment_environments": {
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Deployment Environments",
+      "type": "array"
+    },
+    "envelope_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "envelope_version": {
+      "minimum": 1,
+      "title": "Envelope Version",
+      "type": "integer"
+    },
+    "escalation_conditions": {
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Escalation Conditions",
+      "type": "array"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "goals": {
+      "items": {
+        "$ref": "#/$defs/Goal"
+      },
+      "minItems": 1,
+      "title": "Goals",
+      "type": "array"
+    },
+    "kind": {
+      "const": "AutonomyEnvelope",
+      "default": "AutonomyEnvelope",
+      "title": "Kind",
+      "type": "string"
+    },
+    "owner": {
+      "$ref": "#/$defs/Principal",
+      "description": "The accountable business owner; must be a HUMAN_OWNER."
+    },
+    "per_step_attempt_limit": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Per Step Attempt Limit",
+      "type": "integer"
+    },
+    "policy_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "revoked_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revoked At"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_grants": {
+      "items": {
+        "$ref": "#/$defs/SourceGrant"
+      },
+      "title": "Source Grants",
+      "type": "array"
+    },
+    "spending_limit": {
+      "$ref": "#/$defs/Money"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "envelope_id",
+    "envelope_version",
+    "owner",
+    "goals",
+    "allowed_effect_classes",
+    "spending_limit",
+    "per_step_attempt_limit",
+    "expires_at",
+    "policy_version"
+  ],
+  "title": "AutonomyEnvelope",
+  "type": "object"
+}

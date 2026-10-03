@@ -734,7 +734,7 @@ CREATE TABLE plumb.jobs (
     operation_id                TEXT        NOT NULL,
     idempotency_key             TEXT        NOT NULL CHECK (length(idempotency_key) BETWEEN 1 AND 255),
     payload_digest              plumb.sha256_digest NOT NULL,
-    status                      TEXT        NOT NULL CHECK (status IN ('ACCEPTED', 'RUNNING', 'WAITING', 'SUCCEEDED', 'FAILED', 'CANCELLED')),
+    status                      TEXT        NOT NULL CHECK (status IN ('PENDING', 'RUNNING', 'WAITING', 'SUCCEEDED', 'FAILED')),
     result_artifact_id          plumb.identifier,
     result_artifact_version     INTEGER,
     error_class                 TEXT        CHECK (error_class IS NULL OR error_class IN ('AUTH_REQUIRED', 'SCOPE_DENIED', 'PURPOSE_DENIED', 'POLICY_STALE', 'STATE_CONFLICT', 'PAYLOAD_CONFLICT', 'BUDGET_EXCEEDED', 'CAPABILITY_UNSUPPORTED', 'SOURCE_STALE', 'DATA_QUALITY_FAILED', 'VERIFICATION_FAILED', 'EFFECT_UNKNOWN', 'RETRY_EXHAUSTED')),
@@ -753,7 +753,7 @@ CREATE TABLE plumb.jobs (
 );
 CREATE TRIGGER jobs_row_version BEFORE UPDATE ON plumb.jobs
     FOR EACH ROW EXECUTE FUNCTION plumb.bump_row_version();
-CREATE INDEX jobs_open_idx ON plumb.jobs (tenant_id, created_at) WHERE status IN ('ACCEPTED', 'RUNNING', 'WAITING');
+CREATE INDEX jobs_open_idx ON plumb.jobs (tenant_id, created_at) WHERE status IN ('PENDING', 'RUNNING', 'WAITING');
 
 -- Outcome observations (PL-059): model calls, completed cases, correct outcomes
 -- and realized value are distinct columns; technical and commercial success are

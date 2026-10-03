@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "DependencyRecord": {
+      "additionalProperties": false,
+      "description": "A precise, resumable external dependency (PL-001, Appendix A ``dependency.raise``).",
+      "properties": {
+        "blocked_step_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Blocked Step Ids",
+          "type": "array"
+        },
+        "dependency_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Dependency Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "error_class": {
+          "$ref": "#/$defs/ErrorClass"
+        },
+        "failure_class": {
+          "$ref": "#/$defs/FailureClass"
+        },
+        "missing_authority": {
+          "description": "Exact grants, consents or decisions required.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Missing Authority",
+          "type": "array"
+        },
+        "raised_at": {
+          "format": "date-time",
+          "title": "Raised At",
+          "type": "string"
+        },
+        "resolver_role": {
+          "$ref": "#/$defs/PrincipalType"
+        },
+        "resumes_after": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What continues once the dependency is supplied.",
+          "title": "Resumes After"
+        }
+      },
+      "required": [
+        "dependency_id",
+        "failure_class",
+        "error_class",
+        "description",
+        "resolver_role",
+        "raised_at"
+      ],
+      "title": "DependencyRecord",
+      "type": "object"
+    },
+    "ErrorClass": {
+      "description": "Initial error classes of the control-plane protocol (section 22).",
+      "enum": [
+        "AUTH_REQUIRED",
+        "SCOPE_DENIED",
+        "PURPOSE_DENIED",
+        "POLICY_STALE",
+        "STATE_CONFLICT",
+        "PAYLOAD_CONFLICT",
+        "BUDGET_EXCEEDED",
+        "CAPABILITY_UNSUPPORTED",
+        "SOURCE_STALE",
+        "DATA_QUALITY_FAILED",
+        "VERIFICATION_FAILED",
+        "EFFECT_UNKNOWN",
+        "RETRY_EXHAUSTED"
+      ],
+      "title": "ErrorClass",
+      "type": "string"
+    },
+    "FailureClass": {
+      "description": "Failure classification that determines the next action (section 9, Appendix A.3).",
+      "enum": [
+        "TRANSIENT_INFRASTRUCTURE",
+        "IMPLEMENTATION_DEFECT",
+        "SOURCE_SCHEMA_CHANGE",
+        "MISSING_AUTHORIZATION",
+        "MISSING_BUSINESS_DECISION",
+        "UNSUPPORTED_CAPABILITY",
+        "POOR_MODEL_QUALITY",
+        "EXHAUSTED_RESOURCES"
+      ],
+      "title": "FailureClass",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "An amount in integer minor units (cents) plus an ISO 4217 currency code.",
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code, e.g. USD.",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Amount in the currency's minor unit (e.g. cents).",
+          "minimum": 0,
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/supporting/StepResult.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What a worker proposes; nothing here is verified state (Appendix A §3).",
+  "properties": {
+    "attempt": {
+      "minimum": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "claimed_postconditions": {
+      "description": "Claims to be checked by the verifier; never verified state.",
+      "items": {
+        "maxLength": 4000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Claimed Postconditions",
+      "type": "array"
+    },
+    "cost_usage": {
+      "$ref": "#/$defs/Money"
+    },
+    "diagnostics": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Kept so the next worker does not repeat it.",
+      "title": "Diagnostics"
+    },
+    "effect_refs": {
+      "description": "Action ids recorded before external writes.",
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Effect Refs",
+      "type": "array"
+    },
+    "execution_environment_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Execution Environment Digest",
+      "type": "string"
+    },
+    "fencing_token": {
+      "minimum": 1,
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "input_digests": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Input Digests",
+      "type": "array"
+    },
+    "output_digests": {
+      "items": {
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Output Digests",
+      "type": "array"
+    },
+    "step_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "task_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "test_log_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Test Log Refs",
+      "type": "array"
+    },
+    "tool_call_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Tool Call Refs",
+      "type": "array"
+    },
+    "unresolved_dependencies": {
+      "items": {
+        "$ref": "#/$defs/DependencyRecord"
+      },
+      "title": "Unresolved Dependencies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "task_id",
+    "step_id",
+    "attempt",
+    "fencing_token",
+    "execution_environment_digest",
+    "cost_usage"
+  ],
+  "title": "StepResult",
+  "type": "object"
+}

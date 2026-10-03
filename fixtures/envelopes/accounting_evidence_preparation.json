@@ -1,0 +1,119 @@
+{
+  "artifact_id": "env-acct-evidence-preparation",
+  "tenant_id": "tnt_acct0001",
+  "kind": "AutonomyEnvelope",
+  "schema_version": "0.2.0",
+  "version": 1,
+  "content_digest": "sha256:01e3239779de4ab5f8c23273e4045e9148de3c3afd8e2fd5c8fddb58cb29afa2",
+  "producer": {
+    "principal_id": "owner-acct-finance-controller",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "created_at": "2026-09-15T10:00:00Z",
+  "evidence_links": [],
+  "envelope_id": "env-acct-evidence-preparation",
+  "envelope_version": 1,
+  "owner": {
+    "principal_id": "owner-acct-finance-controller",
+    "principal_type": "HUMAN_OWNER",
+    "authenticated_via": "oidc:synthetic-tenant-idp"
+  },
+  "goals": [
+    {
+      "goal_id": "goal-acct-monthly-close-evidence",
+      "objective": "Reduce duplicated requests for missing monthly-close evidence and the accountant's time assembling a review package. The first measurable deliverable is a complete, correctly attributed review package per client and period; accountant sign-off stays in the process.",
+      "success_metric": "Correct review packages per close and duplicate reminder requests per client, period and obligation, measured prospectively against the pre-deployment baseline.",
+      "horizon_days": 90
+    }
+  ],
+  "source_grants": [
+    {
+      "source_id": "src-acct-bookkeeping-ledger",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE",
+        "TRAIN"
+      ],
+      "granted_by": {
+        "principal_id": "owner-acct-finance-controller",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.2.0"
+    },
+    {
+      "source_id": "src-acct-document-store",
+      "purposes": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "granted_by": {
+        "principal_id": "owner-acct-finance-controller",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.2.0"
+    },
+    {
+      "source_id": "src-acct-mailbox",
+      "purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "granted_by": {
+        "principal_id": "owner-acct-finance-controller",
+        "principal_type": "HUMAN_OWNER",
+        "authenticated_via": "oidc:synthetic-tenant-idp"
+      },
+      "granted_at": "2026-09-15T09:00:00Z",
+      "expires_at": "2027-03-31T00:00:00Z",
+      "policy_version": "1.2.0"
+    }
+  ],
+  "approved_destinations": [
+    "dst-acct-tenant-storage"
+  ],
+  "approved_processors": [
+    "proc-plumb-control-plane-eu",
+    "proc-managed-open-model-training-eu"
+  ],
+  "allowed_effect_classes": [
+    "READ",
+    "INTERNAL_WRITE",
+    "EXTERNAL_WRITE_REVERSIBLE",
+    "EXTERNAL_COMMUNICATION",
+    "INFRASTRUCTURE_CHANGE"
+  ],
+  "spending_limit": {
+    "minor_units": 1500000,
+    "currency": "EUR"
+  },
+  "per_step_attempt_limit": 3,
+  "deployment_environments": [
+    "shadow",
+    "canary",
+    "production"
+  ],
+  "allowed_regions": [
+    "eu-west-1"
+  ],
+  "expires_at": "2027-03-31T00:00:00Z",
+  "escalation_conditions": [
+    "Posting a journal entry or any other FINANCIAL_COMMITMENT would be required; posting is excluded unless specifically granted.",
+    "A reminder would leave the approved reminder policy: more than one consolidated request per client, period and obligation, or outside the approved template.",
+    "The authoritative engagement checklist cannot be inferred reliably from the authorized sources; ask the owner a focused question and continue unrelated work.",
+    "Training or evaluation would need data from a source whose grant does not carry that purpose, including mailbox content.",
+    "Projected worst-case spend exceeds 80 percent of the spending limit."
+  ],
+  "policy_version": "1.2.0",
+  "revoked_at": null
+}

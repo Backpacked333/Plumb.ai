@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "ArtifactKind": {
+      "description": "Kinds of stored artifacts. The first 17 are the top-level contracts of this package.",
+      "enum": [
+        "AutonomyEnvelope",
+        "CapabilityRecord",
+        "EnvironmentInventory",
+        "EvidencePacket",
+        "OpportunitySpec",
+        "BuildPlan",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "TrainingSpec",
+        "WorkflowSpec",
+        "EvaluationReport",
+        "InfrastructurePlan",
+        "ReleaseManifest",
+        "ActionIntent",
+        "ApprovalRecord",
+        "VerificationAttestation",
+        "AdapterCode",
+        "AdapterConfiguration",
+        "TransformationCode",
+        "TestBundle",
+        "ProbeReceipt",
+        "VerificationReceipt",
+        "QualityReport",
+        "LabelAuditReport",
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "ModelVersion",
+        "ServingConfiguration",
+        "CandidateComparison",
+        "InfrastructurePreview",
+        "CanaryReport",
+        "DependencyRecord",
+        "ReviewPackage"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "CapabilityMaturity": {
+      "description": "Discovered, documented, sandbox-tested and production-verified are distinct (PL-008).",
+      "enum": [
+        "DISCOVERED",
+        "DOCUMENTED",
+        "SANDBOX_TESTED",
+        "PRODUCTION_VERIFIED"
+      ],
+      "title": "CapabilityMaturity",
+      "type": "string"
+    },
+    "DataPurpose": {
+      "description": "Data-purpose authorization is enforced per stage (PL-053).",
+      "enum": [
+        "INSPECT",
+        "COLLECT",
+        "TRANSFORM",
+        "EVALUATE",
+        "TRAIN",
+        "SERVE",
+        "EXPORT"
+      ],
+      "title": "DataPurpose",
+      "type": "string"
+    },
+    "EffectClass": {
+      "description": "What an operation may do to the world. Envelopes allow a subset (PL-005).",
+      "enum": [
+        "READ",
+        "INTERNAL_WRITE",
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_WRITE_IRREVERSIBLE",
+        "EXTERNAL_COMMUNICATION",
+        "FINANCIAL_COMMITMENT",
+        "INFRASTRUCTURE_CHANGE",
+        "DESTRUCTIVE"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "MaintenanceBurden": {
+      "description": "Observed maintenance burden of a capability (Appendix A section 5).",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "MaintenanceBurden",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/CapabilityRecord.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One verified-or-not primitive the planner may schedule for a step type (PL-007, PL-008).",
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "capability_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "capability_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Capability Version",
+      "type": "string"
+    },
+    "consumes": {
+      "items": {
+        "$ref": "#/$defs/ArtifactKind"
+      },
+      "title": "Consumes",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "effect_classes": {
+      "description": "Every effect class the operation can produce.",
+      "items": {
+        "$ref": "#/$defs/EffectClass"
+      },
+      "minItems": 1,
+      "title": "Effect Classes",
+      "type": "array"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "failure_modes": {
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Failure Modes",
+      "type": "array"
+    },
+    "kind": {
+      "const": "CapabilityRecord",
+      "default": "CapabilityRecord",
+      "title": "Kind",
+      "type": "string"
+    },
+    "maintenance_burden": {
+      "$ref": "#/$defs/MaintenanceBurden"
+    },
+    "maturity": {
+      "$ref": "#/$defs/CapabilityMaturity"
+    },
+    "operation": {
+      "description": "Exact operation on the provider, never a product name.",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Operation",
+      "type": "string"
+    },
+    "probe_receipt_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Receipt of the successful probe that established the maturity.",
+      "title": "Probe Receipt Ref"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "produces": {
+      "items": {
+        "$ref": "#/$defs/ArtifactKind"
+      },
+      "title": "Produces",
+      "type": "array"
+    },
+    "provider": {
+      "description": "Adapter or substrate providing the operation.",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Provider",
+      "type": "string"
+    },
+    "required_authority": {
+      "description": "Grants, approvals or roles needed to dispatch it.",
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Required Authority",
+      "type": "array"
+    },
+    "required_purposes": {
+      "description": "Data purposes the source grant must include.",
+      "items": {
+        "$ref": "#/$defs/DataPurpose"
+      },
+      "title": "Required Purposes",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "step_type": {
+      "description": "Build-plan step type this capability implements.",
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Step Type",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "tested_environment": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where the probe ran, e.g. sandbox account or production region.",
+      "title": "Tested Environment"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "capability_id",
+    "step_type",
+    "provider",
+    "operation",
+    "maturity",
+    "effect_classes",
+    "maintenance_burden",
+    "capability_version"
+  ],
+  "title": "CapabilityRecord",
+  "type": "object"
+}

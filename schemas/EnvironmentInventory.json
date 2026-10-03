@@ -1,0 +1,512 @@
+{
+  "$defs": {
+    "ApplicationRecord": {
+      "additionalProperties": false,
+      "description": "One application observed during inventory (PL-007).",
+      "properties": {
+        "accounts": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "title": "Accounts",
+          "type": "array"
+        },
+        "application_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Application Id",
+          "type": "string"
+        },
+        "authorization_status": {
+          "$ref": "#/$defs/AuthorizationStatus"
+        },
+        "available_history_from": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Earliest record time the account exposes; None when unknown.",
+          "title": "Available History From"
+        },
+        "entities": {
+          "description": "Business entities exposed, e.g. invoice.",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Entities",
+          "type": "array"
+        },
+        "freshness_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Observed delay between a change at the source and its visibility.",
+          "title": "Freshness Seconds"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/OperationCapability"
+          },
+          "title": "Operations",
+          "type": "array"
+        },
+        "owners": {
+          "description": "Principal ids accountable for the application.",
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Owners",
+          "type": "array"
+        },
+        "quotas": {
+          "items": {
+            "$ref": "#/$defs/Quota"
+          },
+          "title": "Quotas",
+          "type": "array"
+        },
+        "schema_versions": {
+          "additionalProperties": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": "Entity or API surface -> observed schema version.",
+          "title": "Schema Versions",
+          "type": "object"
+        },
+        "update_mechanism": {
+          "$ref": "#/$defs/UpdateMechanism"
+        }
+      },
+      "required": [
+        "application_id",
+        "name",
+        "authorization_status",
+        "update_mechanism"
+      ],
+      "title": "ApplicationRecord",
+      "type": "object"
+    },
+    "AuthorizationStatus": {
+      "description": "Whether Plumb currently holds authorization for an application (section 5).",
+      "enum": [
+        "AUTHORIZED",
+        "CONSENT_REQUIRED",
+        "DENIED",
+        "UNKNOWN"
+      ],
+      "title": "AuthorizationStatus",
+      "type": "string"
+    },
+    "CapabilityMaturity": {
+      "description": "Discovered, documented, sandbox-tested and production-verified are distinct (PL-008).",
+      "enum": [
+        "DISCOVERED",
+        "DOCUMENTED",
+        "SANDBOX_TESTED",
+        "PRODUCTION_VERIFIED"
+      ],
+      "title": "CapabilityMaturity",
+      "type": "string"
+    },
+    "CoverageReport": {
+      "additionalProperties": false,
+      "description": "What the inventory did and did not observe; the limitation must be disclosed (section 5).",
+      "properties": {
+        "capture_scope": {
+          "description": "What capture covers, as shown on the enrollment screen.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Capture Scope",
+          "type": "string"
+        },
+        "disclosure": {
+          "description": "Customer-facing statement of the coverage limitation.",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Disclosure",
+          "type": "string"
+        },
+        "exclusions": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Exclusions",
+          "type": "array"
+        },
+        "observed_applications": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+            "type": "string"
+          },
+          "title": "Observed Applications",
+          "type": "array"
+        },
+        "observed_employee_count": {
+          "minimum": 0,
+          "title": "Observed Employee Count",
+          "type": "integer"
+        },
+        "retention_days": {
+          "minimum": 0,
+          "title": "Retention Days",
+          "type": "integer"
+        },
+        "unobserved_applications": {
+          "description": "Applications known to exist but not observed (names, not ids).",
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Unobserved Applications",
+          "type": "array"
+        },
+        "unobserved_employee_count": {
+          "minimum": 0,
+          "title": "Unobserved Employee Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "observed_employee_count",
+        "unobserved_employee_count",
+        "capture_scope",
+        "retention_days",
+        "disclosure"
+      ],
+      "title": "CoverageReport",
+      "type": "object"
+    },
+    "OperationCapability": {
+      "additionalProperties": false,
+      "description": "One exact operation on one account, with the evidence behind its maturity (PL-008).",
+      "properties": {
+        "account_id": {
+          "description": "Account the capability was established for: a source_id or external_account_id of the owning application's accounts.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Account Id",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/OperationDirection"
+        },
+        "last_probed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Probed At"
+        },
+        "maturity": {
+          "$ref": "#/$defs/CapabilityMaturity"
+        },
+        "operation": {
+          "description": "Exact provider operation, e.g. GET /v1/invoices; never a product name.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Operation",
+          "type": "string"
+        },
+        "probe_receipt_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Receipt of the successful probe that established the maturity.",
+          "title": "Probe Receipt Ref"
+        }
+      },
+      "required": [
+        "operation",
+        "direction",
+        "maturity",
+        "account_id"
+      ],
+      "title": "OperationCapability",
+      "type": "object"
+    },
+    "OperationDirection": {
+      "description": "Whether an operation reads from or writes to the application.",
+      "enum": [
+        "READ",
+        "WRITE"
+      ],
+      "title": "OperationDirection",
+      "type": "string"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "Quota": {
+      "additionalProperties": false,
+      "description": "A provider-imposed limit on an application or account.",
+      "properties": {
+        "limit": {
+          "minimum": 0,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "window_seconds": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None for absolute (non-rolling) quotas.",
+          "title": "Window Seconds"
+        }
+      },
+      "required": [
+        "name",
+        "limit"
+      ],
+      "title": "Quota",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "description": "A reference to an authorized external source/account. Never carries credentials.",
+      "properties": {
+        "external_account_id": {
+          "description": "Provider-assigned account identity (opaque, non-secret).",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Account Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resource within the account, e.g. mailbox or ledger name.",
+          "title": "Resource"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "external_account_id"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "UpdateMechanism": {
+      "description": "How changes in the application can be observed (PL-007, section 11).",
+      "enum": [
+        "WEBHOOK",
+        "POLLING",
+        "CDC",
+        "EXPORT",
+        "NONE"
+      ],
+      "title": "UpdateMechanism",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/EnvironmentInventory.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Inventory produced before any production build is proposed (PL-007).",
+  "properties": {
+    "applications": {
+      "items": {
+        "$ref": "#/$defs/ApplicationRecord"
+      },
+      "minItems": 1,
+      "title": "Applications",
+      "type": "array"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "coverage_report": {
+      "$ref": "#/$defs/CoverageReport"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "inventory_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Inventory Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "EnvironmentInventory",
+      "default": "EnvironmentInventory",
+      "title": "Kind",
+      "type": "string"
+    },
+    "low_confidence_assumptions": {
+      "description": "Assumptions that remain visible while unaffected work progresses.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Low Confidence Assumptions",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "inventory_id",
+    "applications",
+    "coverage_report"
+  ],
+  "title": "EnvironmentInventory",
+  "type": "object"
+}

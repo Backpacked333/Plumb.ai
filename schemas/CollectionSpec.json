@@ -1,0 +1,624 @@
+{
+  "$defs": {
+    "BackfillBoundary": {
+      "additionalProperties": false,
+      "properties": {
+        "agreed_by": {
+          "description": "Principal who agreed the boundary.",
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Agreed By",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None while backfill is open-ended.",
+          "title": "End"
+        },
+        "start": {
+          "format": "date-time",
+          "title": "Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "agreed_by"
+      ],
+      "title": "BackfillBoundary",
+      "type": "object"
+    },
+    "CheckSeverity": {
+      "enum": [
+        "BLOCK",
+        "WARN"
+      ],
+      "title": "CheckSeverity",
+      "type": "string"
+    },
+    "CorrectionPolicy": {
+      "description": "How later corrections to already-captured records are handled (PL-024).",
+      "enum": [
+        "NEW_VERSION_SUPERSEDES",
+        "QUARANTINE_FOR_REVIEW"
+      ],
+      "title": "CorrectionPolicy",
+      "type": "string"
+    },
+    "DeletionHandling": {
+      "enum": [
+        "PROPAGATE_DELETE",
+        "TOMBSTONE",
+        "RETAIN_WITH_FLAG"
+      ],
+      "title": "DeletionHandling",
+      "type": "string"
+    },
+    "Destination": {
+      "additionalProperties": false,
+      "properties": {
+        "destination_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Destination Id",
+          "type": "string"
+        },
+        "region": {
+          "pattern": "^[a-z]{2,3}(-[a-z0-9]+)*$",
+          "title": "Region",
+          "type": "string"
+        },
+        "schema_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Schema Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "destination_id",
+        "region",
+        "schema_ref"
+      ],
+      "title": "Destination",
+      "type": "object"
+    },
+    "HealthContract": {
+      "additionalProperties": false,
+      "description": "What the collector publishes; all four signals are mandatory (PL-025).",
+      "properties": {
+        "completeness_metric": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Completeness Metric",
+          "type": "string"
+        },
+        "failure_state_metric": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Failure State Metric",
+          "type": "string"
+        },
+        "freshness_deadline_seconds": {
+          "minimum": 1,
+          "title": "Freshness Deadline Seconds",
+          "type": "integer"
+        },
+        "lag_metric": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Lag Metric",
+          "type": "string"
+        }
+      },
+      "required": [
+        "freshness_deadline_seconds",
+        "lag_metric",
+        "completeness_metric",
+        "failure_state_metric"
+      ],
+      "title": "HealthContract",
+      "type": "object"
+    },
+    "IncrementalMechanism": {
+      "description": "How continuing changes are captured (PL-023, section 11).",
+      "enum": [
+        "WEBHOOK",
+        "POLLING_OVERLAP",
+        "CDC",
+        "EXPORT"
+      ],
+      "title": "IncrementalMechanism",
+      "type": "string"
+    },
+    "JoinKind": {
+      "enum": [
+        "EXACT_KEY",
+        "NORMALIZED_IDENTITY",
+        "RESOLVED_OBJECT"
+      ],
+      "title": "JoinKind",
+      "type": "string"
+    },
+    "JoinStrategy": {
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Keys",
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/JoinKind"
+        }
+      },
+      "required": [
+        "kind",
+        "keys"
+      ],
+      "title": "JoinStrategy",
+      "type": "object"
+    },
+    "Principal": {
+      "additionalProperties": false,
+      "description": "An authenticated acting principal.",
+      "properties": {
+        "authenticated_via": {
+          "description": "Authentication mechanism reference (e.g. oidc:issuer), never a secret.",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Authenticated Via",
+          "type": "string"
+        },
+        "principal_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Principal Id",
+          "type": "string"
+        },
+        "principal_type": {
+          "$ref": "#/$defs/PrincipalType"
+        }
+      },
+      "required": [
+        "principal_id",
+        "principal_type",
+        "authenticated_via"
+      ],
+      "title": "Principal",
+      "type": "object"
+    },
+    "PrincipalType": {
+      "enum": [
+        "HUMAN_OWNER",
+        "HUMAN_REVIEWER",
+        "HUMAN_APPROVER",
+        "SERVICE",
+        "BUILD_AGENT",
+        "RUNTIME_AGENT",
+        "VERIFIER",
+        "RELEASE_EXECUTOR"
+      ],
+      "title": "PrincipalType",
+      "type": "string"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "expression": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Expression",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/CheckSeverity",
+          "default": "BLOCK"
+        }
+      },
+      "required": [
+        "name",
+        "expression"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "Reconciliation": {
+      "additionalProperties": false,
+      "description": "How backfill and live capture are shown to converge (PL-024).",
+      "properties": {
+        "sample_size": {
+          "minimum": 1,
+          "title": "Sample Size",
+          "type": "integer"
+        },
+        "sampled_identity_reconciliation": {
+          "default": true,
+          "title": "Sampled Identity Reconciliation",
+          "type": "boolean"
+        },
+        "source_count_reconciliation": {
+          "description": "Must be true: counts are compared against the source.",
+          "title": "Source Count Reconciliation",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_count_reconciliation",
+        "sample_size"
+      ],
+      "title": "Reconciliation",
+      "type": "object"
+    },
+    "ReorderingPolicy": {
+      "description": "How out-of-order events are handled; it must be chosen explicitly (PL-024).",
+      "enum": [
+        "SOURCE_VERSION_WINS",
+        "LATEST_OBSERVATION_WINS",
+        "QUARANTINE_OUT_OF_ORDER"
+      ],
+      "title": "ReorderingPolicy",
+      "type": "string"
+    },
+    "Retention": {
+      "additionalProperties": false,
+      "properties": {
+        "deletion_handling": {
+          "$ref": "#/$defs/DeletionHandling"
+        },
+        "retention_days": {
+          "minimum": 0,
+          "title": "Retention Days",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "retention_days",
+        "deletion_handling"
+      ],
+      "title": "Retention",
+      "type": "object"
+    },
+    "SourceCursor": {
+      "additionalProperties": false,
+      "description": "Current position in one source (PL-024).",
+      "properties": {
+        "cursor": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Cursor",
+          "type": "string"
+        },
+        "processing_offset": {
+          "minimum": 0,
+          "title": "Processing Offset",
+          "type": "integer"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "cursor",
+        "processing_offset",
+        "updated_at"
+      ],
+      "title": "SourceCursor",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "description": "A reference to an authorized external source/account. Never carries credentials.",
+      "properties": {
+        "external_account_id": {
+          "description": "Provider-assigned account identity (opaque, non-secret).",
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Account Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resource within the account, e.g. mailbox or ledger name.",
+          "title": "Resource"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "provider",
+        "external_account_id"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Watermark": {
+      "additionalProperties": false,
+      "description": "Agreed point from which backfill proceeds (section 11).",
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "value",
+        "as_of"
+      ],
+      "title": "Watermark",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/0.2/CollectionSpec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Specification of one collector (PL-023..PL-025).",
+  "properties": {
+    "access_policy_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "pattern": "^\\S+$",
+      "title": "Access Policy Ref",
+      "type": "string"
+    },
+    "allowed_sources": {
+      "items": {
+        "$ref": "#/$defs/SourceRef"
+      },
+      "minItems": 1,
+      "title": "Allowed Sources",
+      "type": "array"
+    },
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "backfill_boundary": {
+      "$ref": "#/$defs/BackfillBoundary"
+    },
+    "collection_id": {
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Collection Id",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "correction_policy": {
+      "$ref": "#/$defs/CorrectionPolicy"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "cursors": {
+      "items": {
+        "$ref": "#/$defs/SourceCursor"
+      },
+      "title": "Cursors",
+      "type": "array"
+    },
+    "destination": {
+      "$ref": "#/$defs/Destination"
+    },
+    "downstream_block_on_missing_coverage": {
+      "description": "Must be true: downstream work blocks or degrades explicitly when coverage is missing.",
+      "title": "Downstream Block On Missing Coverage",
+      "type": "boolean"
+    },
+    "evidence_links": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+        "type": "string"
+      },
+      "title": "Evidence Links",
+      "type": "array"
+    },
+    "health": {
+      "$ref": "#/$defs/HealthContract"
+    },
+    "idempotent_event_identity": {
+      "description": "Fields forming the stable event key.",
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Idempotent Event Identity",
+      "type": "array"
+    },
+    "incremental_mechanism": {
+      "$ref": "#/$defs/IncrementalMechanism"
+    },
+    "join_strategy": {
+      "$ref": "#/$defs/JoinStrategy"
+    },
+    "kind": {
+      "const": "CollectionSpec",
+      "default": "CollectionSpec",
+      "title": "Kind",
+      "type": "string"
+    },
+    "objective_ref": {
+      "description": "Goal or opportunity the collection serves.",
+      "pattern": "^[a-z][a-z0-9_.:/-]{0,159}$",
+      "title": "Objective Ref",
+      "type": "string"
+    },
+    "overlap_seconds": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Polling window overlap.",
+      "title": "Overlap Seconds"
+    },
+    "permitted_purpose_evidence_ref": {
+      "description": "Grant or approval that justifies collecting these fields for this objective.",
+      "maxLength": 512,
+      "minLength": 1,
+      "pattern": "^\\S+$",
+      "title": "Permitted Purpose Evidence Ref",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/Principal"
+    },
+    "quality_checks": {
+      "items": {
+        "$ref": "#/$defs/QualityCheck"
+      },
+      "minItems": 1,
+      "title": "Quality Checks",
+      "type": "array"
+    },
+    "reconciliation": {
+      "$ref": "#/$defs/Reconciliation"
+    },
+    "reordering_policy": {
+      "$ref": "#/$defs/ReorderingPolicy"
+    },
+    "retention": {
+      "$ref": "#/$defs/Retention"
+    },
+    "schema_version": {
+      "default": "0.2.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_fields": {
+      "items": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Selected Fields",
+      "type": "array"
+    },
+    "tenant_id": {
+      "pattern": "^tnt_[a-z0-9]{4,32}$",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Immutable version number of this artifact id.",
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "watermark": {
+      "$ref": "#/$defs/Watermark"
+    },
+    "webhook_fetches_authoritative_state": {
+      "default": false,
+      "description": "A webhook is a signal to fetch authoritative state; must be true for WEBHOOK.",
+      "title": "Webhook Fetches Authoritative State",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "version",
+    "producer",
+    "created_at",
+    "collection_id",
+    "objective_ref",
+    "allowed_sources",
+    "selected_fields",
+    "join_strategy",
+    "incremental_mechanism",
+    "reordering_policy",
+    "correction_policy",
+    "watermark",
+    "backfill_boundary",
+    "idempotent_event_identity",
+    "reconciliation",
+    "retention",
+    "destination",
+    "access_policy_ref",
+    "quality_checks",
+    "permitted_purpose_evidence_ref",
+    "health",
+    "downstream_block_on_missing_coverage"
+  ],
+  "title": "CollectionSpec",
+  "type": "object"
+}
