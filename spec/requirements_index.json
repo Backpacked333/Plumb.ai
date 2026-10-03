@@ -1,0 +1,968 @@
+{
+  "spec_title": "Autonomous Implementation System",
+  "spec_version": "0.2",
+  "spec_date": "2026-10-02",
+  "generated_by": "spec/build_requirements_index.py",
+  "source_files": [
+    "docs/_spec_extracted_raw.txt",
+    "docs/_spec_extracted_layout.txt"
+  ],
+  "counts": {
+    "sections": 29,
+    "requirements": 63,
+    "adrs": 10,
+    "sources": 18
+  },
+  "sections": [
+    {
+      "number": "1",
+      "title": "Product contract: Plumb performs the implementation"
+    },
+    {
+      "number": "2",
+      "title": "What this revision adds"
+    },
+    {
+      "number": "3",
+      "title": "Architecture and chosen initial stack"
+    },
+    {
+      "number": "4",
+      "title": "Trust and authority model"
+    },
+    {
+      "number": "5",
+      "title": "Company onboarding and autonomous inventory"
+    },
+    {
+      "number": "6",
+      "title": "Evidence, time and business objects"
+    },
+    {
+      "number": "7",
+      "title": "Opportunity discovery and selection"
+    },
+    {
+      "number": "8",
+      "title": "The implementation intermediate representation"
+    },
+    {
+      "number": "9",
+      "title": "Engineering execution and bounded repair"
+    },
+    {
+      "number": "10",
+      "title": "Connector construction and application configuration"
+    },
+    {
+      "number": "11",
+      "title": "Collection construction: history and continuing evidence"
+    },
+    {
+      "number": "12",
+      "title": "Discovering where the training data lies"
+    },
+    {
+      "number": "13",
+      "title": "Dataset construction and point-in-time correctness"
+    },
+    {
+      "number": "14",
+      "title": "Training, model routing and serving"
+    },
+    {
+      "number": "15",
+      "title": "Workflow synthesis and the business runtime"
+    },
+    {
+      "number": "16",
+      "title": "External effects, idempotency and concurrent agents"
+    },
+    {
+      "number": "17",
+      "title": "Approval and autonomy without constant interruption"
+    },
+    {
+      "number": "18",
+      "title": "Independent verification and completion evidence"
+    },
+    {
+      "number": "19",
+      "title": "Infrastructure construction and release"
+    },
+    {
+      "number": "20",
+      "title": "Maintenance and autonomous improvement"
+    },
+    {
+      "number": "21",
+      "title": "Security, data rights and hostile inputs"
+    },
+    {
+      "number": "22",
+      "title": "Control-plane API and event protocol"
+    },
+    {
+      "number": "23",
+      "title": "Persistence and state machines"
+    },
+    {
+      "number": "24",
+      "title": "Economics, scale and observability"
+    },
+    {
+      "number": "25",
+      "title": "Acceptance and the three reference scenarios"
+    },
+    {
+      "number": "26",
+      "title": "Delivery sequence and engineering ownership"
+    },
+    {
+      "number": "27",
+      "title": "Architectural decisions and unresolved experiments"
+    },
+    {
+      "number": "28",
+      "title": "Package contents and verification limits"
+    },
+    {
+      "number": "29",
+      "title": "Primary sources and evidence boundaries"
+    }
+  ],
+  "appendices": [
+    {
+      "letter": "A",
+      "title": "Agent execution protocol"
+    },
+    {
+      "letter": "B",
+      "title": "First complete customer trace"
+    },
+    {
+      "letter": "C",
+      "title": "Delivered reference package and verification"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "PL-001",
+      "section": "1",
+      "section_title": "Product contract: Plumb performs the implementation",
+      "text": "Given an authorized business goal and an autonomy envelope, Plumb MUST discover relevant work and deliver one of three explicit outcomes: a verified operating intervention; an actionable external dependency with a preserved resumable build; or a terminal failure explaining what was attempted and why execution stopped. A recommendation, generated prompt or code archive alone MUST NOT count as a completed implementation.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-002",
+      "section": "1",
+      "section_title": "Product contract: Plumb performs the implementation",
+      "text": "For supported environments, Plumb MUST perform ordinary implementation tasks without asking a human engineer to configure each component. This includes inventory inspection, source profiling, schema mapping, integration setup, collection deployment, evaluation dataset construction, workflow assembly, deployment and monitoring. An OAuth consent, purchase authorization or unresolved business policy is a different kind of human input and MUST be recorded separately from manual engineering.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-003",
+      "section": "1",
+      "section_title": "Product contract: Plumb performs the implementation",
+      "text": "Plumb MUST record all human effort by category: customer authorization, domain clarification, normal business review, engineering intervention and operational repair. It MUST NOT call a deployment autonomous if a person secretly performed the implementation behind the interface.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-004",
+      "section": "4",
+      "section_title": "Trust and authority model",
+      "text": "Every operation MUST have a tenant, acting principal, purpose, resource scope, capability version, policy version and budget allocation. Tenant identity MUST be derived from verified authentication, not trusted from a request body.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-005",
+      "section": "4",
+      "section_title": "Trust and authority model",
+      "text": "The autonomy envelope MUST define goals, authorized source scope, approved destinations/processors, allowed effect classes, spending limits, deployment environments, allowed regions, expiry and escalation conditions. It MUST be versioned and tied to an authorized business owner. A derived task cannot widen it.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-006",
+      "section": "4",
+      "section_title": "Trust and authority model",
+      "text": "Build and runtime agents MUST NOT receive general production administrator credentials. The action gateway resolves credentials for approved operations. Management capabilities, execution capabilities and policy-administration capabilities MUST be separated.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-007",
+      "section": "5",
+      "section_title": "Company onboarding and autonomous inventory",
+      "text": "Plumb MUST produce an EnvironmentInventory before proposing a production build. It lists accessible applications, accounts, entities, schema versions, supported read/write operations, authorization status, available history, quotas, update mechanisms, source freshness and owners. An application logo is not an operation capability.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-008",
+      "section": "5",
+      "section_title": "Company onboarding and autonomous inventory",
+      "text": "Plumb MUST distinguish discovered, documented, sandbox-tested and production-verified capabilities. A vendor page saying an API exists does not establish that a customer's account can use the required endpoint. Successful probes must record the account and exact operation without exposing credentials.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-009",
+      "section": "6",
+      "section_title": "Evidence, time and business objects",
+      "text": "Each evidence event MUST preserve source identity, external record/version, tenant, event time, observation time, availability time, content digest, access policy reference, retention class and extraction version. Raw content should be referenced rather than copied into every downstream record.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-010",
+      "section": "6",
+      "section_title": "Evidence, time and business objects",
+      "text": "Derived facts MUST carry supporting evidence, derivation version, validity interval and status: observed, inferred, confirmed, disputed, stale or superseded. Confidence MUST NOT substitute for source authority. Unknown absence MUST remain distinguishable from confirmed absence.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-011",
+      "section": "6",
+      "section_title": "Evidence, time and business objects",
+      "text": "Object resolution MUST support ambiguous candidates, merge/split history and reversible corrections. A correction to the meaning of \"Square\" in one context MUST NOT change all occurrences of that word globally. The system computes an impact set, applies the scoped correction and revalidates dependent facts, datasets and plans.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-012",
+      "section": "7",
+      "section_title": "Opportunity discovery and selection",
+      "text": "Every OpportunitySpec MUST state the business objective, eligible case population, baseline, evidence coverage, proposed change, dependencies, expected benefit range, failure cost, review cost and a prospective measurement plan.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-013",
+      "section": "7",
+      "section_title": "Opportunity discovery and selection",
+      "text": "Candidate generation MUST include non-ML interventions and existing-product configuration. Plumb MUST compare the complete candidate system against the current process and a reasonable native-feature baseline. It must not force the highest available model into every step.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-014",
+      "section": "8",
+      "section_title": "The implementation intermediate representation",
+      "text": "A BuildPlan MUST be a finite dependency graph of typed steps with declared inputs, outputs, required capabilities, budget reservations, bounded attempts and verification obligations. Unsupported step types MUST be rejected rather than interpreted as arbitrary instructions.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-015",
+      "section": "8",
+      "section_title": "The implementation intermediate representation",
+      "text": "The compiler MUST check unique IDs, valid dependencies, cycles, input/output compatibility, missing artifacts, authority, region/purpose restrictions, effect class, budget and verification coverage. A syntactically valid JSON plan is not necessarily executable.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-016",
+      "section": "8",
+      "section_title": "The implementation intermediate representation",
+      "text": "Execution MUST follow persisted state, not a model's memory of its prior messages. A step becomes verified only after the required checks confirm the expected artifact or external state. Downstream production steps MUST NOT consume a failed or unverified prerequisite.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-017",
+      "section": "9",
+      "section_title": "Engineering execution and bounded repair",
+      "text": "Every build MUST have a durable task ledger recording goal, step state, artifact hashes, current workspace commit, completed checks, failed checks, remaining budget and next eligible work. A worker restart MUST reconstruct progress without redoing verified external effects.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-018",
+      "section": "9",
+      "section_title": "Engineering execution and bounded repair",
+      "text": "Repair attempts MUST have maximum counts, spend and elapsed-time bounds. A failed attempt MUST preserve its diagnostics. The repair process MUST NOT remove requirements, weaken tests, expand permissions or change the success metric to claim completion.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-019",
+      "section": "9",
+      "section_title": "Engineering execution and bounded repair",
+      "text": "Generated code MUST execute in an isolated build environment with scoped filesystem/network access and no unmediated production credentials. The build environment MUST be disposable; authoritative job state and artifacts live outside it.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-020",
+      "section": "10",
+      "section_title": "Connector construction and application configuration",
+      "text": "The integration factory MUST prefer a verified existing adapter, then a supported declarative configuration, then generated code for a documented operation, and finally a specifically supported UI adapter. It MUST record which path was used and the resulting maintenance exposure.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-021",
+      "section": "10",
+      "section_title": "Connector construction and application configuration",
+      "text": "Each IntegrationSpec MUST declare provider/account identity, exact operations, authentication reference, required scopes, schema mappings, cursor strategy, rate limits, retry semantics, deletion behavior, effect class, verification probes and schema-drift handling.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-022",
+      "section": "10",
+      "section_title": "Connector construction and application configuration",
+      "text": "Before activation, an adapter MUST pass contract tests for pagination, empty pages, duplicates, rate limiting, authorization failure, malformed responses, schema changes and account boundaries where applicable. Write adapters MUST also verify the resulting business state and uncertain-write behavior.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-023",
+      "section": "11",
+      "section_title": "Collection construction: history and continuing evidence",
+      "text": "A CollectionSpec MUST identify the objective it supports, allowed sources, selected fields, join strategy, incremental mechanism, retention, destination, access policy, quality checks and evidence of permitted purpose. Collection must be justified by the active customer use case.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-024",
+      "section": "11",
+      "section_title": "Collection construction: history and continuing evidence",
+      "text": "Backfill and live capture MUST converge without silent gaps or duplicates. Maintain source cursors, watermarks, processing offsets and idempotent event identity. Reordered events and later corrections MUST be handled explicitly. A webhook is a signal to fetch authoritative state when its payload is incomplete.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-025",
+      "section": "11",
+      "section_title": "Collection construction: history and continuing evidence",
+      "text": "A collector MUST publish freshness, lag, completeness and failure state. Downstream workflows MUST block or degrade explicitly when required source coverage is missing. A stopped collector must never make an obligation appear satisfied or unsatisfied by default.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-026",
+      "section": "12",
+      "section_title": "Discovering where the training data lies",
+      "text": "The learning planner MUST express the proposed task before choosing data: input available at decision time, desired output, objective, error costs, eligible cases and expected use. It MUST distinguish observable outcomes, expert decisions, corrections, preferences and weak proxy labels.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-027",
+      "section": "12",
+      "section_title": "Discovering where the training data lies",
+      "text": "Input/target joins MUST be validated independently on representative cases. Ambiguous matches, inconsistent labels and disputed outcomes MUST be quarantined. The system MUST NOT silently treat employee acceptance or lack of complaint as correctness.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-028",
+      "section": "13",
+      "section_title": "Dataset construction and point-in-time correctness",
+      "text": "Every training/evaluation row MUST include stable example and grouping IDs, input snapshot references, decision time, source availability time, target evidence, label status, purpose authorization, dataset revision and exclusion reason when rejected.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-029",
+      "section": "13",
+      "section_title": "Dataset construction and point-in-time correctness",
+      "text": "The dataset builder MUST exclude future information from model inputs, near-duplicate families across splits and disallowed source uses. It MUST preserve both event time and knowledge availability. Unknown availability timestamps cannot support a claim of faithful historical replay.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-030",
+      "section": "13",
+      "section_title": "Dataset construction and point-in-time correctness",
+      "text": "Dataset manifests MUST be immutable and reproducible from pinned source versions and transformations, subject to source rights and deletion. The manifest records split rules, schema, hashes, counts, distributions, rejected examples, label definition and lineage. Deletion of required source material may make an old dataset intentionally unreconstructable; mark it unavailable rather than falsifying reproducibility.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-031",
+      "section": "14",
+      "section_title": "Training, model routing and serving",
+      "text": "The model planner MUST compare rules/native configuration, prompted general models, retrieval, specialist APIs and training where applicable. Selection MUST use complete task performance and total operating cost, including review and serving utilization.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-032",
+      "section": "14",
+      "section_title": "Training, model routing and serving",
+      "text": "A TrainingSpec MUST pin the dataset, base-model capability/version, supported training method, objective, resource/spend limits, stopping condition, output location, data-handling constraints and evaluation plan. Unsupported combinations MUST fail before a provider job is submitted.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-033",
+      "section": "14",
+      "section_title": "Training, model routing and serving",
+      "text": "A training adapter MUST implement capability discovery, submission, status, cancellation, artifact retrieval and cleanup. Submission identity MUST be persisted so a lost response does not launch duplicate training jobs. A completed provider job is a candidate artifact, not an approved production model.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-034",
+      "section": "14",
+      "section_title": "Training, model routing and serving",
+      "text": "Model promotion MUST require a held-out evaluation, quality/cost comparison, registry version, compatible serving interface and deployment policy. Mutable registry aliases MUST resolve to immutable versions per case. One customer case must not silently switch model behavior halfway through an approval-sensitive workflow.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-035",
+      "section": "15",
+      "section_title": "Workflow synthesis and the business runtime",
+      "text": "A generated WorkflowSpec MUST declare case identity, triggers, typed inputs, states, transitions, allowed operations, maximum iteration/time/cost bounds, durable waits, human decision points and completion conditions. It MUST distinguish read-only preparation from external business effects.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-036",
+      "section": "15",
+      "section_title": "Workflow synthesis and the business runtime",
+      "text": "Business rules that can be expressed deterministically MUST be enforced outside model text. The runtime MUST validate model outputs before tool execution. A prompt saying \"never post without approval\" is not an approval mechanism.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-037",
+      "section": "16",
+      "section_title": "External effects, idempotency and concurrent agents",
+      "text": "Before dispatch, the gateway MUST persist an action intent containing a stable effect slot, payload digest, expected state version, authority reference, deployment version and provider/account target. The same effect slot MUST NOT be redispatched with a changed payload without an explicit supersession decision.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-038",
+      "section": "16",
+      "section_title": "External effects, idempotency and concurrent agents",
+      "text": "An ambiguous external outcome MUST enter an UNKNOWN state and be reconciled before retry. A timeout MUST NOT be interpreted as proof that no action occurred. Provider request IDs, external IDs and read-after-write probes must be stored.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-039",
+      "section": "16",
+      "section_title": "External effects, idempotency and concurrent agents",
+      "text": "Deduplication MUST apply across worker restarts and workflow/model releases. The semantic identity of a business action MUST NOT depend on the release version alone. Cross-workflow ownership must prevent two agents from independently satisfying the same obligation with duplicate actions.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-040",
+      "section": "17",
+      "section_title": "Approval and autonomy without constant interruption",
+      "text": "Approval records MUST bind to the artifact/action digest, relevant case version, policy version, approver identity and expiry. An approval for one version or tenant MUST NOT authorize another. Approval must come from an independently authenticated decision, not a value supplied by the build agent.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-041",
+      "section": "17",
+      "section_title": "Approval and autonomy without constant interruption",
+      "text": "The system MUST automatically continue actions within existing authority. It MUST group related missing authorizations into a concrete reviewable request where possible and retain all completed work. It MUST NOT ask the owner to repeat an already valid authorization.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-042",
+      "section": "18",
+      "section_title": "Independent verification and completion evidence",
+      "text": "Verification MUST inspect the artifact or resulting system state, not trust an agent's completion claim. Each check records verifier identity/version, input artifact digest, evidence, result, timestamp and environment. The verifier must not be writable by the implementation job it assesses.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-043",
+      "section": "18",
+      "section_title": "Independent verification and completion evidence",
+      "text": "A release MUST include structural checks, capability/integration checks, business scenario evaluation, adversarial tests and a prospective operating plan. Passing unit tests cannot substitute for verifying a real external effect in the intended environment.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-044",
+      "section": "18",
+      "section_title": "Independent verification and completion evidence",
+      "text": "Evaluation data MUST be segregated from tuning and repair examples. A failed protected test can yield a controlled diagnostic category without exposing the entire holdout. Refresh evaluation sets when repeated use risks overfitting. Synthetic tests supplement representative real cases; they do not establish business performance by themselves.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-045",
+      "section": "19",
+      "section_title": "Infrastructure construction and release",
+      "text": "Infrastructure MUST be generated from approved resource templates or reviewed modules. A preview/diff, cost estimate, state lock, resource ownership tags and rollback/compensation classification MUST precede application. The build must not run unconstrained infrastructure code with broad cloud authority.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-046",
+      "section": "19",
+      "section_title": "Infrastructure construction and release",
+      "text": "ReleaseManifest MUST bind workflow, connector, collector, model, prompt, policy, schema, infrastructure and evaluation versions through immutable digests. A release MUST be rejected if any required verification was produced for different bytes or a different scope.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-047",
+      "section": "19",
+      "section_title": "Infrastructure construction and release",
+      "text": "Rollout MUST support shadow, bounded canary, active, paused, rolled-back and retired states. New cases use a resolved release version; in-flight cases stay pinned unless an explicit migration is validated. Pausing an intervention blocks new external effects while preserving visibility and recovery.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-048",
+      "section": "20",
+      "section_title": "Maintenance and autonomous improvement",
+      "text": "Every active intervention MUST have monitors for connector freshness, schema changes, execution failures, quality drift, review burden, cost and outcome. Monitoring MUST link failures to affected cases and releases, not merely show global uptime.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-049",
+      "section": "20",
+      "section_title": "Maintenance and autonomous improvement",
+      "text": "A maintenance agent MUST create a new change plan and repeat the applicable verification gates. It MUST NOT silently alter a live policy, evaluation threshold or authorized processor to restore a green status.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-050",
+      "section": "20",
+      "section_title": "Maintenance and autonomous improvement",
+      "text": "Model/provider changes MUST be evaluated against the current full system. A lower advertised inference price is insufficient to justify migration if review load, latency, data terms or failure rates worsen.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-051",
+      "section": "21",
+      "section_title": "Security, data rights and hostile inputs",
+      "text": "Untrusted documents, emails, web pages, tool results and API descriptions MUST NOT change instruction authority, permissions, destinations or the verification standard. Treat embedded instructions as content unless an authorized workflow explicitly uses them as business data.",
+      "keywords": [
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-052",
+      "section": "21",
+      "section_title": "Security, data rights and hostile inputs",
+      "text": "Tenant isolation MUST apply to database queries, object storage, embeddings/search, caches, workspaces, training jobs, model routes, logs and exports. Platform roles and migration roles must be separated from ordinary service roles. PostgreSQL row security has owner/superuser exceptions; merely enabling RLS is not a complete isolation design [S14].",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-053",
+      "section": "21",
+      "section_title": "Security, data rights and hostile inputs",
+      "text": "Data-purpose authorization MUST be enforced at collection, transformation, evaluation, training and export. Derived data inherits restrictions. Plumb MUST NOT infer permission to train from permission to read. It MUST NOT assume that a tenant-specific model is permitted for every source or principal.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-054",
+      "section": "21",
+      "section_title": "Security, data rights and hostile inputs",
+      "text": "Secret values MUST stay outside prompts, generated artifacts and ordinary telemetry. Network egress MUST be mediated and destinations allowlisted for the operation. Callback/webhook URLs need SSRF protection, signature verification, replay defenses and bounded payload parsing.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-055",
+      "section": "22",
+      "section_title": "Control-plane API and event protocol",
+      "text": "Long-running mutations MUST return a job identity and durable status, normally HTTP 202. Repeated requests with the same tenant-scoped idempotency key and payload MUST return the original operation; the same key with a different payload MUST return a conflict. Server-assigned state must not be overwritten by client claims.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-056",
+      "section": "22",
+      "section_title": "Control-plane API and event protocol",
+      "text": "Updates to versioned resources MUST use optimistic concurrency, such as If-Match. A stale version returns 412 and an authorization failure must not reveal another tenant's resource details. Pagination MUST use stable opaque cursors with bounded page sizes.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-057",
+      "section": "23",
+      "section_title": "Persistence and state machines",
+      "text": "Authoritative state transitions MUST be transactional, versioned and auditable. A worker lease cannot be the only record that an external action was attempted. Audit retention must follow source/customer obligations and contain minimal necessary data.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-058",
+      "section": "24",
+      "section_title": "Economics, scale and observability",
+      "text": "Cost reservations MUST be enforced before work starts, with recorded actual charges and release of unused reservations. Concurrent steps MUST NOT each spend against the same remaining budget without atomic reservation. The reference checker verifies declared worst-case budgets; it does not meter a live provider.",
+      "keywords": [
+        "MUST",
+        "MUST NOT"
+      ]
+    },
+    {
+      "id": "PL-059",
+      "section": "24",
+      "section_title": "Economics, scale and observability",
+      "text": "Plumb MUST measure customer review/rework and its own implementation/support labor alongside inference and infrastructure. It MUST distinguish model calls, completed cases, correct outcomes and realized business value.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-060",
+      "section": "24",
+      "section_title": "Economics, scale and observability",
+      "text": "Operational telemetry MUST correlate tenant, goal, build, case, release, step, model call and external action without logging sensitive content by default. Pin telemetry conventions; current OpenTelemetry GenAI conventions continue to evolve [S17].",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-061",
+      "section": "25",
+      "section_title": "Acceptance and the three reference scenarios",
+      "text": "The release suite MUST include normal cases, boundary cases, corrupted inputs, stale/revoked access, duplicate/reordered events, crashes after dispatch, concurrent actors, source edits after approval and adversarial instructions. All high-severity failures block activation.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-062",
+      "section": "25",
+      "section_title": "Acceptance and the three reference scenarios",
+      "text": "The implementation-autonomy metric MUST count manual engineering and failed eligible builds. Reporting only the successful cases or only runtime automation is insufficient. Measure end-to-end build completion, intervention hours, repair attempts and cost per verified deployment.",
+      "keywords": [
+        "MUST"
+      ]
+    },
+    {
+      "id": "PL-063",
+      "section": "26",
+      "section_title": "Delivery sequence and engineering ownership",
+      "text": "The first milestone MUST prove automatic construction of a complete integration-and-collection path, not just a manually configured workflow with a polished UI. The next milestone MUST prove that it can be reproduced for a new customer with explicit accounting of human labor.",
+      "keywords": [
+        "MUST"
+      ]
+    }
+  ],
+  "adrs": [
+    {
+      "id": "ADR-001",
+      "title": "Separate engineering and runtime credentials",
+      "rationale": "building an integration requires authority that normal business execution must not inherit."
+    },
+    {
+      "id": "ADR-002",
+      "title": "Keep plan state and artifacts outside the agent workspace",
+      "rationale": "sessions and sandboxes can fail or be replaced without losing authoritative progress."
+    },
+    {
+      "id": "ADR-003",
+      "title": "Use typed contracts and a registry-backed compiler",
+      "rationale": "generated prose must become bounded, inspectable operations before execution."
+    },
+    {
+      "id": "ADR-004",
+      "title": "Use one durable lifecycle owner",
+      "rationale": "overlapping schedulers create ambiguous retries and completion ownership."
+    },
+    {
+      "id": "ADR-005",
+      "title": "Store facts with provenance and multiple time axes",
+      "rationale": "corrections and backfills otherwise contaminate replay and training."
+    },
+    {
+      "id": "ADR-006",
+      "title": "Treat learning setup as an automatically generated deployment",
+      "rationale": "data collection is part of implementation, not customer homework."
+    },
+    {
+      "id": "ADR-007",
+      "title": "Gate promotion independently",
+      "rationale": "the builder must not certify success by editing its own tests or thresholds."
+    },
+    {
+      "id": "ADR-008",
+      "title": "Resolve model aliases to immutable versions per case",
+      "rationale": "reproducible behavior and approval binding require stable execution identity."
+    },
+    {
+      "id": "ADR-009",
+      "title": "Use explicit UNKNOWN for uncertain effects",
+      "rationale": "automatic retries can duplicate irreversible actions."
+    },
+    {
+      "id": "ADR-010",
+      "title": "Measure implementation autonomy separately from runtime autonomy",
+      "rationale": "a manually built automation cannot prove the platform's central claim."
+    }
+  ],
+  "sources": [
+    {
+      "id": "S01",
+      "citation": "[S01]",
+      "title": "Anthropic, Effective harnesses for long-running agents",
+      "annotation": "Explicit progress artifacts and incremental verified execution.",
+      "url": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      "urls": [
+        "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"
+      ]
+    },
+    {
+      "id": "S02",
+      "citation": "[S02]",
+      "title": "Anthropic, Scaling Managed Agents",
+      "annotation": "Separation of session, harness and sandbox responsibilities.",
+      "url": "https://www.anthropic.com/engineering/managed-agents",
+      "urls": [
+        "https://www.anthropic.com/engineering/managed-agents"
+      ]
+    },
+    {
+      "id": "S03",
+      "citation": "[S03]",
+      "title": "Nango, How to build AI agent integrations using the Nango Management MCP",
+      "annotation": "Programmatic integration setup, sync deployment and separate runtime credentials.",
+      "url": "https://nango.dev/blog/how-to-build-ai-agent-integrations-using-the-nango-management-mcp",
+      "urls": [
+        "https://nango.dev/blog/how-to-build-ai-agent-integrations-using-the-nango-management-mcp"
+      ]
+    },
+    {
+      "id": "S04",
+      "citation": "[S04]",
+      "title": "Airbyte, Connector Builder",
+      "annotation": "Declarative HTTP source connectors, configuration and testing; source/destination limits.",
+      "url": "https://airbyte.com/connector-builder",
+      "urls": [
+        "https://airbyte.com/connector-builder"
+      ]
+    },
+    {
+      "id": "S05",
+      "citation": "[S05]",
+      "title": "Pulumi, Automation API",
+      "annotation": "Programmatic infrastructure preview, update, refresh and lifecycle operations.",
+      "url": "https://www.pulumi.com/docs/iac/concepts/automation-api/",
+      "urls": [
+        "https://www.pulumi.com/docs/iac/concepts/automation-api/"
+      ]
+    },
+    {
+      "id": "S06",
+      "citation": "[S06]",
+      "title": "LangChain, LangGraph interrupts",
+      "annotation": "Persistent state and resumable human input.",
+      "url": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+      "urls": [
+        "https://docs.langchain.com/oss/python/langgraph/interrupts"
+      ]
+    },
+    {
+      "id": "S07",
+      "citation": "[S07]",
+      "title": "Model Context Protocol, Security Best Practices",
+      "annotation": "Authorization and token-handling risks.",
+      "url": "https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices",
+      "urls": [
+        "https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices"
+      ]
+    },
+    {
+      "id": "S08",
+      "citation": "[S08]",
+      "title": "Debezium, PostgreSQL connector",
+      "annotation": "Snapshot, streaming, offsets and possible duplicate delivery after failure.",
+      "url": "https://debezium.io/documentation/reference/stable/connectors/postgresql.html",
+      "urls": [
+        "https://debezium.io/documentation/reference/stable/connectors/postgresql.html"
+      ]
+    },
+    {
+      "id": "S09",
+      "citation": "[S09]",
+      "title": "Feast, Point-in-time joins",
+      "annotation": "Event-time retrieval and availability-time constraints for backfilled values.",
+      "url": "https://docs.feast.dev/getting-started/concepts/point-in-time-joins",
+      "urls": [
+        "https://docs.feast.dev/getting-started/concepts/point-in-time-joins"
+      ]
+    },
+    {
+      "id": "S10",
+      "citation": "[S10]",
+      "title": "AWS, CreateTrainingJob",
+      "annotation": "Managed training input, resources, output and stopping configuration.",
+      "url": "https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTrainingJob.html",
+      "urls": [
+        "https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTrainingJob.html"
+      ]
+    },
+    {
+      "id": "S11",
+      "citation": "[S11]",
+      "title": "MLflow, Model Registry Workflows",
+      "annotation": "Model versions, aliases and lifecycle management.",
+      "url": "https://mlflow.org/docs/latest/ml/model-registry/workflow/",
+      "urls": [
+        "https://mlflow.org/docs/latest/ml/model-registry/workflow/"
+      ]
+    },
+    {
+      "id": "S12",
+      "citation": "[S12]",
+      "title": "Anthropic, Demystifying evals for AI agents",
+      "annotation": "Outcome checks, repeatability and evaluation design.",
+      "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+      "urls": [
+        "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+      ]
+    },
+    {
+      "id": "S13",
+      "citation": "[S13]",
+      "title": "OpenLineage, Object Model",
+      "annotation": "Job, run and dataset metadata.",
+      "url": "https://openlineage.io/docs/spec/object-model/",
+      "urls": [
+        "https://openlineage.io/docs/spec/object-model/"
+      ]
+    },
+    {
+      "id": "S14",
+      "citation": "[S14]",
+      "title": "PostgreSQL, Row Security Policies",
+      "annotation": "Policy behavior and privileged-role exceptions.",
+      "url": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html",
+      "urls": [
+        "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+      ]
+    },
+    {
+      "id": "S15",
+      "citation": "[S15]",
+      "title": "Google, Workspace user data and developer policy",
+      "annotation": "Purpose, transfers, personalized-model restrictions and security requirements.",
+      "url": "https://developers.google.com/workspace/workspace-api-user-data-developer-policy",
+      "urls": [
+        "https://developers.google.com/workspace/workspace-api-user-data-developer-policy"
+      ]
+    },
+    {
+      "id": "S16",
+      "citation": "[S16]",
+      "title": "OpenAPI Specification 3.1.1",
+      "annotation": "Interface and schema contract reference.",
+      "url": "https://spec.openapis.org/oas/v3.1.1.html",
+      "urls": [
+        "https://spec.openapis.org/oas/v3.1.1.html"
+      ]
+    },
+    {
+      "id": "S17",
+      "citation": "[S17]",
+      "title": "OpenTelemetry, semantic conventions",
+      "annotation": "Stable naming requires version-aware instrumentation; GenAI conventions have moved to a dedicated repository.",
+      "url": "https://opentelemetry.io/docs/specs/semconv/",
+      "urls": [
+        "https://opentelemetry.io/docs/specs/semconv/"
+      ]
+    },
+    {
+      "id": "S18",
+      "citation": "[S18]",
+      "title": "Temporal, Durable AI and Activity Execution",
+      "annotation": "Durable orchestration and activity lifecycle.",
+      "url": "https://docs.temporal.io/ai",
+      "urls": [
+        "https://docs.temporal.io/ai",
+        "https://docs.temporal.io/activity-execution"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1215 @@
+{
+  "registry_version": "0.2.0",
+  "description": "Synthetic reference capability registry for the Plumb design package. Providers and operations are plausible placeholders; no entry establishes access to any real account.",
+  "capabilities": [
+    {
+      "artifact_id": "cap.inventory.probe.management-api",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:ef09c71c42cf4c3712f01448c9c4ad01436415811578011d9b320e2c612fd406",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/nango-management/connection.describe_operations/2026-09-15"
+      ],
+      "capability_id": "cap.inventory.probe.management-api",
+      "step_type": "inventory.probe",
+      "provider": "nango-management",
+      "operation": "connection.describe_operations",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT",
+        "management_api:connections.read"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "authorization_failure",
+        "rate_limited",
+        "operation_undocumented_for_account"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "EnvironmentInventory",
+        "ProbeReceipt"
+      ],
+      "consumes": [
+        "AutonomyEnvelope"
+      ],
+      "probe_receipt_ref": "probe:platform/nango-management/connection.describe_operations/2026-09-15",
+      "capability_version": "1.3.0"
+    },
+    {
+      "artifact_id": "cap.inventory.probe.portal-scrape",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:296a5d94a6f2869138fd7541db60050dd3215887fdc396dfd2bca2c8554b4dd9",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [],
+      "capability_id": "cap.inventory.probe.portal-scrape",
+      "step_type": "inventory.probe",
+      "provider": "plumb-ui-adapter",
+      "operation": "portal.list_visible_features",
+      "maturity": "DOCUMENTED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT"
+      ],
+      "tested_environment": null,
+      "failure_modes": [
+        "layout_change",
+        "session_expiry",
+        "feature_visible_but_not_enabled"
+      ],
+      "maintenance_burden": "HIGH",
+      "produces": [
+        "EnvironmentInventory"
+      ],
+      "consumes": [
+        "AutonomyEnvelope"
+      ],
+      "probe_receipt_ref": null,
+      "capability_version": "0.1.0"
+    },
+    {
+      "artifact_id": "cap.source.profile.sampler",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:ee35538544dd5c2af3d6bae823abb465f097417062857653cde38d6b8f92d96f",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-profiler/schema.profile_representative_sample/2026-09-18"
+      ],
+      "capability_id": "cap.source.profile.sampler",
+      "step_type": "source.profile",
+      "provider": "plumb-profiler",
+      "operation": "schema.profile_representative_sample",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "sample_not_representative",
+        "pagination_truncated",
+        "schema_version_drift"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "QualityReport"
+      ],
+      "consumes": [
+        "EnvironmentInventory"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-profiler/schema.profile_representative_sample/2026-09-18",
+      "capability_version": "1.1.0"
+    },
+    {
+      "artifact_id": "cap.integration.configure.management-api",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:ea69a9006c18d92054829b7fada0ef8f7c4d1e99d82392dcceb2a354ae758af1",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/nango-management/integration.create_and_authorize/2026-09-15"
+      ],
+      "capability_id": "cap.integration.configure.management-api",
+      "step_type": "integration.configure",
+      "provider": "nango-management",
+      "operation": "integration.create_and_authorize",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "EXTERNAL_WRITE_REVERSIBLE"
+      ],
+      "required_purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "required_authority": [
+        "source_grant:COLLECT",
+        "management_api:integrations.write"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "authorization_failure",
+        "scope_not_granted",
+        "provider_quota_exhausted"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "IntegrationSpec",
+        "AdapterConfiguration"
+      ],
+      "consumes": [
+        "EnvironmentInventory"
+      ],
+      "probe_receipt_ref": "probe:platform/nango-management/integration.create_and_authorize/2026-09-15",
+      "capability_version": "1.3.0"
+    },
+    {
+      "artifact_id": "cap.integration.generate_adapter.declarative",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:4a09ffa10d2afcf907d318f6bb80d1bd7a4ea2928f6852d5b68532e0aeb7bbd8",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/airbyte-builder/declarative_source.generate/2026-09-18"
+      ],
+      "capability_id": "cap.integration.generate_adapter.declarative",
+      "step_type": "integration.generate_adapter",
+      "provider": "airbyte-builder",
+      "operation": "declarative_source.generate",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "INSPECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT",
+        "sandbox:run"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "undocumented_pagination",
+        "field_meaning_ambiguous",
+        "write_operation_unsupported"
+      ],
+      "maintenance_burden": "HIGH",
+      "produces": [
+        "AdapterCode",
+        "AdapterConfiguration"
+      ],
+      "consumes": [
+        "IntegrationSpec",
+        "QualityReport"
+      ],
+      "probe_receipt_ref": "probe:platform/airbyte-builder/declarative_source.generate/2026-09-18",
+      "capability_version": "0.9.0"
+    },
+    {
+      "artifact_id": "cap.integration.contract_test.verifier",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:b20dcbe69d3a029f34c86eae192cb395d81b5d6ddcc3fe73954e9f9949489945",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-verifier/adapter.run_contract_suite/2026-09-20"
+      ],
+      "capability_id": "cap.integration.contract_test.verifier",
+      "step_type": "integration.contract_test",
+      "provider": "plumb-verifier",
+      "operation": "adapter.run_contract_suite",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT",
+        "verifier:execute"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "sandbox_account_unavailable",
+        "rate_limited",
+        "flaky_provider_response"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "TestBundle",
+        "VerificationReceipt"
+      ],
+      "consumes": [
+        "AdapterCode",
+        "AdapterConfiguration",
+        "IntegrationSpec"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-verifier/adapter.run_contract_suite/2026-09-20",
+      "capability_version": "2.0.0"
+    },
+    {
+      "artifact_id": "cap.collection.deploy_shadow.management-api",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:5857ff3bb485726c8b2285e3fdec0e2a4c70eae05ab9d2aefe5d69ee7b1d3b37",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/nango-management/sync.deploy_shadow/2026-09-18"
+      ],
+      "capability_id": "cap.collection.deploy_shadow.management-api",
+      "step_type": "collection.deploy_shadow",
+      "provider": "nango-management",
+      "operation": "sync.deploy_shadow",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "COLLECT"
+      ],
+      "required_authority": [
+        "source_grant:COLLECT",
+        "destination:tenant_storage.write"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "deployment_accepted_but_no_events",
+        "cursor_reset",
+        "destination_schema_mismatch"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "CollectionSpec"
+      ],
+      "consumes": [
+        "IntegrationSpec",
+        "AdapterConfiguration"
+      ],
+      "probe_receipt_ref": "probe:platform/nango-management/sync.deploy_shadow/2026-09-18",
+      "capability_version": "1.2.0"
+    },
+    {
+      "artifact_id": "cap.collection.backfill.durable-workflow",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:322c48df925a9372dbebd962ad1ec9fc17c1e534ec7cd7e9294a3428504889ee",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/temporal/collector.run_backfill_workflow/2026-09-22"
+      ],
+      "capability_id": "cap.collection.backfill.durable-workflow",
+      "step_type": "collection.backfill",
+      "provider": "temporal",
+      "operation": "collector.run_backfill_workflow",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "COLLECT"
+      ],
+      "required_authority": [
+        "source_grant:COLLECT",
+        "destination:tenant_storage.write",
+        "budget_reservation"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "history_boundary_unavailable",
+        "duplicate_pages",
+        "rate_limited"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "EvidencePacket",
+        "QualityReport"
+      ],
+      "consumes": [
+        "CollectionSpec"
+      ],
+      "probe_receipt_ref": "probe:platform/temporal/collector.run_backfill_workflow/2026-09-22",
+      "capability_version": "1.4.0"
+    },
+    {
+      "artifact_id": "cap.collection.reconcile.verifier",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:44e5e5c17a73be396ab15d0bd17c2774c7eb18e17ce105b4d7b3eede355d4a36",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-verifier/collector.reconcile_source_to_storage/2026-09-22"
+      ],
+      "capability_id": "cap.collection.reconcile.verifier",
+      "step_type": "collection.reconcile",
+      "provider": "plumb-verifier",
+      "operation": "collector.reconcile_source_to_storage",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT",
+        "COLLECT"
+      ],
+      "required_authority": [
+        "source_grant:INSPECT",
+        "verifier:execute"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "source_count_unavailable",
+        "late_arriving_records",
+        "deleted_at_source"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "VerificationReceipt",
+        "QualityReport"
+      ],
+      "consumes": [
+        "CollectionSpec",
+        "EvidencePacket"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-verifier/collector.reconcile_source_to_storage/2026-09-22",
+      "capability_version": "2.0.0"
+    },
+    {
+      "artifact_id": "cap.collection.enable_incremental.webhooks",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:ea8bd422144918e9dfb7fa45e9bb66478ff3f322eff8a423d312e036e8a06e48",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/nango-management/sync.enable_incremental_delivery/2026-09-22"
+      ],
+      "capability_id": "cap.collection.enable_incremental.webhooks",
+      "step_type": "collection.enable_incremental",
+      "provider": "nango-management",
+      "operation": "sync.enable_incremental_delivery",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "EXTERNAL_WRITE_REVERSIBLE"
+      ],
+      "required_purposes": [
+        "COLLECT"
+      ],
+      "required_authority": [
+        "source_grant:COLLECT",
+        "management_api:webhooks.write"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "webhook_delivery_gaps",
+        "signature_rotation",
+        "polling_fallback_required"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "CollectionSpec"
+      ],
+      "consumes": [
+        "CollectionSpec",
+        "VerificationReceipt"
+      ],
+      "probe_receipt_ref": "probe:platform/nango-management/sync.enable_incremental_delivery/2026-09-22",
+      "capability_version": "1.3.0"
+    },
+    {
+      "artifact_id": "cap.dataset.discover_sources.builder",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:cb3f56e2fb304d0648f81b3e75d8e3472e414b2167f33ea0b331562b5a244bd3",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-dataset-builder/sources.discover_candidates/2026-09-19"
+      ],
+      "capability_id": "cap.dataset.discover_sources.builder",
+      "step_type": "dataset.discover_sources",
+      "provider": "plumb-dataset-builder",
+      "operation": "sources.discover_candidates",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "INSPECT",
+        "TRANSFORM"
+      ],
+      "required_authority": [
+        "source_grant:TRANSFORM"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "label_source_missing",
+        "availability_time_unknown",
+        "join_key_ambiguous"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "SourceCandidateTable"
+      ],
+      "consumes": [
+        "EvidencePacket",
+        "OpportunitySpec"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-dataset-builder/sources.discover_candidates/2026-09-19",
+      "capability_version": "0.8.0"
+    },
+    {
+      "artifact_id": "cap.dataset.build.builder",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:9223922bd6cc2b1c87e1a64198e4ff20507e955ed9b2fa775c52ecdc72342239",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-dataset-builder/dataset.materialize_manifest/2026-09-19"
+      ],
+      "capability_id": "cap.dataset.build.builder",
+      "step_type": "dataset.build",
+      "provider": "plumb-dataset-builder",
+      "operation": "dataset.materialize_manifest",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "COLLECT",
+        "TRANSFORM"
+      ],
+      "required_authority": [
+        "source_grant:TRANSFORM",
+        "destination:tenant_storage.write"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "future_information_leak",
+        "family_split_across_partitions",
+        "source_revision_unpinned"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "DatasetManifest",
+        "TransformationCode"
+      ],
+      "consumes": [
+        "SourceCandidateTable",
+        "TaskDefinition",
+        "EvidencePacket"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-dataset-builder/dataset.materialize_manifest/2026-09-19",
+      "capability_version": "0.8.0"
+    },
+    {
+      "artifact_id": "cap.dataset.label_audit.builder",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:aef219c7455600826cd88cd6096b67432182e5bb00630919547a8fa1e0130a54",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-dataset-builder/labels.audit_consistency/2026-09-19"
+      ],
+      "capability_id": "cap.dataset.label_audit.builder",
+      "step_type": "dataset.label_audit",
+      "provider": "plumb-dataset-builder",
+      "operation": "labels.audit_consistency",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "TRANSFORM",
+        "EVALUATE"
+      ],
+      "required_authority": [
+        "source_grant:EVALUATE"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "ambiguous_labels_dominant",
+        "inter_annotator_disagreement",
+        "weak_proxy_mislabelled"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "LabelAuditReport"
+      ],
+      "consumes": [
+        "DatasetManifest"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-dataset-builder/labels.audit_consistency/2026-09-19",
+      "capability_version": "0.8.0"
+    },
+    {
+      "artifact_id": "cap.training.submit.managed-open-model",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:967c3e3684abf0e7d74c5a76a2f12737e20d113bd0eb07f1cf22305b9ce7a194",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/sagemaker-training/training_job.submit_budgeted/2026-09-24"
+      ],
+      "capability_id": "cap.training.submit.managed-open-model",
+      "step_type": "training.submit",
+      "provider": "sagemaker-training",
+      "operation": "training_job.submit_budgeted",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "TRAIN"
+      ],
+      "required_authority": [
+        "source_grant:TRAIN",
+        "processor:sagemaker-training",
+        "budget_reservation"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "quota_exhausted",
+        "job_lost_after_submit",
+        "unsupported_base_model_method_combination"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "ModelVersion",
+        "TrainingSpec"
+      ],
+      "consumes": [
+        "DatasetManifest",
+        "TrainingSpec",
+        "TaskDefinition"
+      ],
+      "probe_receipt_ref": "probe:platform/sagemaker-training/training_job.submit_budgeted/2026-09-24",
+      "capability_version": "0.6.0"
+    },
+    {
+      "artifact_id": "cap.training.submit.api-finetune",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:e19836f0e09317cca31d2a9fbaec5e1d210a991a4e40cd483730ad5705c92d6c",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [],
+      "capability_id": "cap.training.submit.api-finetune",
+      "step_type": "training.submit",
+      "provider": "model-provider-finetune",
+      "operation": "finetune_job.create",
+      "maturity": "DOCUMENTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "TRAIN"
+      ],
+      "required_authority": [
+        "source_grant:TRAIN",
+        "processor:model-provider-finetune",
+        "budget_reservation"
+      ],
+      "tested_environment": null,
+      "failure_modes": [
+        "account_not_enabled_for_finetuning",
+        "data_residency_unsupported",
+        "job_lost_after_submit"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "ModelVersion",
+        "TrainingSpec"
+      ],
+      "consumes": [
+        "DatasetManifest",
+        "TrainingSpec"
+      ],
+      "probe_receipt_ref": null,
+      "capability_version": "0.1.0"
+    },
+    {
+      "artifact_id": "cap.evaluation.run.verifier",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:d740dca016575d38a5c7e544377ba8ebed20bb1afd4e275c4b0cc6e5deb998f2",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-verifier/evaluation.run_holdout/2026-09-24"
+      ],
+      "capability_id": "cap.evaluation.run.verifier",
+      "step_type": "evaluation.run",
+      "provider": "plumb-verifier",
+      "operation": "evaluation.run_holdout",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "EVALUATE"
+      ],
+      "required_authority": [
+        "source_grant:EVALUATE",
+        "verifier:execute"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "holdout_contaminated",
+        "denominator_too_small",
+        "nondeterministic_candidate"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "EvaluationReport",
+        "CandidateComparison"
+      ],
+      "consumes": [
+        "DatasetManifest",
+        "ModelVersion",
+        "WorkflowSpec"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-verifier/evaluation.run_holdout/2026-09-24",
+      "capability_version": "2.0.0"
+    },
+    {
+      "artifact_id": "cap.workflow.compile.compiler",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:a0b58dd33754b76eba2c8de1e90deb60a6afcacba9ea259879f510787dcbcf01",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-workflow-compiler/workflow.compile_bounded/2026-09-25"
+      ],
+      "capability_id": "cap.workflow.compile.compiler",
+      "step_type": "workflow.compile",
+      "provider": "plumb-workflow-compiler",
+      "operation": "workflow.compile_bounded",
+      "maturity": "SANDBOX_TESTED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "TRANSFORM"
+      ],
+      "required_authority": [
+        "sandbox:run"
+      ],
+      "tested_environment": "sandbox:plumb-staging-eu-west/2026-09",
+      "failure_modes": [
+        "unbounded_loop_detected",
+        "uncertified_primitive_requested",
+        "effect_class_undeclared"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "WorkflowSpec",
+        "ServingConfiguration"
+      ],
+      "consumes": [
+        "OpportunitySpec",
+        "IntegrationSpec",
+        "ModelVersion"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-workflow-compiler/workflow.compile_bounded/2026-09-25",
+      "capability_version": "0.7.0"
+    },
+    {
+      "artifact_id": "cap.workflow.test_bundle.verifier",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:14ce290e986f4737e366eafcd045f45b3a4f697a4ea1a5b8bb340b197ed70018",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-verifier/workflow.run_protected_scenarios/2026-09-25"
+      ],
+      "capability_id": "cap.workflow.test_bundle.verifier",
+      "step_type": "workflow.test_bundle",
+      "provider": "plumb-verifier",
+      "operation": "workflow.run_protected_scenarios",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "EVALUATE"
+      ],
+      "required_authority": [
+        "source_grant:EVALUATE",
+        "verifier:execute"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "scenario_fixture_stale",
+        "adversarial_case_failed",
+        "review_threshold_unmet"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "TestBundle",
+        "VerificationReceipt"
+      ],
+      "consumes": [
+        "WorkflowSpec",
+        "DatasetManifest"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-verifier/workflow.run_protected_scenarios/2026-09-25",
+      "capability_version": "2.0.0"
+    },
+    {
+      "artifact_id": "cap.infrastructure.preview.automation-api",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:20e8216526d3da37bcfbc6e02c7e09a8356e9d7ddc753bee63903cc8ff4468c5",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/pulumi-automation/stack.preview/2026-09-26"
+      ],
+      "capability_id": "cap.infrastructure.preview.automation-api",
+      "step_type": "infrastructure.preview",
+      "provider": "pulumi-automation",
+      "operation": "stack.preview",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [],
+      "required_authority": [
+        "cloud_account:preview",
+        "state_lock"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "template_not_approved",
+        "state_lock_held",
+        "cost_estimate_unavailable"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "InfrastructurePreview",
+        "InfrastructurePlan"
+      ],
+      "consumes": [
+        "InfrastructurePlan"
+      ],
+      "probe_receipt_ref": "probe:platform/pulumi-automation/stack.preview/2026-09-26",
+      "capability_version": "1.0.0"
+    },
+    {
+      "artifact_id": "cap.infrastructure.apply.automation-api",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:e96f8f515329418e1a6dc96701a85983323dd35280a4d919d8ede00e1000a061",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/pulumi-automation/stack.up_from_preview/2026-09-26"
+      ],
+      "capability_id": "cap.infrastructure.apply.automation-api",
+      "step_type": "infrastructure.apply",
+      "provider": "pulumi-automation",
+      "operation": "stack.up_from_preview",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "INFRASTRUCTURE_CHANGE"
+      ],
+      "required_purposes": [],
+      "required_authority": [
+        "cloud_account:apply",
+        "approval:IMPLEMENT_OPERATE",
+        "state_lock"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "partial_apply",
+        "drift_since_preview",
+        "destructive_change_without_authorization"
+      ],
+      "maintenance_burden": "HIGH",
+      "produces": [
+        "InfrastructurePlan",
+        "VerificationReceipt"
+      ],
+      "consumes": [
+        "InfrastructurePlan",
+        "InfrastructurePreview",
+        "ApprovalRecord"
+      ],
+      "probe_receipt_ref": "probe:platform/pulumi-automation/stack.up_from_preview/2026-09-26",
+      "capability_version": "1.0.0"
+    },
+    {
+      "artifact_id": "cap.release.create.executor",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:affa22e6a1f0354091f2d05cedac6955d11a9a507efdb7a553c8f1f7a47f1a26",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-release-executor/release.assemble_manifest/2026-09-27"
+      ],
+      "capability_id": "cap.release.create.executor",
+      "step_type": "release.create",
+      "provider": "plumb-release-executor",
+      "operation": "release.assemble_manifest",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [],
+      "required_authority": [
+        "release_executor:create"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "component_digest_unverified",
+        "attestation_for_different_bytes",
+        "missing_component_without_reason"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "ReleaseManifest"
+      ],
+      "consumes": [
+        "WorkflowSpec",
+        "IntegrationSpec",
+        "CollectionSpec",
+        "ModelVersion",
+        "InfrastructurePlan",
+        "EvaluationReport",
+        "VerificationAttestation"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-release-executor/release.assemble_manifest/2026-09-27",
+      "capability_version": "1.0.0"
+    },
+    {
+      "artifact_id": "cap.release.activate_shadow.executor",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:f3c30c1977558cb0865ce548c552591148ada898db241cbaa8108434515f1eb2",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-release-executor/release.activate_shadow/2026-09-27"
+      ],
+      "capability_id": "cap.release.activate_shadow.executor",
+      "step_type": "release.activate_shadow",
+      "provider": "plumb-release-executor",
+      "operation": "release.activate_shadow",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [
+        "SERVE"
+      ],
+      "required_authority": [
+        "release_executor:activate",
+        "approval:IMPLEMENT_OPERATE"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "shadow_traffic_absent",
+        "resolved_model_version_mismatch",
+        "effect_attempted_in_shadow"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "ReleaseManifest"
+      ],
+      "consumes": [
+        "ReleaseManifest",
+        "VerificationAttestation"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-release-executor/release.activate_shadow/2026-09-27",
+      "capability_version": "1.0.0"
+    },
+    {
+      "artifact_id": "cap.release.canary.executor",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:2f34d390846fff1361cc9ad223f1673bf3c1722f4f2ef2e92e06187eef7fbb85",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-release-executor/release.run_bounded_canary/2026-09-27"
+      ],
+      "capability_id": "cap.release.canary.executor",
+      "step_type": "release.canary",
+      "provider": "plumb-release-executor",
+      "operation": "release.run_bounded_canary",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "EXTERNAL_WRITE_REVERSIBLE",
+        "EXTERNAL_COMMUNICATION"
+      ],
+      "required_purposes": [
+        "SERVE"
+      ],
+      "required_authority": [
+        "release_executor:activate",
+        "approval:IMPLEMENT_OPERATE",
+        "approval:CASE_LEVEL_BUSINESS"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "canary_gate_failed",
+        "pause_requested",
+        "effect_outcome_unknown"
+      ],
+      "maintenance_burden": "MEDIUM",
+      "produces": [
+        "CanaryReport",
+        "ReleaseManifest"
+      ],
+      "consumes": [
+        "ReleaseManifest",
+        "ApprovalRecord",
+        "VerificationAttestation"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-release-executor/release.run_bounded_canary/2026-09-27",
+      "capability_version": "1.0.0"
+    },
+    {
+      "artifact_id": "cap.verification.request.verifier",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:bcf304824105315bd344a3378173530aa057705df67fb5d746a25a747388383d",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-verifier/verification.request_attestation/2026-09-20"
+      ],
+      "capability_id": "cap.verification.request.verifier",
+      "step_type": "verification.request",
+      "provider": "plumb-verifier",
+      "operation": "verification.request_attestation",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "READ"
+      ],
+      "required_purposes": [
+        "EVALUATE"
+      ],
+      "required_authority": [
+        "verifier:execute"
+      ],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "artifact_digest_changed",
+        "protected_bundle_unavailable",
+        "verifier_environment_mismatch"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "VerificationAttestation"
+      ],
+      "consumes": [
+        "IntegrationSpec",
+        "CollectionSpec",
+        "DatasetManifest",
+        "WorkflowSpec",
+        "InfrastructurePlan",
+        "ReleaseManifest"
+      ],
+      "probe_receipt_ref": "probe:platform/plumb-verifier/verification.request_attestation/2026-09-20",
+      "capability_version": "2.0.0"
+    },
+    {
+      "artifact_id": "cap.dependency.raise.control-plane",
+      "tenant_id": "tnt_platform",
+      "kind": "CapabilityRecord",
+      "schema_version": "0.2.0",
+      "version": 1,
+      "content_digest": "sha256:d27e78d9fbc17fe180300b4b17f8a91cf6de8031eafbd7544efe7f4532743dfe",
+      "producer": {
+        "principal_id": "plumb-platform-registry",
+        "principal_type": "SERVICE",
+        "authenticated_via": "oidc:platform-control-plane"
+      },
+      "created_at": "2026-10-02T00:00:00Z",
+      "evidence_links": [
+        "probe:platform/plumb-control-plane/dependency.record_resumable/2026-09-15"
+      ],
+      "capability_id": "cap.dependency.raise.control-plane",
+      "step_type": "dependency.raise",
+      "provider": "plumb-control-plane",
+      "operation": "dependency.record_resumable",
+      "maturity": "PRODUCTION_VERIFIED",
+      "effect_classes": [
+        "INTERNAL_WRITE"
+      ],
+      "required_purposes": [],
+      "required_authority": [],
+      "tested_environment": "production:plumb-platform-eu-west/2026-09",
+      "failure_modes": [
+        "resolver_role_unknown",
+        "dependency_duplicate"
+      ],
+      "maintenance_burden": "LOW",
+      "produces": [
+        "DependencyRecord"
+      ],
+      "consumes": [],
+      "probe_receipt_ref": "probe:platform/plumb-control-plane/dependency.record_resumable/2026-09-15",
+      "capability_version": "1.0.0"
+    }
+  ]
+}

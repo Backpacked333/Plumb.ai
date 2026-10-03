@@ -1,0 +1,3281 @@
+openapi: 3.1.0
+info:
+  title: Plumb Control-Plane API (proposed)
+  version: 0.2.0
+  summary: Proposed control-plane interface of the Plumb Autonomous Implementation System.
+  description: |
+    This document is a **proposed interface, not a running endpoint** (specification
+    section 22). It covers envelope creation, inventory jobs, opportunity discovery,
+    build creation/status/events, connection intents, collection jobs, dataset and
+    training jobs, evaluations, release creation/activation/pause, action
+    dispatch/reconciliation and outcome queries, and it defines the object schemas and
+    the shared job/error envelopes.
+
+    Conventions that apply to every operation:
+
+    * **PL-004** — the `tenant_id` path segment is informational. Servers derive the
+      tenant from verified authentication, never from the path or the body. A path
+      tenant that differs from the authenticated tenant is answered with `404`, never
+      with a `403` that would reveal that another tenant's resource exists (PL-056).
+    * **PL-055** — long-running mutations return `202 Accepted` with a `JobEnvelope`
+      carrying a durable job identity. Every mutating operation requires an
+      `Idempotency-Key` header scoped to the tenant: the same key with the same payload
+      returns the original operation; the same key with a different payload is
+      rejected with `409` and `error_class: PAYLOAD_CONFLICT`. Server-assigned state is
+      never overwritten by client claims.
+    * **PL-056** — updates to versioned resources carry `If-Match` with the resource's
+      current `ETag`; a stale version is answered with `412`. List operations use
+      stable opaque cursors with a bounded page size (`limit` ≤ 200).
+    * Errors never contain raw secrets, source content or another tenant's
+      identifiers (section 22). Error responses use `ErrorEnvelope`.
+
+    Schemas annotated with `x-plumb-contract` mirror the package contracts in
+    `plumb/contracts` (JSON Schemas under `schemas/<ContractName>.json`). All `$ref`s
+    are local to this document; reference validation (`api/validate_openapi.py`) checks
+    JSON validity and local reference resolution only. Authentication, serialization
+    compatibility and complete OpenAPI conformance need implementation-time tests.
+  license:
+    name: Proprietary
+servers:
+  - url: https://control-plane.example.invalid
+    description: Placeholder host. No deployed server exists for this proposal.
+security:
+  - bearerAuth: []
+tags:
+  - name: envelopes
+    description: Autonomy envelopes (PL-005). Versioned; a new version supersedes the previous one.
+  - name: inventory
+    description: Environment inventory jobs (PL-007, PL-008).
+  - name: opportunities
+    description: Opportunity discovery and selection (PL-012, PL-013).
+  - name: builds
+    description: Build plans, build status, build events and dependency resolution (PL-014..PL-019).
+  - name: connections
+    description: Connection intents that mint provider consent sessions (section 10).
+  - name: collection
+    description: Collector construction jobs (PL-023..PL-025).
+  - name: datasets
+    description: Dataset materialisation jobs (PL-028..PL-030).
+  - name: training
+    description: Training jobs with persisted submission identity (PL-032, PL-033).
+  - name: evaluation
+    description: Held-out evaluations (PL-031, PL-034).
+  - name: releases
+    description: Release creation and rollout state (PL-046, PL-047).
+  - name: actions
+    description: External-effect dispatch and reconciliation (PL-037..PL-039).
+  - name: outcomes
+    description: Outcome observations and economics (PL-059).
+
+paths:
+  /v1/tenants/{tenant_id}/envelopes:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: createEnvelope
+      tags: [envelopes]
+      summary: Create or supersede an autonomy envelope
+      description: |
+        Stores a new `AutonomyEnvelope` version tied to an authenticated business owner
+        (PL-005). Supersession and revocation are modelled by posting a new
+        `envelope_version` for an existing `envelope_id` together with `If-Match` on the
+        current version; a stale `If-Match` returns `412` (PL-056). A derived task can
+        never widen the envelope. Tenant identity comes from authentication, not from the
+        path or body (PL-004). The operation is synchronous (`201`) and idempotent under
+        `Idempotency-Key`; the same key with a different payload returns `409
+        PAYLOAD_CONFLICT` (PL-055).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutonomyEnvelope'
+      responses:
+        '201':
+          description: Envelope version stored.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutonomyEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+
+  /v1/tenants/{tenant_id}/envelopes/{envelope_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/EnvelopeId'
+    get:
+      operationId: getEnvelope
+      tags: [envelopes]
+      summary: Fetch the current version of an envelope
+      description: |
+        Returns the latest `AutonomyEnvelope` version with its `ETag`. The tenant is
+        derived from authentication (PL-004); an envelope that belongs to another tenant
+        is reported as `404`, never `403` (PL-056).
+      responses:
+        '200':
+          description: Current envelope version.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutonomyEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/inventory-jobs:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: startInventoryJob
+      tags: [inventory]
+      summary: Start an environment inventory job
+      description: |
+        Starts the autonomous inventory of applications, accounts, entities, schema
+        versions, operations, authorization status, quotas, update mechanisms, freshness
+        and owners within the envelope's source scope (PL-007). Capability maturity is
+        recorded per probe (PL-008). Long-running: returns `202` with a `JobEnvelope`
+        whose `result_ref` resolves to an `EnvironmentInventory` artifact (PL-055). The
+        tenant comes from authentication (PL-004).
+      x-plumb-result-contract: EnvironmentInventory
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryJobRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/inventory-jobs/{job_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/JobId'
+    get:
+      operationId: getInventoryJob
+      tags: [inventory]
+      summary: Fetch an inventory job and its inventory when complete
+      description: |
+        Returns the durable job status (PL-055) and, once the job succeeded, the
+        `EnvironmentInventory` including its coverage report of unobserved applications
+        and employees (PL-007). Cross-tenant job ids are `404` (PL-004, PL-056).
+      responses:
+        '200':
+          description: Job status with optional inventory.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryJobStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/opportunity-discoveries:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: startOpportunityDiscovery
+      tags: [opportunities]
+      summary: Start opportunity discovery for a goal
+      description: |
+        Starts discovery of candidate interventions from the inventory and evidence
+        (PL-012). Each produced `OpportunitySpec` carries baseline, evidence coverage,
+        expected benefit range, failure and review cost and a prospective measurement
+        plan (PL-013). Long-running: `202` with a `JobEnvelope` (PL-055); the tenant comes
+        from authentication (PL-004).
+      x-plumb-result-contract: OpportunitySpec
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityDiscoveryRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/opportunities:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      operationId: listOpportunities
+      tags: [opportunities]
+      summary: List discovered opportunities
+      description: |
+        Lists `OpportunitySpec` artifacts of the authenticated tenant (PL-004) using a
+        stable opaque cursor and a bounded page size (PL-056). `next_cursor` is `null`
+        on the last page.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: goal_id
+          in: query
+          required: false
+          description: Restrict to opportunities discovered for one goal.
+          schema:
+            $ref: '#/components/schemas/Identifier'
+      responses:
+        '200':
+          description: One page of opportunities.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpportunityList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/builds:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: createBuild
+      tags: [builds]
+      summary: Submit a build plan and start the build
+      description: |
+        Validates the submitted `BuildPlan` with the reference checker (dependency DAG,
+        capability maturity, envelope scope, purposes, budgets, verification obligations;
+        PL-014..PL-019) and starts the build. Long-running: `202` with a `JobEnvelope`
+        whose `job_id` is the build id (PL-055). A plan that fails validation is rejected
+        with `400` and a `VERIFICATION_FAILED`, `SCOPE_DENIED`, `PURPOSE_DENIED`,
+        `BUDGET_EXCEEDED` or `CAPABILITY_UNSUPPORTED` error class. The tenant is derived
+        from authentication; a plan whose `tenant_id` differs is `404` (PL-004, PL-056).
+      x-plumb-result-contract: BuildPlan
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildPlan'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/builds/{build_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/BuildId'
+    get:
+      operationId: getBuild
+      tags: [builds]
+      summary: Fetch build status
+      description: |
+        Returns the build lifecycle state (section 23), per-step states and open
+        dependencies. The `ETag` is the build version used by `resolveBuildDependency`
+        (PL-056). Cross-tenant build ids are `404` (PL-004).
+      responses:
+        '200':
+          description: Build status.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/builds/{build_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/BuildId'
+    get:
+      operationId: listBuildEvents
+      tags: [builds]
+      summary: List build events
+      description: |
+        Returns the build's `EventEnvelope`s in per-aggregate order (section 22).
+        Ordering is guaranteed per aggregate only. Pagination uses a stable opaque
+        cursor with `limit` ≤ 200 (PL-056). The tenant is derived from authentication
+        (PL-004).
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: One page of events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/builds/{build_id}/dependencies/{dependency_id}/resolution:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/BuildId'
+      - $ref: '#/components/parameters/DependencyId'
+    post:
+      operationId: resolveBuildDependency
+      tags: [builds]
+      summary: Supply a raised dependency and resume the build
+      description: |
+        Records the authorization, consent or business decision that a `dependency.raise`
+        step asked for and resumes the blocked steps from persisted state (PL-001,
+        PL-041). The supplied authority must come from an independently authenticated
+        decision, never from the build agent (PL-040). `If-Match` carries the build
+        version from `getBuild`; a stale version returns `412` (PL-056). Long-running:
+        `202` with a `JobEnvelope` (PL-055); the same `Idempotency-Key` with a different
+        payload returns `409 PAYLOAD_CONFLICT`. Tenant from authentication (PL-004).
+      x-plumb-result-contract: ApprovalRecord
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DependencyResolution'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+
+  /v1/tenants/{tenant_id}/connection-intents:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: createConnectionIntent
+      tags: [connections]
+      summary: Create a connection intent for a provider account
+      description: |
+        Mints a consent/authorization session for an application that is not yet
+        accessible (section 5, section 10). The response carries a `consent_url_ref`
+        (a reference, never a token) that the accountable human completes; Plumb never
+        bypasses vendor approvals or MFA. Synchronous (`201`), idempotent under
+        `Idempotency-Key` (PL-055). The granted scopes become source grants on the
+        envelope only through an authenticated consent (PL-040). Tenant from
+        authentication (PL-004).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionIntentRequest'
+      responses:
+        '201':
+          description: Connection intent created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/connection-intents/{intent_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/IntentId'
+    get:
+      operationId: getConnectionIntent
+      tags: [connections]
+      summary: Fetch a connection intent
+      description: |
+        Returns the intent's consent state. Credentials obtained through consent are held
+        by the gateway and are never returned (PL-006, PL-054). Cross-tenant ids are
+        `404` (PL-004, PL-056).
+      responses:
+        '200':
+          description: Connection intent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionIntent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/collection-jobs:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: startCollectionJob
+      tags: [collection]
+      summary: Start building a collector from a CollectionSpec
+      description: |
+        Deploys the described collector in shadow mode, backfills from the agreed
+        watermark, reconciles and enables incremental processing (PL-023, PL-024). The
+        spec must carry evidence of permitted purpose for every source (PL-053). Collector
+        health (freshness, lag, completeness, failure state) is published through
+        `getCollectionJob` (PL-025). Long-running: `202` with a `JobEnvelope` (PL-055).
+        Tenant from authentication (PL-004).
+      x-plumb-result-contract: CollectionSpec
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionSpec'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/collection-jobs/{job_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/JobId'
+    get:
+      operationId: getCollectionJob
+      tags: [collection]
+      summary: Fetch a collection job with collector state and health
+      description: |
+        Returns the job status, the collector lifecycle state (section 23) and the
+        published health contract (PL-025). A stopped collector is reported as such so
+        downstream workflows block or degrade explicitly. Cross-tenant ids are `404`
+        (PL-004, PL-056).
+      responses:
+        '200':
+          description: Collection job status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionJobStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/dataset-jobs:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: startDatasetJob
+      tags: [datasets]
+      summary: Materialise a dataset revision from a proposed manifest
+      description: |
+        Accepts a proposed `DatasetManifest` (split rules, label definition, pinned source
+        versions and transformations; `rows` may be empty) and materialises the rows
+        with point-in-time correctness and split hygiene (PL-028, PL-029). The resulting
+        manifest is immutable and reproducible from the pinned inputs (PL-030); when
+        required source material was deleted the dataset is marked `UNAVAILABLE` rather
+        than falsified. Long-running: `202` with a `JobEnvelope` (PL-055). Tenant from
+        authentication (PL-004).
+      x-plumb-result-contract: DatasetManifest
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetManifest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/training-jobs:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: startTrainingJob
+      tags: [training]
+      summary: Submit a training job from a TrainingSpec
+      description: |
+        Verifies that the provider supports the pinned base model, method and modality
+        before any provider job is submitted (PL-032), persists the submission identity
+        so a lost response cannot launch a duplicate job (PL-033) and reserves the
+        declared budget (PL-058). TRAIN purpose must be granted for every source of the
+        dataset; it is never inferred from read permission (PL-053). Long-running: `202`
+        with a `JobEnvelope` (PL-055). Tenant from authentication (PL-004).
+      x-plumb-result-contract: TrainingSpec
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingSpec'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/training-jobs/{job_id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/JobId'
+    get:
+      operationId: getTrainingJob
+      tags: [training]
+      summary: Fetch a training job
+      description: |
+        Returns the job status, the training lifecycle state (section 23), the persisted
+        submission identity (PL-033) and, when complete, the candidate model artifact. A
+        completed provider job is a candidate, not an approved production model (PL-033,
+        PL-034). Cross-tenant ids are `404` (PL-004, PL-056).
+      responses:
+        '200':
+          description: Training job status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingJobStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenants/{tenant_id}/evaluations:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: createEvaluation
+      tags: [evaluation]
+      summary: Run a held-out evaluation
+      description: |
+        Evaluates a subject (model version, workflow or release candidate) on a pinned
+        held-out dataset and produces an `EvaluationReport` with denominators, error
+        severity breakdown, review time and a candidate cost comparison (PL-031, PL-034).
+        Evaluation data is never used for tuning; the report carries a segregation
+        statement. Long-running: `202` with a `JobEnvelope` whose `result_ref` resolves
+        to the report (PL-055). Tenant from authentication (PL-004).
+      x-plumb-result-contract: EvaluationReport
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/releases:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: createRelease
+      tags: [releases]
+      summary: Create a release candidate from a ReleaseManifest
+      description: |
+        Stores a `ReleaseManifest` that binds workflow, connector, collector, model,
+        prompt, policy, schema, infrastructure and evaluation versions through immutable
+        digests (PL-046). The release is rejected with `400 VERIFICATION_FAILED` when any
+        required attestation was produced for different bytes or a different scope. The
+        mutable model alias must already be resolved to an immutable version (PL-034).
+        Synchronous (`201`) in state `CANDIDATE`; idempotent under `Idempotency-Key`
+        (PL-055). Tenant from authentication (PL-004).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseManifest'
+      responses:
+        '201':
+          description: Release candidate created.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/releases/{release_id}/activation:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ReleaseId'
+    post:
+      operationId: activateRelease
+      tags: [releases]
+      summary: Advance a release to the next rollout stage
+      description: |
+        Advances the release through `SHADOW`, `CANARY` and `ACTIVE` only when the stage
+        gate passes; `ACTIVE` requires current authority and accepted attestations
+        (section 23, PL-047). New cases use the resolved release version; in-flight cases
+        stay pinned. `If-Match` carries the release `ETag`; a stale version returns `412`
+        (PL-056). Long-running: `202` with a `JobEnvelope` (PL-055). The same
+        `Idempotency-Key` with a different payload returns `409 PAYLOAD_CONFLICT`. Tenant
+        from authentication (PL-004).
+      x-plumb-result-contract: ReleaseManifest
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseActivationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+
+  /v1/tenants/{tenant_id}/releases/{release_id}/pause:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ReleaseId'
+    post:
+      operationId: pauseRelease
+      tags: [releases]
+      summary: Pause a release
+      description: |
+        Moves the release to `PAUSED`, which blocks new external effects immediately while
+        preserving visibility and recovery (PL-047). Pausing is a synchronous state
+        transition (`200`) with a persisted reason (PL-057). `If-Match` carries the
+        release `ETag`; a stale version returns `412` (PL-056). Idempotent under
+        `Idempotency-Key` (PL-055). Tenant from authentication (PL-004).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleasePauseRequest'
+      responses:
+        '200':
+          description: Release paused.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+
+  /v1/tenants/{tenant_id}/actions:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      operationId: dispatchAction
+      tags: [actions]
+      summary: Reserve and dispatch an external action
+      description: |
+        Persists the `ActionIntent` (stable effect slot, payload digest, expected state
+        version, authority reference, deployment version and provider target) before any
+        dispatch (PL-037). The same effect slot with the same payload digest returns the
+        existing action; the same slot with a different payload returns `409
+        PAYLOAD_CONFLICT` unless `supersedes_action_id` names a terminal action.
+        Deduplication is independent of the release version (PL-039). An ambiguous
+        provider outcome leaves the effect `UNKNOWN` (PL-038). Long-running: `202` with a
+        `JobEnvelope` (PL-055). Tenant from authentication (PL-004).
+      x-plumb-result-contract: ActionIntent
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionIntent'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/actions/{action_id}/reconciliation:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ActionId'
+    post:
+      operationId: reconcileAction
+      tags: [actions]
+      summary: Reconcile an UNKNOWN action against provider state
+      description: |
+        Looks up provider request ids, external ids and read-after-write probes to decide
+        whether an `UNKNOWN` effect `CONFIRMED` or `FAILED_FINAL` (PL-038). A timeout is
+        never treated as proof that nothing happened; retry is refused while the effect
+        stays `UNKNOWN` (`409 EFFECT_UNKNOWN`). Long-running: `202` with a `JobEnvelope`
+        (PL-055). Tenant from authentication (PL-004); cross-tenant action ids are `404`.
+      x-plumb-result-contract: ActionIntent
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/JobAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PayloadConflict'
+
+  /v1/tenants/{tenant_id}/outcomes:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      operationId: listOutcomes
+      tags: [outcomes]
+      summary: List outcome observations
+      description: |
+        Returns per-case outcome observations distinguishing model calls, completed
+        cases, correct outcomes, realized business value and review effort by human
+        effort category (PL-003, PL-059). Pagination uses a stable opaque cursor with
+        `limit` ≤ 200 (PL-056). Tenant from authentication (PL-004).
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: release_id
+          in: query
+          required: false
+          description: Restrict to cases that ran under one release.
+          schema:
+            $ref: '#/components/schemas/Identifier'
+        - name: observed_after
+          in: query
+          required: false
+          description: Only observations recorded at or after this instant.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: One page of outcome observations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutcomeList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        OIDC-issued bearer token. The tenant and acting principal are derived from the
+        verified token (PL-004); nothing in the path or body can change them. Tokens are
+        never echoed in responses, logs or error messages (PL-054).
+
+  parameters:
+    TenantId:
+      name: tenant_id
+      in: path
+      required: true
+      description: |
+        Informational tenant segment. Servers derive the tenant from authentication
+        (PL-004); a mismatch is answered with `404` (PL-056).
+      schema:
+        $ref: '#/components/schemas/TenantId'
+    EnvelopeId:
+      name: envelope_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    BuildId:
+      name: build_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    DependencyId:
+      name: dependency_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    IntentId:
+      name: intent_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    ReleaseId:
+      name: release_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    ActionId:
+      name: action_id
+      in: path
+      required: true
+      description: Logical action id, stable across retries of the same action (PL-037).
+      schema:
+        $ref: '#/components/schemas/Identifier'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Tenant-scoped idempotency key (PL-055). The same key with the same payload returns
+        the original operation; the same key with a different payload returns `409` with
+        `error_class: PAYLOAD_CONFLICT`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: |
+        Current `ETag` of the versioned resource (PL-056). A stale value returns `412`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    IfMatchOptional:
+      name: If-Match
+      in: header
+      required: false
+      description: |
+        Required when superseding an existing `envelope_id`: the `ETag` of the current
+        envelope version (PL-056). A stale value returns `412`. Omitted for a new
+        `envelope_id`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from a previous page's `next_cursor` (PL-056).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Bounded page size (PL-056).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+
+  headers:
+    ETag:
+      description: Opaque version tag of the returned resource; echo it in `If-Match` (PL-056).
+      schema:
+        type: string
+    Location:
+      description: Tenant-relative URL of the created resource.
+      schema:
+        type: string
+
+  responses:
+    JobAccepted:
+      description: Accepted; the job runs asynchronously with a durable identity (PL-055).
+      headers:
+        Location:
+          $ref: '#/components/headers/Location'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JobEnvelope'
+    BadRequest:
+      description: |
+        Malformed request or a payload that fails local checks (schema validity, plan
+        checker, dataset checker, release checker). `error_class` names the rule family.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unauthorized:
+      description: Missing or invalid credentials (`AUTH_REQUIRED`). Generic; carries no resource detail.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: |
+        The authenticated principal lacks the required scope or purpose within its own
+        tenant (`SCOPE_DENIED`, `PURPOSE_DENIED`, `POLICY_STALE`). Generic; never used to
+        signal that another tenant's resource exists (PL-056).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: |
+        No such resource in the authenticated tenant. Also returned, instead of `403`,
+        when the path names another tenant or another tenant's resource (PL-004, PL-056).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PayloadConflict:
+      description: |
+        The `Idempotency-Key` was already used with a different payload
+        (`PAYLOAD_CONFLICT`, PL-055), the effect slot is already reserved with a different
+        payload digest (PL-037), the aggregate is not in a state that allows the
+        transition (`STATE_CONFLICT`), or the effect is still `UNKNOWN` (`EFFECT_UNKNOWN`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PreconditionFailed:
+      description: Stale `If-Match`; the resource version changed (`STATE_CONFLICT`, PL-056).
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+  schemas:
+    # ------------------------------------------------------------------
+    # Scalar types mirroring plumb.contracts.common
+    # ------------------------------------------------------------------
+    Identifier:
+      type: string
+      pattern: '^[a-z][a-z0-9_.:/-]{0,159}$'
+      description: Lower-case machine identifier.
+    TenantId:
+      type: string
+      pattern: '^tnt_[a-z0-9]{4,32}$'
+      description: Tenant identity; always derived from authentication (PL-004).
+    Sha256Digest:
+      type: string
+      pattern: '^sha256:[0-9a-f]{64}$'
+    SemVer:
+      type: string
+      pattern: '^\d+\.\d+\.\d+$'
+    Region:
+      type: string
+      pattern: '^[a-z]{2,3}(-[a-z0-9]+)*$'
+    NonSecretRef:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: |
+        Reference resolved by the gateway (e.g. `vault:ref/...`). Never a secret value;
+        servers reject values that look like secrets (PL-054).
+      not:
+        pattern: '[sS][eE][cC][rR][eE][tT]|[pP][aA][sS][sS][wW][oO][rR][dD]|[tT][oO][kK][eE][nN]='
+
+    # ------------------------------------------------------------------
+    # Closed vocabularies (exact values from plumb.contracts.common)
+    # ------------------------------------------------------------------
+    EffectClass:
+      type: string
+      enum:
+        - READ
+        - INTERNAL_WRITE
+        - EXTERNAL_WRITE_REVERSIBLE
+        - EXTERNAL_WRITE_IRREVERSIBLE
+        - EXTERNAL_COMMUNICATION
+        - FINANCIAL_COMMITMENT
+        - INFRASTRUCTURE_CHANGE
+        - DESTRUCTIVE
+    DataPurpose:
+      type: string
+      enum: [INSPECT, COLLECT, TRANSFORM, EVALUATE, TRAIN, SERVE, EXPORT]
+    PrincipalType:
+      type: string
+      enum:
+        - HUMAN_OWNER
+        - HUMAN_REVIEWER
+        - HUMAN_APPROVER
+        - SERVICE
+        - BUILD_AGENT
+        - RUNTIME_AGENT
+        - VERIFIER
+        - RELEASE_EXECUTOR
+    HumanEffortCategory:
+      type: string
+      description: Categories of recorded human effort (PL-003).
+      enum:
+        - CUSTOMER_AUTHORIZATION
+        - DOMAIN_CLARIFICATION
+        - NORMAL_BUSINESS_REVIEW
+        - ENGINEERING_INTERVENTION
+        - OPERATIONAL_REPAIR
+    ErrorClass:
+      type: string
+      description: Initial error classes of the control-plane protocol (section 22).
+      enum:
+        - AUTH_REQUIRED
+        - SCOPE_DENIED
+        - PURPOSE_DENIED
+        - POLICY_STALE
+        - STATE_CONFLICT
+        - PAYLOAD_CONFLICT
+        - BUDGET_EXCEEDED
+        - CAPABILITY_UNSUPPORTED
+        - SOURCE_STALE
+        - DATA_QUALITY_FAILED
+        - VERIFICATION_FAILED
+        - EFFECT_UNKNOWN
+        - RETRY_EXHAUSTED
+    FailureClass:
+      type: string
+      enum:
+        - TRANSIENT_INFRASTRUCTURE
+        - IMPLEMENTATION_DEFECT
+        - SOURCE_SCHEMA_CHANGE
+        - MISSING_AUTHORIZATION
+        - MISSING_BUSINESS_DECISION
+        - UNSUPPORTED_CAPABILITY
+        - POOR_MODEL_QUALITY
+        - EXHAUSTED_RESOURCES
+    CapabilityMaturity:
+      type: string
+      enum: [DISCOVERED, DOCUMENTED, SANDBOX_TESTED, PRODUCTION_VERIFIED]
+    VerificationLevel:
+      type: string
+      enum: [SCHEMA_VALIDITY, ARTIFACT_INTEGRITY, INTEGRATION_BEHAVIOR, BUSINESS_OUTCOME, ECONOMIC_RESULT]
+    LabelKind:
+      type: string
+      enum: [OBSERVED_OUTCOME, EXPERT_DECISION, CORRECTION, PREFERENCE, WEAK_PROXY]
+    LabelStatus:
+      type: string
+      enum: [ACCEPTED, QUARANTINED_AMBIGUOUS, QUARANTINED_INCONSISTENT, QUARANTINED_DISPUTED, REJECTED]
+    SplitName:
+      type: string
+      enum: [train, validation, test_temporal, test_client_disjoint]
+    ArtifactKind:
+      type: string
+      enum:
+        - AutonomyEnvelope
+        - CapabilityRecord
+        - EnvironmentInventory
+        - EvidencePacket
+        - OpportunitySpec
+        - BuildPlan
+        - IntegrationSpec
+        - CollectionSpec
+        - DatasetManifest
+        - TrainingSpec
+        - WorkflowSpec
+        - EvaluationReport
+        - InfrastructurePlan
+        - ReleaseManifest
+        - ActionIntent
+        - ApprovalRecord
+        - VerificationAttestation
+        - AdapterCode
+        - AdapterConfiguration
+        - TransformationCode
+        - TestBundle
+        - ProbeReceipt
+        - VerificationReceipt
+        - QualityReport
+        - LabelAuditReport
+        - SourceCandidateTable
+        - TaskDefinition
+        - ModelVersion
+        - ServingConfiguration
+        - CandidateComparison
+        - InfrastructurePreview
+        - CanaryReport
+        - DependencyRecord
+        - ReviewPackage
+    BuildState:
+      type: string
+      description: Build lifecycle (section 23).
+      enum: [DRAFT, VALIDATED, RUNNING, WAITING_AUTH, WAITING_INPUT, VERIFYING, VERIFIED, FAILED, CANCELLED]
+    BuildStepState:
+      type: string
+      description: Build step lifecycle (section 23).
+      enum: [PENDING, READY, RUNNING, VERIFYING, VERIFIED, FAILED, BLOCKED, CANCELLED]
+    CollectorState:
+      type: string
+      description: Collector lifecycle (section 23).
+      enum: [PLANNED, SHADOW, BACKFILLING, RECONCILING, ACTIVE, DEGRADED, PAUSED, RETIRED]
+    DatasetState:
+      type: string
+      description: Dataset lifecycle (section 23).
+      enum: [PROPOSED, MATERIALIZING, QUARANTINED, VERIFIED, SUPERSEDED, UNAVAILABLE]
+    TrainingState:
+      type: string
+      description: Training lifecycle (section 23).
+      enum: [PLANNED, SUBMITTED, RUNNING, CANDIDATE, FAILED, CANCELLED]
+    ReleaseState:
+      type: string
+      description: Release lifecycle (section 23, PL-047).
+      enum: [CANDIDATE, VERIFIED, SHADOW, CANARY, ACTIVE, PAUSED, ROLLED_BACK, RETIRED]
+    EffectState:
+      type: string
+      description: Effect lifecycle (section 23, PL-038).
+      enum: [RESERVED, DISPATCHED, UNKNOWN, CONFIRMED, FAILED_FINAL, COMPENSATED]
+    JobStatus:
+      type: string
+      description: Durable job status (PL-055). Server-assigned; never taken from a client.
+      enum: [ACCEPTED, RUNNING, WAITING, SUCCEEDED, FAILED, CANCELLED]
+
+    # ------------------------------------------------------------------
+    # Shared value objects
+    # ------------------------------------------------------------------
+    Money:
+      type: object
+      description: Integer minor units plus an ISO 4217 currency; never floats (section 10).
+      required: [minor_units, currency]
+      additionalProperties: false
+      properties:
+        minor_units:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+    Budget:
+      type: object
+      description: Worst-case reservation for a unit of work (PL-014, PL-018, PL-058).
+      required: [spend, max_attempts, max_elapsed_seconds]
+      additionalProperties: false
+      properties:
+        spend:
+          $ref: '#/components/schemas/Money'
+        max_attempts:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        max_elapsed_seconds:
+          type: integer
+          minimum: 1
+        max_model_calls:
+          type: [integer, 'null']
+          minimum: 0
+    TimeAxes:
+      type: object
+      description: Event, observation and availability time are kept apart (PL-009, ADR-005).
+      required: [event_time, observation_time, availability_time]
+      additionalProperties: false
+      properties:
+        event_time:
+          type: string
+          format: date-time
+        observation_time:
+          type: string
+          format: date-time
+        availability_time:
+          type: string
+          format: date-time
+          description: Never precedes `observation_time`.
+    Principal:
+      type: object
+      description: An authenticated acting principal.
+      required: [principal_id, principal_type, authenticated_via]
+      additionalProperties: false
+      properties:
+        principal_id:
+          $ref: '#/components/schemas/Identifier'
+        principal_type:
+          $ref: '#/components/schemas/PrincipalType'
+        authenticated_via:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Authentication mechanism reference (e.g. `oidc:issuer`), never a secret.
+    ResourceScope:
+      type: object
+      description: Sources, destinations, processors and regions an operation may touch.
+      additionalProperties: false
+      properties:
+        source_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        destination_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        processor_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Region'
+    SourceRef:
+      type: object
+      description: Reference to an authorized external source/account. Never carries credentials.
+      required: [source_id, provider, external_account_id]
+      additionalProperties: false
+      properties:
+        source_id:
+          $ref: '#/components/schemas/Identifier'
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        external_account_id:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Provider-assigned account identity (opaque, non-secret).
+        resource:
+          type: [string, 'null']
+          maxLength: 256
+    ArtifactRef:
+      type: object
+      description: Immutable reference to a stored artifact by digest (section 8).
+      required: [artifact_id, kind, digest]
+      additionalProperties: false
+      properties:
+        artifact_id:
+          $ref: '#/components/schemas/Identifier'
+        kind:
+          $ref: '#/components/schemas/ArtifactKind'
+        digest:
+          $ref: '#/components/schemas/Sha256Digest'
+        schema_version:
+          $ref: '#/components/schemas/SemVer'
+    ArtifactHeader:
+      type: object
+      description: |
+        Fields every stored artifact carries (section 8). `content_digest` is assigned by
+        the artifact store; a client-supplied value is ignored (PL-055).
+      required: [artifact_id, tenant_id, kind, version, producer, created_at]
+      properties:
+        artifact_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        kind:
+          $ref: '#/components/schemas/ArtifactKind'
+        schema_version:
+          $ref: '#/components/schemas/SemVer'
+        version:
+          type: integer
+          minimum: 1
+          description: Immutable version number of this artifact id.
+        content_digest:
+          oneOf:
+            - $ref: '#/components/schemas/Sha256Digest'
+            - type: 'null'
+        producer:
+          $ref: '#/components/schemas/Principal'
+        created_at:
+          type: string
+          format: date-time
+        evidence_links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+    DependencyRecord:
+      type: object
+      description: A precise, resumable external dependency (PL-001, Appendix A `dependency.raise`).
+      required: [dependency_id, failure_class, error_class, description, resolver_role, raised_at]
+      additionalProperties: false
+      properties:
+        dependency_id:
+          $ref: '#/components/schemas/Identifier'
+        failure_class:
+          $ref: '#/components/schemas/FailureClass'
+        error_class:
+          $ref: '#/components/schemas/ErrorClass'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        missing_authority:
+          type: array
+          description: Exact grants, consents or decisions required.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        resolver_role:
+          $ref: '#/components/schemas/PrincipalType'
+        blocked_step_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        resumes_after:
+          type: [string, 'null']
+          maxLength: 4000
+        raised_at:
+          type: string
+          format: date-time
+
+    # ------------------------------------------------------------------
+    # Supporting envelopes (section 22)
+    # ------------------------------------------------------------------
+    JobEnvelope:
+      x-plumb-contract: JobEnvelope
+      type: object
+      description: |
+        Durable identity and status of a long-running mutation (PL-055). `status` and
+        `result_ref` are server-assigned.
+      required: [job_id, tenant_id, status, idempotency_key]
+      additionalProperties: false
+      properties:
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        idempotency_key:
+          type: string
+          minLength: 1
+          maxLength: 255
+        result_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+          description: Artifact produced by the job once `status` is `SUCCEEDED`.
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ErrorEnvelope'
+            - type: 'null'
+    ErrorEnvelope:
+      x-plumb-contract: ErrorEnvelope
+      type: object
+      description: |
+        Shared error shape (section 22). Includes retryability, dependency identity and
+        operator action where appropriate. Raw secrets, source content and other tenants'
+        identifiers never appear in `message`.
+      required: [error_class, message, retryable, correlation_id]
+      additionalProperties: false
+      properties:
+        error_class:
+          $ref: '#/components/schemas/ErrorClass'
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        retryable:
+          type: boolean
+        dependency_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+          description: The `DependencyRecord` that must be resolved before retrying, if any.
+        operator_action:
+          type: [string, 'null']
+          maxLength: 4000
+          description: What an operator or owner must do, when the error is not self-healing.
+        correlation_id:
+          $ref: '#/components/schemas/Identifier'
+    EventEnvelope:
+      x-plumb-contract: EventEnvelope
+      type: object
+      description: |
+        Event published through the outbox with at-least-once delivery and consumer
+        deduplication (section 22). Ordering is per aggregate (`aggregate_version`), never
+        global.
+      required:
+        - event_id
+        - tenant_id
+        - aggregate_id
+        - aggregate_version
+        - event_type
+        - occurred_at
+        - recorded_at
+        - correlation_id
+        - causation_id
+        - schema_version
+        - payload_ref
+      additionalProperties: false
+      properties:
+        event_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        aggregate_id:
+          $ref: '#/components/schemas/Identifier'
+        aggregate_version:
+          type: integer
+          minimum: 1
+        event_type:
+          $ref: '#/components/schemas/Identifier'
+        occurred_at:
+          type: string
+          format: date-time
+        recorded_at:
+          type: string
+          format: date-time
+        correlation_id:
+          $ref: '#/components/schemas/Identifier'
+        causation_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+          description: The event or command that caused this event; `null` for a root cause.
+        schema_version:
+          $ref: '#/components/schemas/SemVer'
+        payload_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+
+    # ------------------------------------------------------------------
+    # Contract schemas (mirror plumb/contracts; see x-plumb-contract)
+    # ------------------------------------------------------------------
+    Goal:
+      type: object
+      required: [goal_id, objective]
+      additionalProperties: false
+      properties:
+        goal_id:
+          $ref: '#/components/schemas/Identifier'
+        objective:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        success_metric:
+          type: [string, 'null']
+          maxLength: 4000
+        horizon_days:
+          type: [integer, 'null']
+          minimum: 1
+    SourceGrant:
+      type: object
+      description: An actual customer grant for one source and specific purposes (PL-053).
+      required: [source_id, purposes, granted_by, granted_at, policy_version]
+      additionalProperties: false
+      properties:
+        source_id:
+          $ref: '#/components/schemas/Identifier'
+        purposes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DataPurpose'
+        granted_by:
+          $ref: '#/components/schemas/Principal'
+        granted_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+        policy_version:
+          $ref: '#/components/schemas/SemVer'
+    AutonomyEnvelope:
+      x-plumb-contract: AutonomyEnvelope
+      description: Versioned authority tied to an accountable business owner (PL-005, PL-040, PL-053).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - envelope_id
+            - envelope_version
+            - owner
+            - goals
+            - allowed_effect_classes
+            - spending_limit
+            - per_step_attempt_limit
+            - expires_at
+            - policy_version
+          properties:
+            kind:
+              const: AutonomyEnvelope
+            envelope_id:
+              $ref: '#/components/schemas/Identifier'
+            envelope_version:
+              type: integer
+              minimum: 1
+            owner:
+              $ref: '#/components/schemas/Principal'
+            goals:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/Goal'
+            source_grants:
+              type: array
+              items:
+                $ref: '#/components/schemas/SourceGrant'
+            approved_destinations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Identifier'
+            approved_processors:
+              type: array
+              items:
+                $ref: '#/components/schemas/Identifier'
+            allowed_effect_classes:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/EffectClass'
+            spending_limit:
+              $ref: '#/components/schemas/Money'
+            per_step_attempt_limit:
+              type: integer
+              minimum: 1
+              maximum: 1000
+            deployment_environments:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 256
+            allowed_regions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Region'
+            expires_at:
+              type: string
+              format: date-time
+            escalation_conditions:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 4000
+            policy_version:
+              $ref: '#/components/schemas/SemVer'
+            revoked_at:
+              type: [string, 'null']
+              format: date-time
+      unevaluatedProperties: false
+
+    OperationCapability:
+      type: object
+      description: One probed operation of an application account (PL-008).
+      required: [operation, direction, maturity]
+      additionalProperties: false
+      properties:
+        operation:
+          type: string
+          minLength: 1
+          maxLength: 256
+        direction:
+          type: string
+          enum: [READ, WRITE]
+        maturity:
+          $ref: '#/components/schemas/CapabilityMaturity'
+        probe_receipt_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+        last_probed_at:
+          type: [string, 'null']
+          format: date-time
+    ApplicationRecord:
+      type: object
+      required: [application_id, provider, accounts, operations, authorization_status, update_mechanism]
+      additionalProperties: false
+      properties:
+        application_id:
+          $ref: '#/components/schemas/Identifier'
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        accounts:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+          description: Provider account identities (opaque, non-secret).
+        entities:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        schema_versions:
+          type: object
+          additionalProperties:
+            type: string
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationCapability'
+        authorization_status:
+          type: string
+          enum: [AUTHORIZED, PARTIAL, PENDING_CONSENT, DENIED, EXPIRED]
+        available_history_from:
+          type: [string, 'null']
+          format: date-time
+        quotas:
+          type: object
+          additionalProperties:
+            type: string
+        update_mechanism:
+          type: string
+          enum: [WEBHOOK, POLLING, CDC, EXPORT]
+        freshness_seconds:
+          type: [integer, 'null']
+          minimum: 0
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+    CoverageReport:
+      type: object
+      description: Discloses what was not observed (PL-007, section 5).
+      required: [observed_applications, unobserved_applications, observed_employees, unobserved_employees]
+      additionalProperties: false
+      properties:
+        observed_applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        unobserved_applications:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        observed_employees:
+          type: integer
+          minimum: 0
+        unobserved_employees:
+          type: integer
+          minimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 4000
+    EnvironmentInventory:
+      x-plumb-contract: EnvironmentInventory
+      description: Accessible applications, operations and coverage (PL-007, PL-008).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required: [applications, coverage_report]
+          properties:
+            kind:
+              const: EnvironmentInventory
+            applications:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApplicationRecord'
+            coverage_report:
+              $ref: '#/components/schemas/CoverageReport'
+      unevaluatedProperties: false
+
+    BenefitRange:
+      type: object
+      required: [low, high, horizon_days]
+      additionalProperties: false
+      properties:
+        low:
+          $ref: '#/components/schemas/Money'
+        high:
+          $ref: '#/components/schemas/Money'
+        horizon_days:
+          type: integer
+          minimum: 1
+    ProposedChange:
+      type: object
+      required: [intervention_kind, description]
+      additionalProperties: false
+      properties:
+        intervention_kind:
+          type: string
+          enum:
+            - NATIVE_SETTING
+            - DETERMINISTIC_AUTOMATION
+            - GENERAL_MODEL_WORKFLOW
+            - SPECIALIST_SERVICE
+            - RETRIEVAL_SYSTEM
+            - TRAINED_COMPONENT
+            - REMOVE_STEP
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    OpportunitySpec:
+      x-plumb-contract: OpportunitySpec
+      description: A candidate intervention with its economics and measurement plan (PL-012, PL-013).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - business_objective
+            - eligible_case_population
+            - baseline
+            - evidence_coverage
+            - proposed_change
+            - expected_benefit_range
+            - failure_cost
+            - review_cost
+            - measurement_plan
+          properties:
+            kind:
+              const: OpportunitySpec
+            business_objective:
+              type: string
+              minLength: 1
+              maxLength: 4000
+            eligible_case_population:
+              type: string
+              minLength: 1
+              maxLength: 4000
+            baseline:
+              type: string
+              minLength: 1
+              maxLength: 4000
+            evidence_coverage:
+              type: number
+              minimum: 0
+              maximum: 1
+            proposed_change:
+              $ref: '#/components/schemas/ProposedChange'
+            dependencies:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 4000
+            expected_benefit_range:
+              $ref: '#/components/schemas/BenefitRange'
+            failure_cost:
+              $ref: '#/components/schemas/Money'
+            review_cost:
+              $ref: '#/components/schemas/Money'
+            measurement_plan:
+              type: string
+              minLength: 1
+              maxLength: 4000
+              description: Prospective plan; never retrofitted after the fact.
+            blocking_conditions:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 4000
+            overlap_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+      unevaluatedProperties: false
+
+    StepInput:
+      type: object
+      required: [name, kind]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/Identifier'
+        kind:
+          $ref: '#/components/schemas/ArtifactKind'
+        from_step:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+        plan_input:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+    StepOutput:
+      type: object
+      required: [name, kind]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/Identifier'
+        kind:
+          $ref: '#/components/schemas/ArtifactKind'
+    VerificationObligation:
+      type: object
+      required: [check, level, description]
+      additionalProperties: false
+      properties:
+        check:
+          $ref: '#/components/schemas/Identifier'
+        level:
+          $ref: '#/components/schemas/VerificationLevel'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    BuildStep:
+      type: object
+      description: One step of the implementation IR (section 8, PL-014..PL-018).
+      required: [step_id, step_type, description, effect_class, scope, budget]
+      additionalProperties: false
+      properties:
+        step_id:
+          $ref: '#/components/schemas/Identifier'
+        step_type:
+          $ref: '#/components/schemas/Identifier'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        depends_on:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        inputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepInput'
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepOutput'
+        required_capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        effect_class:
+          $ref: '#/components/schemas/EffectClass'
+        purposes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataPurpose'
+        scope:
+          $ref: '#/components/schemas/ResourceScope'
+        budget:
+          $ref: '#/components/schemas/Budget'
+        verification:
+          type: array
+          description: At least one obligation unless `step_type` is `dependency.raise` (PL-016).
+          items:
+            $ref: '#/components/schemas/VerificationObligation'
+        required:
+          type: boolean
+          default: true
+        environment:
+          type: [string, 'null']
+          maxLength: 256
+          description: Deployment environment for infrastructure/release steps.
+    BuildPlan:
+      x-plumb-contract: BuildPlan
+      description: The implementation intermediate representation (PL-014..PL-019).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required: [plan_id, goal_id, envelope_id, envelope_version, steps, total_budget, planned_at]
+          properties:
+            kind:
+              const: BuildPlan
+            plan_id:
+              $ref: '#/components/schemas/Identifier'
+            goal_id:
+              $ref: '#/components/schemas/Identifier'
+            opportunity_ref:
+              oneOf:
+                - $ref: '#/components/schemas/ArtifactRef'
+                - type: 'null'
+            envelope_id:
+              $ref: '#/components/schemas/Identifier'
+            envelope_version:
+              type: integer
+              minimum: 1
+            inputs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+            steps:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/BuildStep'
+            total_budget:
+              $ref: '#/components/schemas/Budget'
+            planned_at:
+              type: string
+              format: date-time
+      unevaluatedProperties: false
+
+    BuildStepStatus:
+      type: object
+      required: [step_id, step_type, state, attempt_count, version]
+      additionalProperties: false
+      properties:
+        step_id:
+          $ref: '#/components/schemas/Identifier'
+        step_type:
+          $ref: '#/components/schemas/Identifier'
+        state:
+          $ref: '#/components/schemas/BuildStepState'
+        attempt_count:
+          type: integer
+          minimum: 0
+        version:
+          type: integer
+          minimum: 1
+          description: Step row version for compare-and-set commits (Appendix A §2).
+        lease_owner:
+          type: [string, 'null']
+          maxLength: 256
+        verifier_attestation_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+          description: Present iff `state` is `VERIFIED`; a worker's claim is never enough.
+        state_reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    BuildStatus:
+      type: object
+      description: Build lifecycle state with step states and open dependencies (section 23, PL-057).
+      required: [build_id, tenant_id, plan_ref, state, version, steps, dependencies, state_reason, created_at, updated_at]
+      additionalProperties: false
+      properties:
+        build_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        plan_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        state:
+          $ref: '#/components/schemas/BuildState'
+        version:
+          type: integer
+          minimum: 1
+          description: Build row version; the `ETag` value (PL-056).
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildStepStatus'
+        dependencies:
+          type: array
+          description: Open dependencies raised by `dependency.raise` steps (PL-001).
+          items:
+            $ref: '#/components/schemas/DependencyRecord'
+        budget_reserved:
+          $ref: '#/components/schemas/Money'
+        budget_spent:
+          $ref: '#/components/schemas/Money'
+        state_reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ConnectionIntentState:
+      type: string
+      enum: [PENDING_CONSENT, CONSENTED, DENIED, EXPIRED]
+    ConnectionIntentRequest:
+      type: object
+      required: [provider, requested_scopes, purposes]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        account_hint:
+          type: [string, 'null']
+          maxLength: 256
+          description: Non-secret hint of which provider account to connect (e.g. a workspace label).
+        requested_scopes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        purposes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DataPurpose'
+        source_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+          description: Source id the grant will be recorded under once consent completes.
+    ConnectionIntent:
+      type: object
+      description: |
+        A consent session for a provider account (section 5, section 10). Carries a
+        reference to the consent flow, never a credential or token (PL-006, PL-054).
+      required: [intent_id, tenant_id, provider, requested_scopes, consent_url_ref, state, created_at, expires_at]
+      additionalProperties: false
+      properties:
+        intent_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        account_hint:
+          type: [string, 'null']
+          maxLength: 256
+        requested_scopes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        granted_scopes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 256
+        consent_url_ref:
+          $ref: '#/components/schemas/NonSecretRef'
+        state:
+          $ref: '#/components/schemas/ConnectionIntentState'
+        source_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    CollectorHealth:
+      type: object
+      description: Health a collector must publish (PL-025).
+      required: [freshness_seconds, lag_seconds, completeness, failure_state]
+      additionalProperties: false
+      properties:
+        freshness_seconds:
+          type: integer
+          minimum: 0
+        lag_seconds:
+          type: integer
+          minimum: 0
+        completeness:
+          type: number
+          minimum: 0
+          maximum: 1
+        failure_state:
+          type: string
+          enum: [HEALTHY, DEGRADED, STOPPED]
+        health_deadline_seconds:
+          type: integer
+          minimum: 1
+          description: Staleness must be visible within this many seconds (section 24).
+    CollectionSpec:
+      x-plumb-contract: CollectionSpec
+      description: What a collector gathers, from where, for which purpose (PL-023..PL-025).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - objective_ref
+            - allowed_sources
+            - selected_fields
+            - join_strategy
+            - incremental_mechanism
+            - watermark
+            - backfill_boundary
+            - retention
+            - destination
+            - access_policy_ref
+            - quality_checks
+            - permitted_purpose_evidence
+            - health
+            - idempotent_event_identity
+          properties:
+            kind:
+              const: CollectionSpec
+            objective_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            allowed_sources:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/SourceRef'
+            selected_fields:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/Identifier'
+            join_strategy:
+              type: string
+              minLength: 1
+              maxLength: 4000
+            incremental_mechanism:
+              type: string
+              enum: [WEBHOOK, POLLING_OVERLAP, CDC]
+            watermark:
+              type: string
+              minLength: 1
+              maxLength: 256
+            backfill_boundary:
+              type: string
+              format: date-time
+            retention:
+              type: string
+              minLength: 1
+              maxLength: 256
+            destination:
+              $ref: '#/components/schemas/Identifier'
+            access_policy_ref:
+              $ref: '#/components/schemas/NonSecretRef'
+            quality_checks:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+                maxLength: 4000
+            permitted_purpose_evidence:
+              type: array
+              minItems: 1
+              description: Source grant references proving the purpose is permitted (PL-053).
+              items:
+                $ref: '#/components/schemas/Identifier'
+            health:
+              $ref: '#/components/schemas/CollectorHealth'
+            idempotent_event_identity:
+              type: string
+              minLength: 1
+              maxLength: 4000
+              description: How a source record maps to one event identity across backfill and live capture (PL-024).
+      unevaluatedProperties: false
+    CollectionJobStatus:
+      type: object
+      required: [job, collector_id, state, health]
+      additionalProperties: false
+      properties:
+        job:
+          $ref: '#/components/schemas/JobEnvelope'
+        collector_id:
+          $ref: '#/components/schemas/Identifier'
+        state:
+          $ref: '#/components/schemas/CollectorState'
+        health:
+          $ref: '#/components/schemas/CollectorHealth'
+        spec_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+        state_reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+
+    DatasetRow:
+      type: object
+      description: One training/evaluation row (PL-028).
+      required:
+        - example_id
+        - group_id
+        - input_snapshot_refs
+        - input_availability_time
+        - decision_time
+        - label_kind
+        - label_status
+        - purpose_authorization_ref
+        - split
+      additionalProperties: false
+      properties:
+        example_id:
+          $ref: '#/components/schemas/Identifier'
+        group_id:
+          $ref: '#/components/schemas/Identifier'
+        input_snapshot_refs:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Identifier'
+        input_availability_time:
+          type: string
+          format: date-time
+        decision_time:
+          type: string
+          format: date-time
+        target_evidence_ref:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+        target_availability_time:
+          type: [string, 'null']
+          format: date-time
+        label_kind:
+          $ref: '#/components/schemas/LabelKind'
+        label_status:
+          $ref: '#/components/schemas/LabelStatus'
+        purpose_authorization_ref:
+          $ref: '#/components/schemas/Identifier'
+        split:
+          $ref: '#/components/schemas/SplitName'
+        exclusion_reason:
+          type: [string, 'null']
+          maxLength: 4000
+          description: Required when `label_status` is not `ACCEPTED`.
+    LabelDefinition:
+      type: object
+      required: [text, label_kind]
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        label_kind:
+          $ref: '#/components/schemas/LabelKind'
+        maturation_window_days:
+          type: [integer, 'null']
+          minimum: 0
+    SplitRule:
+      type: object
+      required: [name, question_answered, rule]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/SplitName'
+        question_answered:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        rule:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    DatasetCounts:
+      type: object
+      additionalProperties: false
+      properties:
+        by_split:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        by_label_status:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+    DatasetManifest:
+      x-plumb-contract: DatasetManifest
+      description: Immutable, reproducible dataset revision (PL-028..PL-030).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required: [dataset_id, revision, task_definition_ref, label_definition, split_rules, schema_ref, source_versions]
+          properties:
+            kind:
+              const: DatasetManifest
+            dataset_id:
+              $ref: '#/components/schemas/Identifier'
+            revision:
+              type: integer
+              minimum: 1
+            task_definition_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            label_definition:
+              $ref: '#/components/schemas/LabelDefinition'
+            split_rules:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/SplitRule'
+            schema_ref:
+              $ref: '#/components/schemas/Identifier'
+            rows:
+              type: array
+              items:
+                $ref: '#/components/schemas/DatasetRow'
+            counts:
+              $ref: '#/components/schemas/DatasetCounts'
+            distributions:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: number
+            content_hashes:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/Sha256Digest'
+            source_versions:
+              type: array
+              minItems: 1
+              description: Pinned source artifacts the rows are reproducible from (PL-030).
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+            transformation_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+            lineage_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/Identifier'
+            source_rights_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/Identifier'
+            unavailable_reason:
+              type: [string, 'null']
+              maxLength: 4000
+              description: Set when deleted source material makes the revision intentionally unreconstructable.
+      unevaluatedProperties: false
+
+    BaseModelRef:
+      type: object
+      required: [provider, capability, version]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        capability:
+          type: string
+          minLength: 1
+          maxLength: 256
+        version:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Exact provider model version; never a mutable alias (PL-034).
+    StoppingCondition:
+      type: object
+      additionalProperties: false
+      properties:
+        max_epochs:
+          type: [integer, 'null']
+          minimum: 1
+        max_steps:
+          type: [integer, 'null']
+          minimum: 1
+        max_elapsed_seconds:
+          type: [integer, 'null']
+          minimum: 1
+        early_stopping_metric:
+          type: [string, 'null']
+          maxLength: 256
+        early_stopping_patience:
+          type: [integer, 'null']
+          minimum: 1
+    DataHandling:
+      type: object
+      description: Explicit data routing for a provider job (PL-032, PL-053).
+      required: [processor, region, retention, credential_ref]
+      additionalProperties: false
+      properties:
+        processor:
+          $ref: '#/components/schemas/Identifier'
+        region:
+          $ref: '#/components/schemas/Region'
+        retention:
+          type: string
+          minLength: 1
+          maxLength: 256
+        credential_ref:
+          $ref: '#/components/schemas/NonSecretRef'
+        selected_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+    SupportedCombinationCheck:
+      type: object
+      required: [provider, method, modality, supported, checked_at]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 256
+        method:
+          type: string
+          enum: [API_FINETUNE, MANAGED_OPEN_MODEL, NONE]
+        modality:
+          type: string
+          minLength: 1
+          maxLength: 256
+        supported:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+    TrainingSpec:
+      x-plumb-contract: TrainingSpec
+      description: Pinned training configuration; unsupported combinations fail before submission (PL-032, PL-033).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required: [dataset_ref, method, objective, evaluation_plan_ref]
+          properties:
+            kind:
+              const: TrainingSpec
+            dataset_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            base_model:
+              oneOf:
+                - $ref: '#/components/schemas/BaseModelRef'
+                - type: 'null'
+            method:
+              type: string
+              enum: [API_FINETUNE, MANAGED_OPEN_MODEL, NONE]
+            objective:
+              type: string
+              minLength: 1
+              maxLength: 4000
+            budget:
+              oneOf:
+                - $ref: '#/components/schemas/Budget'
+                - type: 'null'
+            stopping_condition:
+              oneOf:
+                - $ref: '#/components/schemas/StoppingCondition'
+                - type: 'null'
+            output_location:
+              oneOf:
+                - $ref: '#/components/schemas/NonSecretRef'
+                - type: 'null'
+            data_handling:
+              oneOf:
+                - $ref: '#/components/schemas/DataHandling'
+                - type: 'null'
+            evaluation_plan_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            submission_identity:
+              oneOf:
+                - $ref: '#/components/schemas/NonSecretRef'
+                - type: 'null'
+              description: Persisted before the provider call so a lost response cannot launch a duplicate job (PL-033).
+            supported_combination_check:
+              oneOf:
+                - $ref: '#/components/schemas/SupportedCombinationCheck'
+                - type: 'null'
+            state:
+              $ref: '#/components/schemas/TrainingState'
+      unevaluatedProperties: false
+    TrainingJobStatus:
+      type: object
+      required: [job, state, spec_ref]
+      additionalProperties: false
+      properties:
+        job:
+          $ref: '#/components/schemas/JobEnvelope'
+        state:
+          $ref: '#/components/schemas/TrainingState'
+        spec_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        submission_identity:
+          oneOf:
+            - $ref: '#/components/schemas/NonSecretRef'
+            - type: 'null'
+        candidate_model_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+          description: The candidate `ModelVersion`; never an approved production model by itself (PL-033).
+        state_reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    InventoryJobStatus:
+      type: object
+      required: [job]
+      additionalProperties: false
+      properties:
+        job:
+          $ref: '#/components/schemas/JobEnvelope'
+        inventory:
+          oneOf:
+            - $ref: '#/components/schemas/EnvironmentInventory'
+            - type: 'null'
+    InventoryJobRequest:
+      type: object
+      required: [envelope_id, envelope_version, scope]
+      additionalProperties: false
+      properties:
+        envelope_id:
+          $ref: '#/components/schemas/Identifier'
+        envelope_version:
+          type: integer
+          minimum: 1
+        scope:
+          $ref: '#/components/schemas/ResourceScope'
+        budget:
+          $ref: '#/components/schemas/Budget'
+    OpportunityDiscoveryRequest:
+      type: object
+      required: [goal_id, inventory_ref]
+      additionalProperties: false
+      properties:
+        goal_id:
+          $ref: '#/components/schemas/Identifier'
+        inventory_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        evidence_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactRef'
+        budget:
+          $ref: '#/components/schemas/Budget'
+    DependencyResolution:
+      type: object
+      description: Supplies the exact authority a raised dependency asked for (PL-040, PL-041).
+      required: [resolution_kind, authenticated_decision_ref, resolver]
+      additionalProperties: false
+      properties:
+        resolution_kind:
+          type: string
+          enum: [AUTHORIZATION_GRANTED, BUSINESS_DECISION, CANCELLED]
+        authenticated_decision_ref:
+          $ref: '#/components/schemas/NonSecretRef'
+        resolver:
+          $ref: '#/components/schemas/Principal'
+        approval_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+          description: The `ApprovalRecord` created by the authenticated decision, when one exists.
+        decision_text:
+          type: [string, 'null']
+          maxLength: 4000
+        expires_at:
+          type: [string, 'null']
+          format: date-time
+
+    ApprovalRecord:
+      x-plumb-contract: ApprovalRecord
+      description: |
+        An independently authenticated decision bound to the exact subject digest, case
+        version, policy version, approver and expiry (PL-040). An approval for one
+        version or tenant never authorizes another.
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - approval_id
+            - decision_kind
+            - subject_digest
+            - policy_version
+            - approver
+            - authenticated_decision_ref
+            - approved_at
+            - expires_at
+            - scope_tenant
+          properties:
+            kind:
+              const: ApprovalRecord
+            approval_id:
+              $ref: '#/components/schemas/Identifier'
+            decision_kind:
+              type: string
+              enum: [DATA_USE, IMPLEMENT_OPERATE, CASE_LEVEL_BUSINESS]
+            subject_digest:
+              $ref: '#/components/schemas/Sha256Digest'
+            case_version:
+              type: [integer, 'null']
+              minimum: 1
+            policy_version:
+              $ref: '#/components/schemas/SemVer'
+            approver:
+              $ref: '#/components/schemas/Principal'
+            authenticated_decision_ref:
+              $ref: '#/components/schemas/NonSecretRef'
+            approved_at:
+              type: string
+              format: date-time
+            expires_at:
+              type: string
+              format: date-time
+            revoked_at:
+              type: [string, 'null']
+              format: date-time
+            scope_tenant:
+              $ref: '#/components/schemas/TenantId'
+      unevaluatedProperties: false
+
+    Metric:
+      type: object
+      required: [name, numerator, denominator]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/Identifier'
+        numerator:
+          type: integer
+          minimum: 0
+        denominator:
+          type: integer
+          minimum: 1
+        description:
+          type: [string, 'null']
+          maxLength: 4000
+    ErrorSeverityBreakdown:
+      type: object
+      required: [low, medium, high]
+      additionalProperties: false
+      properties:
+        low:
+          type: integer
+          minimum: 0
+        medium:
+          type: integer
+          minimum: 0
+        high:
+          type: integer
+          minimum: 0
+    CandidateComparison:
+      type: object
+      description: Baseline vs general model vs trained candidate (PL-031).
+      required: [candidate, total_operating_cost, task_performance, review_time_minutes]
+      additionalProperties: false
+      properties:
+        candidate:
+          type: string
+          enum: [BASELINE, RULES, GENERAL_MODEL, RETRIEVAL, SPECIALIST_API, TRAINED]
+        candidate_ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+        total_operating_cost:
+          $ref: '#/components/schemas/Money'
+        task_performance:
+          $ref: '#/components/schemas/Metric'
+        review_time_minutes:
+          type: integer
+          minimum: 0
+        notes:
+          type: [string, 'null']
+          maxLength: 4000
+    SegregationStatement:
+      type: object
+      required: [evaluation_data_disjoint_from_tuning, basis]
+      additionalProperties: false
+      properties:
+        evaluation_data_disjoint_from_tuning:
+          type: boolean
+        basis:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    EvaluationReport:
+      x-plumb-contract: EvaluationReport
+      description: Held-out evaluation with denominators and cost comparison (PL-031, PL-034, PL-044).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - subject_ref
+            - dataset_ref
+            - held_out_split
+            - level
+            - case_count
+            - metrics
+            - error_severity_breakdown
+            - review_time_minutes
+            - cost_comparison
+            - trials
+            - segregation_statement
+          properties:
+            kind:
+              const: EvaluationReport
+            subject_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            dataset_ref:
+              $ref: '#/components/schemas/ArtifactRef'
+            held_out_split:
+              type: string
+              enum: [test_temporal, test_client_disjoint]
+            level:
+              $ref: '#/components/schemas/VerificationLevel'
+            case_count:
+              type: integer
+              minimum: 1
+            excluded_case_count:
+              type: integer
+              minimum: 0
+            exclusion_summary:
+              type: [string, 'null']
+              maxLength: 4000
+            metrics:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/Metric'
+            error_severity_breakdown:
+              $ref: '#/components/schemas/ErrorSeverityBreakdown'
+            review_time_minutes:
+              type: integer
+              minimum: 0
+            cost_comparison:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/CandidateComparison'
+            nondeterministic:
+              type: boolean
+            trials:
+              type: integer
+              minimum: 1
+            segregation_statement:
+              $ref: '#/components/schemas/SegregationStatement'
+      unevaluatedProperties: false
+    EvaluationRequest:
+      type: object
+      required: [subject_ref, dataset_ref, held_out_split, level, trials]
+      additionalProperties: false
+      properties:
+        subject_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        dataset_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        held_out_split:
+          type: string
+          enum: [test_temporal, test_client_disjoint]
+        level:
+          $ref: '#/components/schemas/VerificationLevel'
+        trials:
+          type: integer
+          minimum: 1
+          maximum: 100
+        comparison_candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactRef'
+        budget:
+          $ref: '#/components/schemas/Budget'
+
+    ReleaseComponent:
+      type: object
+      description: Either a pinned artifact or an explicit reason for its absence (PL-046).
+      additionalProperties: false
+      properties:
+        ref:
+          oneOf:
+            - $ref: '#/components/schemas/ArtifactRef'
+            - type: 'null'
+        omitted_reason:
+          type: [string, 'null']
+          maxLength: 4000
+    RolloutStage:
+      type: object
+      required: [state, gate, environment, max_case_fraction]
+      additionalProperties: false
+      properties:
+        state:
+          type: string
+          enum: [SHADOW, CANARY, ACTIVE]
+        gate:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        environment:
+          type: string
+          minLength: 1
+          maxLength: 256
+        max_case_fraction:
+          type: number
+          minimum: 0
+          maximum: 1
+    ReleaseManifest:
+      x-plumb-contract: ReleaseManifest
+      description: Binds every component version through immutable digests (PL-034, PL-046, PL-047).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required: [components, attestation_refs, approval_refs, rollout_policy, allowed_effect_classes]
+          properties:
+            kind:
+              const: ReleaseManifest
+            components:
+              type: object
+              description: |
+                Keys include at least workflow, connector, collector, model, prompt,
+                policy, schema, infrastructure and evaluation.
+              additionalProperties:
+                $ref: '#/components/schemas/ReleaseComponent'
+            attestation_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+            approval_refs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactRef'
+            rollout_policy:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/RolloutStage'
+            resolved_model_version:
+              type: [string, 'null']
+              maxLength: 256
+              description: Immutable registry version; a mutable alias is rejected (PL-034).
+            denominators:
+              type: object
+              additionalProperties:
+                type: integer
+                minimum: 1
+            allowed_effect_classes:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/EffectClass'
+            review_thresholds:
+              type: object
+              additionalProperties:
+                type: number
+                minimum: 0
+                maximum: 1
+            in_flight_pinning:
+              type: boolean
+            scope:
+              $ref: '#/components/schemas/ResourceScope'
+      unevaluatedProperties: false
+    ReleaseStatus:
+      type: object
+      required: [release_id, tenant_id, manifest_ref, state, version, state_reason, updated_at]
+      additionalProperties: false
+      properties:
+        release_id:
+          $ref: '#/components/schemas/Identifier'
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        manifest_ref:
+          $ref: '#/components/schemas/ArtifactRef'
+        state:
+          $ref: '#/components/schemas/ReleaseState'
+        version:
+          type: integer
+          minimum: 1
+          description: Release row version; the `ETag` value (PL-056).
+        resolved_model_version:
+          type: [string, 'null']
+          maxLength: 256
+        previous_release_id:
+          oneOf:
+            - $ref: '#/components/schemas/Identifier'
+            - type: 'null'
+        state_reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        updated_at:
+          type: string
+          format: date-time
+    ReleaseActivationRequest:
+      type: object
+      required: [target_stage, reason]
+      additionalProperties: false
+      properties:
+        target_stage:
+          type: string
+          enum: [SHADOW, CANARY, ACTIVE]
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        attestation_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactRef'
+        approval_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactRef'
+    ReleasePauseRequest:
+      type: object
+      required: [reason]
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        requested_by:
+          $ref: '#/components/schemas/Principal'
+
+    EffectSlot:
+      type: object
+      description: Semantic identity of a business action; independent of the release version (PL-039).
+      required: [tenant_id, case_id, obligation_id, obligation_epoch, operation, target]
+      additionalProperties: false
+      properties:
+        tenant_id:
+          $ref: '#/components/schemas/TenantId'
+        case_id:
+          $ref: '#/components/schemas/Identifier'
+        obligation_id:
+          $ref: '#/components/schemas/Identifier'
+        obligation_epoch:
+          type: integer
+          minimum: 0
+        operation:
+          $ref: '#/components/schemas/Identifier'
+        target:
+          $ref: '#/components/schemas/Identifier'
+    ActionIntent:
+      x-plumb-contract: ActionIntent
+      description: Persisted before dispatch; the unit of deduplication (PL-037..PL-039).
+      allOf:
+        - $ref: '#/components/schemas/ArtifactHeader'
+        - type: object
+          required:
+            - action_id
+            - slot
+            - payload_digest
+            - expected_state_version
+            - authority_ref
+            - deployment_version
+            - provider_target
+            - effect_class
+            - idempotency_key
+          properties:
+            kind:
+              const: ActionIntent
+            action_id:
+              $ref: '#/components/schemas/Identifier'
+            slot:
+              $ref: '#/components/schemas/EffectSlot'
+            payload_digest:
+              $ref: '#/components/schemas/Sha256Digest'
+            expected_state_version:
+              type: integer
+              minimum: 1
+            authority_ref:
+              $ref: '#/components/schemas/NonSecretRef'
+            deployment_version:
+              $ref: '#/components/schemas/Identifier'
+            provider_target:
+              $ref: '#/components/schemas/SourceRef'
+            effect_class:
+              $ref: '#/components/schemas/EffectClass'
+            idempotency_key:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: Derived from `action_id`, never from the payload (PL-039).
+            supersedes_action_id:
+              oneOf:
+                - $ref: '#/components/schemas/Identifier'
+                - type: 'null'
+              description: Explicit supersession decision required to redispatch a slot with a changed payload (PL-037).
+      unevaluatedProperties: false
+    ActionReceipt:
+      type: object
+      description: Provider evidence of what happened (PL-038).
+      required: [provider_request_id, observed_at, raw_receipt_digest]
+      additionalProperties: false
+      properties:
+        provider_request_id:
+          type: string
+          minLength: 1
+          maxLength: 256
+        external_id:
+          type: [string, 'null']
+          maxLength: 256
+        postcondition_probe:
+          type: [string, 'null']
+          maxLength: 4000
+          description: Read-after-write observation that confirms the business state.
+        observed_at:
+          type: string
+          format: date-time
+        raw_receipt_digest:
+          $ref: '#/components/schemas/Sha256Digest'
+    ReconciliationRequest:
+      type: object
+      description: |
+        Evidence used to leave `UNKNOWN` (PL-038). `CONFIRMED` requires a receipt;
+        `FAILED_FINAL` requires provider-confirmed non-occurrence; otherwise the effect
+        stays `UNKNOWN` and retry remains refused.
+      required: [outcome, evidence, provider_confirmed_absent, reconciled_at]
+      additionalProperties: false
+      properties:
+        outcome:
+          type: string
+          enum: [CONFIRMED, FAILED_FINAL, STILL_UNKNOWN]
+        receipt:
+          oneOf:
+            - $ref: '#/components/schemas/ActionReceipt'
+            - type: 'null'
+        evidence:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        provider_confirmed_absent:
+          type: boolean
+        reconciled_at:
+          type: string
+          format: date-time
+
+    OutcomeObservation:
+      type: object
+      description: Per-case economics; technical and commercial success are recorded separately (PL-059).
+      required: [observation_id, case_id, release_id, model_calls, completed, review_minutes, observed_at]
+      additionalProperties: false
+      properties:
+        observation_id:
+          $ref: '#/components/schemas/Identifier'
+        case_id:
+          $ref: '#/components/schemas/Identifier'
+        release_id:
+          $ref: '#/components/schemas/Identifier'
+        model_calls:
+          type: integer
+          minimum: 0
+        completed:
+          type: boolean
+        correct:
+          type: [boolean, 'null']
+          description: Whether the completed outcome was correct; `null` until the maturation window closes.
+        realized_value:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        review_minutes:
+          type: integer
+          minimum: 0
+        human_effort_category:
+          oneOf:
+            - $ref: '#/components/schemas/HumanEffortCategory'
+            - type: 'null'
+        observed_at:
+          type: string
+          format: date-time
+
+    # ------------------------------------------------------------------
+    # List pages (PL-056)
+    # ------------------------------------------------------------------
+    OpportunityList:
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpportunitySpec'
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 512
+    EventList:
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventEnvelope'
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 512
+    OutcomeList:
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutcomeObservation'
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 512
