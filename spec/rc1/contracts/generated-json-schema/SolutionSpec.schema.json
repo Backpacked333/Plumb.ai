@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "CandidateDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "components": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "estimated_cost": {
+          "$ref": "#/$defs/MoneyAmount"
+        },
+        "estimated_review_minutes_per_case": {
+          "minimum": 0,
+          "title": "Estimated Review Minutes Per Case",
+          "type": "number"
+        },
+        "joint_error_profile": {
+          "title": "Joint Error Profile",
+          "type": "string"
+        },
+        "rejected_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rejected Reason"
+        },
+        "solution_class": {
+          "$ref": "#/$defs/SolutionClass"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "solution_class",
+        "components",
+        "joint_error_profile",
+        "estimated_cost",
+        "estimated_review_minutes_per_case"
+      ],
+      "title": "CandidateDesign",
+      "type": "object"
+    },
+    "ImpactClass": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "ImpactClass",
+      "type": "string"
+    },
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "SolutionClass": {
+      "enum": [
+        "remove_step",
+        "native_configuration",
+        "deterministic_rules",
+        "classical_model",
+        "general_model_workflow",
+        "retrieval",
+        "specialist_api",
+        "optimizer",
+        "trained_component",
+        "do_nothing"
+      ],
+      "title": "SolutionClass",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/SolutionSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "baseline_candidate_id": {
+      "title": "Baseline Candidate Id",
+      "type": "string"
+    },
+    "candidates": {
+      "description": "baseline plus at least one alternative",
+      "items": {
+        "$ref": "#/$defs/CandidateDesign"
+      },
+      "minItems": 2,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "decision_record": {
+      "title": "Decision Record",
+      "type": "string"
+    },
+    "experiment_evidence": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Experiment Evidence",
+      "type": "array"
+    },
+    "impact_class": {
+      "$ref": "#/$defs/ImpactClass"
+    },
+    "opportunity_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "outcome_semantics": {
+      "description": "completion predicate name the intervention delivers, e.g. review_package_prepared",
+      "title": "Outcome Semantics",
+      "type": "string"
+    },
+    "policy_decisions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Policy Decisions",
+      "type": "array"
+    },
+    "selected_candidate_id": {
+      "title": "Selected Candidate Id",
+      "type": "string"
+    },
+    "solution_id": {
+      "title": "Solution Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "solution_id",
+    "tenant_id",
+    "opportunity_ref",
+    "baseline_candidate_id",
+    "candidates",
+    "selected_candidate_id",
+    "outcome_semantics",
+    "decision_record",
+    "impact_class"
+  ],
+  "title": "SolutionSpec",
+  "type": "object"
+}

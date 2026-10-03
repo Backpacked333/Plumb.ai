@@ -1,0 +1,203 @@
+{
+  "approval_obligations": [],
+  "artifacts": {
+    "env_norbridge_v1": {
+      "digest": "sha256:25fdee0119ba07fcf330c2eb8f8442220149478abda50267d7d56eac45523bba",
+      "kind": "AutonomyEnvelope",
+      "tenant_id": "tnt_norbridge_mfg"
+    },
+    "inv_norbridge_2026_10": {
+      "digest": "sha256:517fe494b8d0c820de0837570496e48ea1108f726314e609d88e45189a5a714c",
+      "kind": "EnvironmentInventory",
+      "tenant_id": "tnt_norbridge_mfg"
+    },
+    "sol_rfq_prep_v1": {
+      "digest": "sha256:0d396523c211f917dc125122e769315f49afd091a1fa14b22d5b357b1d182cb2",
+      "impact_class": "medium",
+      "kind": "SolutionSpec",
+      "tenant_id": "tnt_norbridge_mfg"
+    }
+  },
+  "capabilities": {
+    "microsoft_365:mail.list": {
+      "account_ref": "m365-tenant-9ab",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "account_verified"
+    },
+    "netsuite:items.search": {
+      "account_ref": "ns-acct-55120",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "account_verified"
+    },
+    "netsuite:pricing.get": {
+      "account_ref": "ns-acct-55120",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "account_verified"
+    },
+    "plumb:agent.harness": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "sandbox_tested"
+    },
+    "plumb:collector.deploy": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "production_observed"
+    },
+    "plumb:release.create": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "production_observed"
+    },
+    "plumb:verifier.request": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "production_observed"
+    },
+    "plumb:workflow.compile": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_norbridge_mfg",
+      "verification_level": "production_observed"
+    }
+  },
+  "envelope": {
+    "approval_id": "apr_env_v3",
+    "destinations_allowed": [
+      "mailbox:client_contacts:*",
+      "provider:quickbooks:realm_4011*",
+      "storage:tenant:*",
+      "provider:netsuite:ns-acct-55120*"
+    ],
+    "effect_classes_allowed": [
+      "none",
+      "internal",
+      "external_message",
+      "config_change",
+      "infra_change"
+    ],
+    "envelope_id": "env_norbridge_v1",
+    "environments": [
+      "sandbox",
+      "shadow",
+      "canary",
+      "production"
+    ],
+    "escalation": [
+      {
+        "condition": "new_processor_required",
+        "deadline_hours": 72,
+        "route_to": "prn_owner_01"
+      }
+    ],
+    "expires_at": "2027-04-01T00:00:00+00:00",
+    "goals": [
+      "Reduce duplicate document chasing and accountant review time for monthly close"
+    ],
+    "intervention_classes_allowed": [
+      "remove_step",
+      "native_configuration",
+      "deterministic_rules",
+      "classical_model",
+      "general_model_workflow",
+      "retrieval",
+      "specialist_api",
+      "trained_component",
+      "optimizer"
+    ],
+    "max_auto_impact": "low",
+    "owner_principal_id": "prn_owner_01",
+    "processors_allowed": [
+      "plumb:control",
+      "openai:api:zdr",
+      "anthropic:api:zdr"
+    ],
+    "regions_allowed": [
+      "us-east-1"
+    ],
+    "source_grant_ids": [
+      "grant_erp_rfq",
+      "grant_mail_sales"
+    ],
+    "spend": {
+      "build_max": {
+        "currency": "USD",
+        "minor_units": 250000
+      },
+      "monthly_operation_max": {
+        "currency": "USD",
+        "minor_units": 150000
+      },
+      "single_action_max": {
+        "currency": "USD",
+        "minor_units": 500
+      }
+    },
+    "status": "active",
+    "tenant_id": "tnt_norbridge_mfg",
+    "version": 3
+  },
+  "grants": {
+    "grant_erp_rfq": {
+      "account_ref": "ns-acct-55120",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_erp_rfq",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "netsuite",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_norbridge_mfg",
+      "terms_version": "netsuite-terms-2026-01"
+    },
+    "grant_mail_sales": {
+      "account_ref": "m365-tenant-9ab",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_mail_sales",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "microsoft_365",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_norbridge_mfg",
+      "terms_version": "microsoft_365-terms-2026-01"
+    }
+  },
+  "tenant_id": "tnt_norbridge_mfg"
+}

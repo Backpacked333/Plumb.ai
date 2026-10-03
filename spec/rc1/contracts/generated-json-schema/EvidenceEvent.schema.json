@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "ProtectionReport": {
+      "additionalProperties": false,
+      "properties": {
+        "clear": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Clear",
+          "type": "array"
+        },
+        "omitted": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Omitted",
+          "type": "array"
+        },
+        "protected_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Protected Refs",
+          "type": "array"
+        },
+        "tokenized": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tokenized",
+          "type": "array"
+        }
+      },
+      "title": "ProtectionReport",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/EvidenceEvent.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "access_policy_ref": {
+      "title": "Access Policy Ref",
+      "type": "string"
+    },
+    "available_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "when the source could first have served it",
+      "title": "Available Time"
+    },
+    "content_digest": {
+      "title": "Content Digest",
+      "type": "string"
+    },
+    "content_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "object store reference; raw media is never copied here",
+      "title": "Content Ref"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "when the thing happened in the world; None = unknown",
+      "title": "Event Time"
+    },
+    "external_record_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Record Id"
+    },
+    "external_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Version"
+    },
+    "extraction_version": {
+      "title": "Extraction Version",
+      "type": "string"
+    },
+    "ingested_time": {
+      "format": "date-time",
+      "title": "Ingested Time",
+      "type": "string"
+    },
+    "labels": {
+      "additionalProperties": true,
+      "description": "derived labels with confidence",
+      "title": "Labels",
+      "type": "object"
+    },
+    "modality": {
+      "enum": [
+        "screen",
+        "accessibility",
+        "dom",
+        "message",
+        "document",
+        "recording",
+        "api_record",
+        "runtime_proof",
+        "interview"
+      ],
+      "title": "Modality",
+      "type": "string"
+    },
+    "protection": {
+      "$ref": "#/$defs/ProtectionReport"
+    },
+    "retention_class": {
+      "title": "Retention Class",
+      "type": "string"
+    },
+    "source_account_ref": {
+      "title": "Source Account Ref",
+      "type": "string"
+    },
+    "source_provider": {
+      "title": "Source Provider",
+      "type": "string"
+    },
+    "source_recorded_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Recorded Time"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "valid_from": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid From"
+    },
+    "valid_to": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid To"
+    }
+  },
+  "required": [
+    "event_id",
+    "tenant_id",
+    "source_provider",
+    "source_account_ref",
+    "modality",
+    "ingested_time",
+    "content_digest",
+    "access_policy_ref",
+    "retention_class",
+    "extraction_version"
+  ],
+  "title": "EvidenceEvent",
+  "type": "object"
+}

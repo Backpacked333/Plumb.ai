@@ -1,0 +1,17 @@
+machine: Removal
+aggregate: removal
+initial: RECEIVED
+terminal: [COMPLETED, REJECTED]
+states: [RECEIVED, VALIDATED, INGESTION_STOPPED, IMPACT_COMPUTED, ON_HOLD, ACCESS_DISABLED, DERIVED_REMOVED, PROVIDER_CLEANUP_PENDING, BACKUPS_SCHEDULED, COMPLETED, REJECTED]
+transitions:
+  - {from: RECEIVED, event: validate, to: VALIDATED, guards: [requester_identity_verified, scope_resolvable], writes: [removal.state], emits: [removal.validated], external_effects: none, retryable: true}
+  - {from: RECEIVED, event: reject, to: REJECTED, guards: [rejection_reason_recorded], writes: [removal.state, removal.reason], emits: [removal.rejected], external_effects: none, retryable: false}
+  - {from: VALIDATED, event: stop_ingestion, to: INGESTION_STOPPED, guards: [affected_collectors_paused_or_none], writes: [removal.state, collector.paused], emits: [removal.ingestion_stopped], external_effects: subscriptions_suspended, retryable: true}
+  - {from: INGESTION_STOPPED, event: compute_impact, to: IMPACT_COMPUTED, guards: [impact_set_recorded], writes: [removal.state, removal.impact], emits: [removal.impact_computed], external_effects: none, retryable: true}
+  - {from: IMPACT_COMPUTED, event: hold, to: ON_HOLD, guards: [legal_hold_authorized_by_review], writes: [removal.state, removal.hold_reason], emits: [removal.on_hold], external_effects: none, retryable: true}
+  - {from: ON_HOLD, event: release_hold, to: IMPACT_COMPUTED, guards: [hold_released_by_review], writes: [removal.state], emits: [removal.hold_released], external_effects: none, retryable: true}
+  - {from: IMPACT_COMPUTED, event: disable_access, to: ACCESS_DISABLED, guards: [affected_models_and_indexes_disabled], writes: [removal.state, serving.disabled], emits: [removal.access_disabled], external_effects: serving_routes_disabled, retryable: true}
+  - {from: ACCESS_DISABLED, event: remove_derived, to: DERIVED_REMOVED, guards: [derived_rows_tombstoned, datasets_marked_unavailable], writes: [removal.state, tombstones], emits: [removal.derived_removed], external_effects: none, retryable: true}
+  - {from: DERIVED_REMOVED, event: request_provider_cleanup, to: PROVIDER_CLEANUP_PENDING, guards: [provider_deletion_requests_recorded], writes: [removal.state, provider.requests], emits: [removal.provider_cleanup_pending], external_effects: provider_deletion_requests, retryable: true}
+  - {from: PROVIDER_CLEANUP_PENDING, event: schedule_backups, to: BACKUPS_SCHEDULED, guards: [provider_cleanup_confirmed_or_timed_out_with_record], writes: [removal.state, backup.policy_applied], emits: [removal.backups_scheduled], external_effects: none, retryable: true}
+  - {from: BACKUPS_SCHEDULED, event: complete, to: COMPLETED, guards: [minimal_audit_retained, completion_evidence_issued], writes: [removal.state, removal.completion_evidence], emits: [removal.completed], external_effects: none, retryable: false}

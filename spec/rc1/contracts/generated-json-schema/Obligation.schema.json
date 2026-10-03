@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "ObligationStatus": {
+      "enum": [
+        "open",
+        "partially_satisfied",
+        "satisfied",
+        "exempt",
+        "expired",
+        "reopened",
+        "superseded"
+      ],
+      "title": "ObligationStatus",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/Obligation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_key": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "e.g. {client: obj_client_0142, period: 2026-08}",
+      "title": "Case Key",
+      "type": "object"
+    },
+    "due_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Due At"
+    },
+    "engagement_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ref"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "epoch": {
+      "default": 1,
+      "description": "increments on reopen or supersession; part of the effect slot",
+      "minimum": 1,
+      "title": "Epoch",
+      "type": "integer"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "fulfillment_predicate": {
+      "description": "named predicate from the domain pack",
+      "title": "Fulfillment Predicate",
+      "type": "string"
+    },
+    "obligation_id": {
+      "title": "Obligation Id",
+      "type": "string"
+    },
+    "obligee": {
+      "$ref": "#/$defs/Ref"
+    },
+    "obligor": {
+      "$ref": "#/$defs/Ref"
+    },
+    "recurrence": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "RRULE or pack schedule id",
+      "title": "Recurrence"
+    },
+    "rule_version": {
+      "title": "Rule Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ObligationStatus",
+      "default": "open"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "obligation_id",
+    "tenant_id",
+    "obligor",
+    "obligee",
+    "case_key",
+    "rule_version",
+    "fulfillment_predicate"
+  ],
+  "title": "Obligation",
+  "type": "object"
+}

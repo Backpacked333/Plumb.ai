@@ -1,0 +1,106 @@
+{
+  "actions": [],
+  "bounded_loops": {},
+  "case_key_fields": [
+    "rfq_id"
+  ],
+  "completion_predicate": "quote_draft_approved",
+  "durable_waits": [
+    "AWAIT_COMMERCIAL_APPROVAL"
+  ],
+  "initial_state": "PARSE_RFQ",
+  "input_ports": [
+    {
+      "name": "rfq_lines",
+      "scope": "tnt_norbridge_mfg",
+      "semantic_type": "record_set"
+    }
+  ],
+  "max_cost_per_case": {
+    "currency": "USD",
+    "minor_units": 150
+  },
+  "review_surfaces": [
+    "plumb_companion_review"
+  ],
+  "source_freshness": {
+    "netsuite": 86400
+  },
+  "states": [
+    "PARSE_RFQ",
+    "NORMALIZE_LINES",
+    "PRICE_LINES",
+    "DRAFT_QUOTE",
+    "AWAIT_COMMERCIAL_APPROVAL",
+    "QUOTE_READY",
+    "REJECTED",
+    "CANCELLED"
+  ],
+  "tenant_id": "tnt_norbridge_mfg",
+  "terminal_states": [
+    "QUOTE_READY",
+    "REJECTED",
+    "CANCELLED"
+  ],
+  "timers": {},
+  "transitions": [
+    {
+      "event": "parsed",
+      "from_state": "PARSE_RFQ",
+      "guards": [
+        "customer_resolved"
+      ],
+      "to_state": "NORMALIZE_LINES"
+    },
+    {
+      "event": "normalized",
+      "from_state": "NORMALIZE_LINES",
+      "guards": [
+        "units_resolved_or_flagged"
+      ],
+      "to_state": "PRICE_LINES"
+    },
+    {
+      "event": "priced",
+      "from_state": "PRICE_LINES",
+      "guards": [
+        "price_list_fresh_within_24h"
+      ],
+      "to_state": "DRAFT_QUOTE"
+    },
+    {
+      "event": "drafted",
+      "from_state": "DRAFT_QUOTE",
+      "guards": [
+        "review_surface_available"
+      ],
+      "to_state": "AWAIT_COMMERCIAL_APPROVAL"
+    },
+    {
+      "event": "approved",
+      "from_state": "AWAIT_COMMERCIAL_APPROVAL",
+      "guards": [
+        "approval_bound_to_quote_digest"
+      ],
+      "to_state": "QUOTE_READY"
+    },
+    {
+      "event": "rejected",
+      "from_state": "AWAIT_COMMERCIAL_APPROVAL",
+      "guards": [],
+      "to_state": "REJECTED"
+    },
+    {
+      "event": "cancel",
+      "from_state": "PARSE_RFQ",
+      "guards": [
+        "cancel_authorized"
+      ],
+      "to_state": "CANCELLED"
+    }
+  ],
+  "triggers": [
+    "event:rfq.received"
+  ],
+  "workflow_id": "wf_norbridge_rfq_prep_v1"
+}

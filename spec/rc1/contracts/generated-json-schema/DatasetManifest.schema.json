@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "DataRole": {
+      "enum": [
+        "training",
+        "development",
+        "calibration",
+        "regression",
+        "protected_acceptance",
+        "prospective_monitoring"
+      ],
+      "title": "DataRole",
+      "type": "string"
+    },
+    "DatasetState": {
+      "enum": [
+        "PROPOSED",
+        "MATERIALIZING",
+        "QUARANTINED",
+        "VERIFIED",
+        "SUPERSEDED",
+        "UNAVAILABLE"
+      ],
+      "title": "DatasetState",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "SplitRule": {
+      "additionalProperties": false,
+      "properties": {
+        "answers_question": {
+          "title": "Answers Question",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "temporal",
+            "family_disjoint",
+            "client_disjoint",
+            "stratified"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "detail",
+        "answers_question"
+      ],
+      "title": "SplitRule",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/DatasetManifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "distributions": {
+      "additionalProperties": true,
+      "title": "Distributions",
+      "type": "object"
+    },
+    "knowledge_boundary_rule": {
+      "title": "Knowledge Boundary Rule",
+      "type": "string"
+    },
+    "label_maturity": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Label Maturity",
+      "type": "object"
+    },
+    "rejected_count": {
+      "minimum": 0,
+      "title": "Rejected Count",
+      "type": "integer"
+    },
+    "roles": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "row counts by role",
+      "propertyNames": {
+        "$ref": "#/$defs/DataRole"
+      },
+      "title": "Roles",
+      "type": "object"
+    },
+    "row_count": {
+      "minimum": 0,
+      "title": "Row Count",
+      "type": "integer"
+    },
+    "source_pins": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Source Pins",
+      "type": "array"
+    },
+    "split_rules": {
+      "items": {
+        "$ref": "#/$defs/SplitRule"
+      },
+      "title": "Split Rules",
+      "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/DatasetState",
+      "default": "PROPOSED"
+    },
+    "task_definition_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transformation_version": {
+      "title": "Transformation Version",
+      "type": "string"
+    },
+    "unavailable_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unavailable Reason"
+    },
+    "version": {
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "tenant_id",
+    "version",
+    "task_definition_ref",
+    "roles",
+    "split_rules",
+    "knowledge_boundary_rule",
+    "source_pins",
+    "transformation_version",
+    "row_count",
+    "rejected_count"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

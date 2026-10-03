@@ -1,0 +1,3 @@
+# Preserve the supplied specification's checksum-verified bytes on every platform.
+spec/rc1/** -text
+spec/rc1/TRACEABILITY.csv whitespace=cr-at-eol

@@ -1,0 +1,383 @@
+{
+  "$defs": {
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Port": {
+      "additionalProperties": false,
+      "description": "A typed input or output of a build step. A name alone is not a semantic type (SR-042).",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "freshness_max_s": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freshness Max S"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{1,40}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "default": false,
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "purpose_restrictions": {
+          "items": {
+            "$ref": "#/$defs/Purpose"
+          },
+          "title": "Purpose Restrictions",
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "entity/account scope the value is valid for",
+          "title": "Scope"
+        },
+        "semantic_type": {
+          "description": "e.g. money, timestamp, identifier, record_set, document, model_artifact",
+          "title": "Semantic Type",
+          "type": "string"
+        },
+        "tz": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tz"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "semantic_type"
+      ],
+      "title": "Port",
+      "type": "object"
+    },
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "on_fail": {
+          "enum": [
+            "block",
+            "degrade",
+            "quarantine",
+            "warn"
+          ],
+          "title": "On Fail",
+          "type": "string"
+        },
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "rule",
+        "on_fail"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/CollectionSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "account_scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Account Scope",
+      "type": "array"
+    },
+    "backfill_from": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Backfill From"
+    },
+    "budget_monthly": {
+      "$ref": "#/$defs/MoneyAmount"
+    },
+    "collection_id": {
+      "title": "Collection Id",
+      "type": "string"
+    },
+    "completeness_claim": {
+      "enum": [
+        "provable",
+        "bounded",
+        "sampled"
+      ],
+      "title": "Completeness Claim",
+      "type": "string"
+    },
+    "deletion_behaviour": {
+      "enum": [
+        "tombstone_and_cascade",
+        "tombstone_only"
+      ],
+      "title": "Deletion Behaviour",
+      "type": "string"
+    },
+    "downstream": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Downstream",
+      "type": "array"
+    },
+    "integration_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "join_keys": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Join Keys",
+      "type": "array"
+    },
+    "objective_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "overlap_window_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Overlap Window S"
+    },
+    "purpose": {
+      "$ref": "#/$defs/Purpose"
+    },
+    "quality_checks": {
+      "items": {
+        "$ref": "#/$defs/QualityCheck"
+      },
+      "title": "Quality Checks",
+      "type": "array"
+    },
+    "retention_days": {
+      "title": "Retention Days",
+      "type": "integer"
+    },
+    "selected_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Fields",
+      "type": "array"
+    },
+    "semantic_schema": {
+      "items": {
+        "$ref": "#/$defs/Port"
+      },
+      "title": "Semantic Schema",
+      "type": "array"
+    },
+    "source_grant_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Grant Ids",
+      "type": "array"
+    },
+    "storage_destination": {
+      "title": "Storage Destination",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "transformation_version": {
+      "title": "Transformation Version",
+      "type": "string"
+    },
+    "update_mechanism": {
+      "enum": [
+        "webhook_then_fetch",
+        "change_capture",
+        "poll_overlap",
+        "cdc",
+        "device_event",
+        "valve_event"
+      ],
+      "title": "Update Mechanism",
+      "type": "string"
+    },
+    "watermark_field": {
+      "title": "Watermark Field",
+      "type": "string"
+    }
+  },
+  "required": [
+    "collection_id",
+    "tenant_id",
+    "purpose",
+    "objective_ref",
+    "source_grant_ids",
+    "integration_ref",
+    "account_scope",
+    "selected_fields",
+    "semantic_schema",
+    "join_keys",
+    "update_mechanism",
+    "watermark_field",
+    "storage_destination",
+    "transformation_version",
+    "quality_checks",
+    "retention_days",
+    "deletion_behaviour",
+    "downstream",
+    "budget_monthly",
+    "completeness_claim"
+  ],
+  "title": "CollectionSpec",
+  "type": "object"
+}

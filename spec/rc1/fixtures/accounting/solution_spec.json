@@ -1,0 +1,66 @@
+{
+  "baseline_candidate_id": "cand_native_reminders",
+  "candidates": [
+    {
+      "candidate_id": "cand_native_reminders",
+      "components": [
+        "practice_mgmt:auto_reminders"
+      ],
+      "estimated_cost": {
+        "currency": "USD",
+        "minor_units": 0
+      },
+      "estimated_review_minutes_per_case": 12.0,
+      "joint_error_profile": "no consolidation across sources; duplicate chasing persists",
+      "rejected_reason": "does not detect documents already present in Drive or QBO",
+      "solution_class": "native_configuration"
+    },
+    {
+      "candidate_id": "cand_rules_plus_drafts",
+      "components": [
+        "deterministic_checklist",
+        "drive_folder_adapter",
+        "qbo_cdc_collector",
+        "drafted_consolidated_request"
+      ],
+      "estimated_cost": {
+        "currency": "USD",
+        "minor_units": 120
+      },
+      "estimated_review_minutes_per_case": 4.0,
+      "joint_error_profile": "wrong-client folder mapping is the dominant risk; mitigated by approved identities and review",
+      "solution_class": "general_model_workflow"
+    },
+    {
+      "candidate_id": "cand_trained_categorizer",
+      "components": [
+        "cand_rules_plus_drafts",
+        "classical_categorizer"
+      ],
+      "estimated_cost": {
+        "currency": "USD",
+        "minor_units": 160
+      },
+      "estimated_review_minutes_per_case": 3.5,
+      "joint_error_profile": "adds categorization suggestions; not needed for the review-package deliverable",
+      "rejected_reason": "deferred to learning-enabled variant; no posting authority in release 1",
+      "solution_class": "trained_component"
+    }
+  ],
+  "decision_record": "Selected the rules-plus-drafts composition: it removes duplicate chasing (the evidenced friction) with low impact and no posting authority. Trained categorization is a separate gated branch.",
+  "experiment_evidence": [],
+  "impact_class": "low",
+  "opportunity_ref": {
+    "digest": "sha256:446e3bb19469453ab06f97fb9a9b421c2268bd581adf2f8e66a392ac3b436dfc",
+    "id": "opp_doc_chase_01",
+    "object_type": "OpportunitySpec"
+  },
+  "outcome_semantics": "review_package_accepted",
+  "policy_decisions": [
+    "reminder cadence 7 days, max 3 reminders per obligation epoch",
+    "documents already present are never requested"
+  ],
+  "selected_candidate_id": "cand_rules_plus_drafts",
+  "solution_id": "sol_doc_intake_v1",
+  "tenant_id": "tnt_barlowkim"
+}

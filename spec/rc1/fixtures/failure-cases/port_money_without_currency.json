@@ -1,0 +1,69 @@
+{
+  "account_scope": [
+    "qbo-realm-4011"
+  ],
+  "backfill_from": "2024-01-01T00:00:00+00:00",
+  "budget_monthly": {
+    "currency": "USD",
+    "minor_units": 2500
+  },
+  "collection_id": "col_qbo_v1",
+  "completeness_claim": "bounded",
+  "deletion_behaviour": "tombstone_and_cascade",
+  "downstream": [
+    "evidence.facts",
+    "dataset.categorization"
+  ],
+  "integration_ref": {
+    "id": "int_qbo_v1",
+    "object_type": "IntegrationSpec"
+  },
+  "join_keys": [
+    "Id",
+    "EntityRef.value",
+    "TxnDate.period"
+  ],
+  "objective_ref": {
+    "id": "opp_doc_chase_01",
+    "object_type": "OpportunitySpec"
+  },
+  "overlap_window_s": 7200,
+  "purpose": "operation",
+  "quality_checks": [
+    {
+      "name": "count_reconciliation",
+      "on_fail": "block",
+      "rule": "abs(local_count - source_count)/source_count <= 0.005 per month"
+    },
+    {
+      "name": "cdc_window",
+      "on_fail": "degrade",
+      "rule": "poll interval <= 20 days (provider look-back is 30)"
+    }
+  ],
+  "retention_days": 730,
+  "selected_fields": [
+    "Id",
+    "SyncToken",
+    "TxnDate",
+    "TotalAmt",
+    "AccountRef",
+    "EntityRef",
+    "MetaData.LastUpdatedTime",
+    "AttachableRef"
+  ],
+  "semantic_schema": [
+    {
+      "name": "amt",
+      "semantic_type": "money"
+    }
+  ],
+  "source_grant_ids": [
+    "grant_qbo_main"
+  ],
+  "storage_destination": "storage:tenant:barlowkim/collections/qbo_purchases",
+  "tenant_id": "tnt_barlowkim",
+  "transformation_version": "xf-qbo-purchase-1.2",
+  "update_mechanism": "change_capture",
+  "watermark_field": "MetaData.LastUpdatedTime"
+}

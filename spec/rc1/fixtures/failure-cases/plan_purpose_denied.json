@@ -1,0 +1,683 @@
+{
+  "case_migration_declared": false,
+  "envelope_ref": {
+    "digest": "sha256:7c918e8ea8d91eb4edca0f0e183171a5d717977df37ec7d870cf7d1d8100b7b5",
+    "id": "env_barlowkim_v3",
+    "object_type": "AutonomyEnvelope"
+  },
+  "plan_id": "plan_barlowkim_doc_intake_v1",
+  "release_schema_version": "1.0",
+  "schema_version": "1.0",
+  "solution_ref": {
+    "digest": "sha256:53b7942daf42d2d37ac1dc54a249c6e056aac7adb221914b551aa51ddded79dc",
+    "id": "sol_doc_intake_v1",
+    "object_type": "SolutionSpec"
+  },
+  "steps": [
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [
+        {
+          "digest": "sha256:d7294a1a13c344a8c9d854d71c6bde2857676d47355c9025d4cbf3dc3a8dd5a1",
+          "id": "inv_barlowkim_2026_09",
+          "object_type": "EnvironmentInventory"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "discovery",
+        "implementation"
+      ],
+      "required_capabilities": [
+        "google_workspace:gmail.threads.list"
+      ],
+      "step_id": "step_probe_gmail",
+      "timeout_s": 1800,
+      "type": "probe_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [
+        {
+          "digest": "sha256:d7294a1a13c344a8c9d854d71c6bde2857676d47355c9025d4cbf3dc3a8dd5a1",
+          "id": "inv_barlowkim_2026_09",
+          "object_type": "EnvironmentInventory"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "discovery",
+        "implementation"
+      ],
+      "required_capabilities": [
+        "quickbooks_online:query.Purchase",
+        "quickbooks_online:cdc"
+      ],
+      "step_id": "step_probe_qbo",
+      "timeout_s": 1800,
+      "type": "probe_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_probe_qbo"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [
+        {
+          "name": "qbo_records",
+          "scope": "qbo-realm-4011",
+          "semantic_type": "record_set"
+        },
+        {
+          "currency": "USD",
+          "name": "txn_amounts",
+          "scope": "qbo-realm-4011",
+          "semantic_type": "money"
+        }
+      ],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "export"
+      ],
+      "required_capabilities": [
+        "quickbooks_online:query.Purchase"
+      ],
+      "step_id": "step_profile_qbo",
+      "timeout_s": 1800,
+      "type": "profile_source",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 8000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_probe_gmail"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "notes": "Nontrivial adaptation: map the firm's non-standard client folder layout to client/period identities",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:agent.harness",
+        "google_drive:files.list"
+      ],
+      "step_id": "step_adapter_drive_folder_map",
+      "timeout_s": 7200,
+      "type": "generate_adapter",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_adapter_drive_folder_map"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:agent.harness"
+      ],
+      "step_id": "step_test_adapter",
+      "timeout_s": 1800,
+      "type": "test_adapter",
+      "verification": [
+        {
+          "check_id": "chk_adapter_contract_v1",
+          "criteria_version": "1",
+          "data_role": "regression"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 3000
+      },
+      "compensation_class": "native_undo",
+      "depends_on": [
+        "step_test_adapter"
+      ],
+      "destinations": [
+        "storage:tenant:barlowkim"
+      ],
+      "effect_class": "config_change",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:collector.deploy",
+        "google_drive:changes.watch"
+      ],
+      "step_id": "step_collector_docs",
+      "timeout_s": 1800,
+      "type": "deploy_collector",
+      "verification": [
+        {
+          "check_id": "chk_collector_live_event_v1",
+          "criteria_version": "1",
+          "data_role": "regression"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 3000
+      },
+      "compensation_class": "native_undo",
+      "depends_on": [
+        "step_profile_qbo"
+      ],
+      "destinations": [
+        "storage:tenant:barlowkim"
+      ],
+      "effect_class": "config_change",
+      "input_ports": [
+        {
+          "name": "qbo_records",
+          "scope": "qbo-realm-4011",
+          "semantic_type": "record_set"
+        }
+      ],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:collector.deploy",
+        "quickbooks_online:cdc"
+      ],
+      "step_id": "step_collector_qbo",
+      "timeout_s": 1800,
+      "type": "deploy_collector",
+      "verification": [
+        {
+          "check_id": "chk_collector_live_event_v1",
+          "criteria_version": "1",
+          "data_role": "regression"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 4000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_collector_qbo"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "account_verified",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "quickbooks_online:query.Purchase"
+      ],
+      "step_id": "step_backfill_qbo",
+      "timeout_s": 14400,
+      "type": "backfill",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_backfill_qbo"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:collector.deploy"
+      ],
+      "step_id": "step_reconcile_qbo",
+      "timeout_s": 1800,
+      "type": "reconcile_collector",
+      "verification": [
+        {
+          "check_id": "chk_backfill_reconciliation_v1",
+          "criteria_version": "1",
+          "data_role": "regression"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_reconcile_qbo"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [
+        {
+          "name": "qbo_records",
+          "scope": "qbo-realm-4011",
+          "semantic_type": "record_set"
+        }
+      ],
+      "inputs": [
+        {
+          "digest": "sha256:b79ed54549d2e32e8b6f7ef4f83dee5d7b076ff02403de910d371f529584feee",
+          "id": "tsk_categorization_v1",
+          "object_type": "TaskDefinition"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "evaluation"
+      ],
+      "required_capabilities": [
+        "plumb:dataset.build"
+      ],
+      "step_id": "step_discover_labels",
+      "timeout_s": 1800,
+      "type": "discover_labels",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_discover_labels"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "evaluation",
+        "training"
+      ],
+      "required_capabilities": [
+        "plumb:dataset.build"
+      ],
+      "step_id": "step_build_dataset",
+      "timeout_s": 1800,
+      "type": "build_dataset",
+      "verification": [
+        {
+          "check_id": "chk_dataset_leakage_v1",
+          "criteria_version": "1",
+          "data_role": "protected_acceptance"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 6000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_build_dataset"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control",
+        "openai:api:zdr"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "evaluation"
+      ],
+      "required_capabilities": [
+        "plumb:dataset.build"
+      ],
+      "step_id": "step_experiment",
+      "timeout_s": 1800,
+      "type": "run_experiment",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_collector_docs",
+        "step_experiment"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:workflow.compile"
+      ],
+      "step_id": "step_compile_workflow",
+      "timeout_s": 1800,
+      "type": "compile_workflow",
+      "verification": [
+        {
+          "check_id": "chk_workflow_scenarios_v1",
+          "criteria_version": "1",
+          "data_role": "protected_acceptance"
+        }
+      ]
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_compile_workflow"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:agent.harness"
+      ],
+      "step_id": "step_generate_tests",
+      "timeout_s": 1800,
+      "type": "generate_tests",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_generate_tests"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [
+        {
+          "digest": "sha256:8317bd30eb354bc9d66d07e6d038b33ca8f351d281942cf47bfefa27869f96f5",
+          "id": "chk_bundle_doc_intake_v1",
+          "object_type": "ProtectedCheckBundle"
+        }
+      ],
+      "max_attempts": 3,
+      "min_capability_level": "production_observed",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:verifier.request"
+      ],
+      "step_id": "step_request_verification",
+      "timeout_s": 1800,
+      "type": "request_verification",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_request_verification"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:infra.pulumi"
+      ],
+      "step_id": "step_preview_infra",
+      "timeout_s": 1800,
+      "type": "preview_infra",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 5000
+      },
+      "compensation_class": "native_undo",
+      "depends_on": [
+        "step_preview_infra"
+      ],
+      "destinations": [
+        "storage:tenant:barlowkim"
+      ],
+      "effect_class": "infra_change",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": false,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:infra.pulumi"
+      ],
+      "step_id": "step_apply_infra",
+      "timeout_s": 1800,
+      "type": "apply_infra",
+      "verification": []
+    },
+    {
+      "budget_max": {
+        "currency": "USD",
+        "minor_units": 2000
+      },
+      "compensation_class": "not_needed",
+      "depends_on": [
+        "step_apply_infra"
+      ],
+      "destinations": [],
+      "effect_class": "none",
+      "input_ports": [],
+      "inputs": [],
+      "max_attempts": 3,
+      "min_capability_level": "sandbox_tested",
+      "output_ports": [],
+      "processors_used": [
+        "plumb:control"
+      ],
+      "produces_release_artifact": true,
+      "purposes_used": [
+        "implementation"
+      ],
+      "required_capabilities": [
+        "plumb:release.create"
+      ],
+      "step_id": "step_create_release",
+      "timeout_s": 1800,
+      "type": "create_release",
+      "verification": [
+        {
+          "check_id": "chk_release_manifest_v1",
+          "criteria_version": "1",
+          "data_role": "regression"
+        }
+      ]
+    }
+  ],
+  "tenant_id": "tnt_barlowkim",
+  "total_budget_max": {
+    "currency": "USD",
+    "minor_units": 60000
+  }
+}

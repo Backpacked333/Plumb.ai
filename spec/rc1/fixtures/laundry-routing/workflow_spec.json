@@ -1,0 +1,130 @@
+{
+  "actions": [
+    {
+      "action_id": "act_publish_routes",
+      "compensation_class": "native_undo",
+      "effect_class": "external_record_write",
+      "operation_id": "cleancloud:routes.publish",
+      "requires_case_approval": true,
+      "retry_class": "provider_keyed"
+    }
+  ],
+  "bounded_loops": {
+    "solve_loop": 5
+  },
+  "case_key_fields": [
+    "service_date",
+    "depot_id"
+  ],
+  "completion_predicate": "routes_published",
+  "durable_waits": [
+    "AWAIT_PUBLISH_APPROVAL",
+    "RESOLVE_INFEASIBLE"
+  ],
+  "initial_state": "COLLECT_ORDERS",
+  "input_ports": [
+    {
+      "name": "orders",
+      "scope": "tnt_freshpress",
+      "semantic_type": "record_set"
+    }
+  ],
+  "max_cost_per_case": {
+    "currency": "USD",
+    "minor_units": 200
+  },
+  "review_surfaces": [
+    "plumb_companion_review"
+  ],
+  "source_freshness": {
+    "cleancloud": 600
+  },
+  "states": [
+    "COLLECT_ORDERS",
+    "SOLVE",
+    "PLAN_DRAFTED",
+    "AWAIT_PUBLISH_APPROVAL",
+    "PUBLISHED",
+    "RESOLVE_INFEASIBLE",
+    "CANCELLED"
+  ],
+  "tenant_id": "tnt_freshpress",
+  "terminal_states": [
+    "PUBLISHED",
+    "CANCELLED"
+  ],
+  "timers": {},
+  "transitions": [
+    {
+      "event": "cutoff",
+      "from_state": "COLLECT_ORDERS",
+      "guards": [
+        "orders_fresh"
+      ],
+      "to_state": "SOLVE"
+    },
+    {
+      "event": "solved",
+      "from_state": "SOLVE",
+      "guards": [
+        "hard_constraints_satisfied"
+      ],
+      "to_state": "PLAN_DRAFTED"
+    },
+    {
+      "event": "infeasible",
+      "from_state": "SOLVE",
+      "guards": [],
+      "to_state": "RESOLVE_INFEASIBLE"
+    },
+    {
+      "event": "constraints_relaxed_by_human",
+      "from_state": "RESOLVE_INFEASIBLE",
+      "guards": [
+        "relaxation_authorized",
+        "solve_loop_under_max"
+      ],
+      "to_state": "SOLVE"
+    },
+    {
+      "event": "review",
+      "from_state": "PLAN_DRAFTED",
+      "guards": [
+        "review_surface_available"
+      ],
+      "to_state": "AWAIT_PUBLISH_APPROVAL"
+    },
+    {
+      "actions": [
+        "act_publish_routes"
+      ],
+      "event": "approved",
+      "from_state": "AWAIT_PUBLISH_APPROVAL",
+      "guards": [
+        "approval_bound_to_plan_digest"
+      ],
+      "to_state": "PUBLISHED"
+    },
+    {
+      "event": "order_changed",
+      "from_state": "AWAIT_PUBLISH_APPROVAL",
+      "guards": [
+        "solve_loop_under_max"
+      ],
+      "to_state": "SOLVE"
+    },
+    {
+      "event": "cancel",
+      "from_state": "COLLECT_ORDERS",
+      "guards": [
+        "cancel_authorized"
+      ],
+      "to_state": "CANCELLED"
+    }
+  ],
+  "triggers": [
+    "schedule:daily_cutoff",
+    "event:order.changed"
+  ],
+  "workflow_id": "wf_freshpress_route_prep_v1"
+}

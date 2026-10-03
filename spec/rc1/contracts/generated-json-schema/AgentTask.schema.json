@@ -1,0 +1,225 @@
+{
+  "$defs": {
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "TaskLease": {
+      "additionalProperties": false,
+      "properties": {
+        "acquired_at": {
+          "format": "date-time",
+          "title": "Acquired At",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "fencing_token": {
+          "description": "platform: monotonically increasing per task",
+          "minimum": 1,
+          "title": "Fencing Token",
+          "type": "integer"
+        },
+        "lease_id": {
+          "title": "Lease Id",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "worker_id": {
+          "title": "Worker Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lease_id",
+        "task_id",
+        "worker_id",
+        "fencing_token",
+        "acquired_at",
+        "expires_at"
+      ],
+      "title": "TaskLease",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/AgentTask.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "acceptance_ref": {
+      "$ref": "#/$defs/Ref",
+      "description": "reference to the verification obligations; builder cannot edit the protected bundle"
+    },
+    "build_id": {
+      "title": "Build Id",
+      "type": "string"
+    },
+    "destination_scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Destination Scope",
+      "type": "array"
+    },
+    "goal_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "input_artifacts": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Input Artifacts",
+      "type": "array"
+    },
+    "lease": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskLease"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "permitted_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Permitted Capabilities",
+      "type": "array"
+    },
+    "prior_diagnostics": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Prior Diagnostics",
+      "type": "array"
+    },
+    "remaining_attempts": {
+      "minimum": 0,
+      "title": "Remaining Attempts",
+      "type": "integer"
+    },
+    "remaining_spend": {
+      "$ref": "#/$defs/MoneyAmount"
+    },
+    "remaining_time_s": {
+      "minimum": 0,
+      "title": "Remaining Time S",
+      "type": "integer"
+    },
+    "source_scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Scope",
+      "type": "array"
+    },
+    "step_id": {
+      "title": "Step Id",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "workspace_base_digest": {
+      "title": "Workspace Base Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "tenant_id",
+    "build_id",
+    "step_id",
+    "goal_ref",
+    "acceptance_ref",
+    "input_artifacts",
+    "permitted_capabilities",
+    "source_scope",
+    "destination_scope",
+    "remaining_spend",
+    "remaining_time_s",
+    "remaining_attempts",
+    "workspace_base_digest"
+  ],
+  "title": "AgentTask",
+  "type": "object"
+}

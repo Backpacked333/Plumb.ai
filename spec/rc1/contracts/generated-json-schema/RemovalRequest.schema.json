@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "RemovalState": {
+      "enum": [
+        "RECEIVED",
+        "VALIDATED",
+        "INGESTION_STOPPED",
+        "IMPACT_COMPUTED",
+        "ON_HOLD",
+        "ACCESS_DISABLED",
+        "DERIVED_REMOVED",
+        "PROVIDER_CLEANUP_PENDING",
+        "BACKUPS_SCHEDULED",
+        "COMPLETED",
+        "REJECTED"
+      ],
+      "title": "RemovalState",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/RemovalRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "completion_evidence_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ref"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "hold_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hold Reason"
+    },
+    "impact": {
+      "additionalProperties": true,
+      "title": "Impact",
+      "type": "object"
+    },
+    "legal_basis": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Legal Basis"
+    },
+    "removal_id": {
+      "title": "Removal Id",
+      "type": "string"
+    },
+    "requester_principal_id": {
+      "title": "Requester Principal Id",
+      "type": "string"
+    },
+    "scope": {
+      "additionalProperties": true,
+      "title": "Scope",
+      "type": "object"
+    },
+    "status": {
+      "$ref": "#/$defs/RemovalState",
+      "default": "RECEIVED"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "removal_id",
+    "tenant_id",
+    "requester_principal_id",
+    "scope"
+  ],
+  "title": "RemovalRequest",
+  "type": "object"
+}

@@ -1,0 +1,423 @@
+{
+  "$defs": {
+    "CompensationClass": {
+      "enum": [
+        "not_needed",
+        "native_undo",
+        "compensating_effect",
+        "irreversible"
+      ],
+      "title": "CompensationClass",
+      "type": "string"
+    },
+    "EffectClass": {
+      "enum": [
+        "none",
+        "internal",
+        "external_message",
+        "external_record_write",
+        "external_payment",
+        "config_change",
+        "infra_change"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Port": {
+      "additionalProperties": false,
+      "description": "A typed input or output of a build step. A name alone is not a semantic type (SR-042).",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "freshness_max_s": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freshness Max S"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{1,40}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "default": false,
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "purpose_restrictions": {
+          "items": {
+            "$ref": "#/$defs/Purpose"
+          },
+          "title": "Purpose Restrictions",
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "entity/account scope the value is valid for",
+          "title": "Scope"
+        },
+        "semantic_type": {
+          "description": "e.g. money, timestamp, identifier, record_set, document, model_artifact",
+          "title": "Semantic Type",
+          "type": "string"
+        },
+        "tz": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tz"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "semantic_type"
+      ],
+      "title": "Port",
+      "type": "object"
+    },
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "RetryClass": {
+      "enum": [
+        "natural_idempotent",
+        "provider_keyed",
+        "reconcilable",
+        "not_retryable_after_ambiguity"
+      ],
+      "title": "RetryClass",
+      "type": "string"
+    },
+    "WorkflowAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "compensation_class": {
+          "$ref": "#/$defs/CompensationClass"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/EffectClass"
+        },
+        "operation_id": {
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "per_recipient_budget": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "max messages per recipient per period",
+          "title": "Per Recipient Budget"
+        },
+        "recipient_scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recipient Scope"
+        },
+        "requires_case_approval": {
+          "title": "Requires Case Approval",
+          "type": "boolean"
+        },
+        "retry_class": {
+          "$ref": "#/$defs/RetryClass"
+        },
+        "template_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template Class"
+        }
+      },
+      "required": [
+        "action_id",
+        "operation_id",
+        "effect_class",
+        "compensation_class",
+        "retry_class",
+        "requires_case_approval"
+      ],
+      "title": "WorkflowAction",
+      "type": "object"
+    },
+    "WorkflowTransition": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "event": {
+          "title": "Event",
+          "type": "string"
+        },
+        "from_state": {
+          "title": "From State",
+          "type": "string"
+        },
+        "guards": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Guards",
+          "type": "array"
+        },
+        "to_state": {
+          "title": "To State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from_state",
+        "event",
+        "to_state"
+      ],
+      "title": "WorkflowTransition",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/WorkflowSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/WorkflowAction"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "bounded_loops": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "loop name -> max iterations",
+      "title": "Bounded Loops",
+      "type": "object"
+    },
+    "case_key_fields": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Case Key Fields",
+      "type": "array"
+    },
+    "completion_predicate": {
+      "title": "Completion Predicate",
+      "type": "string"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "durable_waits": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Durable Waits",
+      "type": "array"
+    },
+    "initial_state": {
+      "title": "Initial State",
+      "type": "string"
+    },
+    "input_ports": {
+      "items": {
+        "$ref": "#/$defs/Port"
+      },
+      "title": "Input Ports",
+      "type": "array"
+    },
+    "max_cost_per_case": {
+      "$ref": "#/$defs/MoneyAmount"
+    },
+    "review_surfaces": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Review Surfaces",
+      "type": "array"
+    },
+    "source_freshness": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "source -> max age seconds",
+      "title": "Source Freshness",
+      "type": "object"
+    },
+    "states": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "States",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "terminal_states": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Terminal States",
+      "type": "array"
+    },
+    "timers": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Timers",
+      "type": "object"
+    },
+    "transitions": {
+      "items": {
+        "$ref": "#/$defs/WorkflowTransition"
+      },
+      "minItems": 1,
+      "title": "Transitions",
+      "type": "array"
+    },
+    "triggers": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Triggers",
+      "type": "array"
+    },
+    "workflow_id": {
+      "title": "Workflow Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "workflow_id",
+    "tenant_id",
+    "case_key_fields",
+    "triggers",
+    "input_ports",
+    "states",
+    "initial_state",
+    "terminal_states",
+    "transitions",
+    "completion_predicate",
+    "max_cost_per_case"
+  ],
+  "title": "WorkflowSpec",
+  "type": "object"
+}

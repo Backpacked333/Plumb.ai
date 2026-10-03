@@ -1,0 +1,24 @@
+machine: Release
+aggregate: release
+initial: CANDIDATE
+terminal: [RETIRED]
+states: [CANDIDATE, VERIFIED, APPROVED, SHADOW, CANARY, ACTIVE, PAUSED, ROLLED_BACK, RETIRED]
+transitions:
+  - {from: CANDIDATE, event: verify, to: VERIFIED, guards: [all_required_attestations_bound_to_manifest_digest, attestations_not_expired, no_attestation_from_builder_identity], writes: [release.state], emits: [release.verified], external_effects: none, retryable: true}
+  - {from: VERIFIED, event: approve, to: APPROVED, guards: [activation_approval_bound_to_manifest_digest_or_not_required], writes: [release.state, release.approval_ref], emits: [release.approved], external_effects: none, retryable: true}
+  - {from: APPROVED, event: start_shadow, to: SHADOW, guards: [envelope_active, infra_applied_and_verified], writes: [release.state], emits: [release.shadow], external_effects: shadow_processing_enabled, retryable: true}
+  - {from: SHADOW, event: start_canary, to: CANARY, guards: [shadow_divergence_within_limit, shadow_duration_met], writes: [release.state, release.canary_scope], emits: [release.canary], external_effects: canary_dispatch_enabled, retryable: true}
+  - {from: CANARY, event: activate, to: ACTIVE, guards: [canary_gates_passed, envelope_active, current_authority_not_revoked], writes: [release.state, release.activated_at], emits: [release.active], external_effects: dispatch_enabled, retryable: false}
+  - {from: SHADOW, event: gate_failed, to: VERIFIED, guards: [diagnostic_recorded], writes: [release.state], emits: [release.gate_failed], external_effects: shadow_processing_disabled, retryable: true}
+  - {from: CANARY, event: gate_failed, to: VERIFIED, guards: [diagnostic_recorded, canary_cases_reconciled], writes: [release.state], emits: [release.gate_failed], external_effects: canary_dispatch_disabled, retryable: true}
+  - {from: ACTIVE, event: pause, to: PAUSED, guards: [pause_authorized_or_kill_switch], writes: [release.state, release.reason], emits: [release.paused], external_effects: dispatch_disabled_within_sla, retryable: true}
+  - {from: CANARY, event: pause, to: PAUSED, guards: [pause_authorized_or_kill_switch], writes: [release.state, release.reason], emits: [release.paused], external_effects: dispatch_disabled_within_sla, retryable: true}
+  - {from: PAUSED, event: resume, to: ACTIVE, guards: [resume_authorized, envelope_active, incident_closed_or_absent], writes: [release.state], emits: [release.resumed], external_effects: dispatch_enabled, retryable: true}
+  - {from: ACTIVE, event: rollback, to: ROLLED_BACK, guards: [previous_compatible_release_available, in_flight_cases_pinned_or_migrated], writes: [release.state, release.rolled_back_to], emits: [release.rolled_back], external_effects: previous_release_activated, retryable: false}
+  - {from: PAUSED, event: rollback, to: ROLLED_BACK, guards: [previous_compatible_release_available, in_flight_cases_pinned_or_migrated], writes: [release.state, release.rolled_back_to], emits: [release.rolled_back], external_effects: previous_release_activated, retryable: false}
+  - {from: CANDIDATE, event: retire, to: RETIRED, guards: [retire_authorized], writes: [release.state], emits: [release.retired], external_effects: none, retryable: false}
+  - {from: VERIFIED, event: retire, to: RETIRED, guards: [retire_authorized], writes: [release.state], emits: [release.retired], external_effects: none, retryable: false}
+  - {from: APPROVED, event: retire, to: RETIRED, guards: [retire_authorized], writes: [release.state], emits: [release.retired], external_effects: none, retryable: false}
+  - {from: ACTIVE, event: retire, to: RETIRED, guards: [retire_authorized, no_active_cases_pinned], writes: [release.state], emits: [release.retired], external_effects: dispatch_disabled_within_sla, retryable: false}
+  - {from: PAUSED, event: retire, to: RETIRED, guards: [retire_authorized, no_active_cases_pinned], writes: [release.state], emits: [release.retired], external_effects: none, retryable: false}
+  - {from: ROLLED_BACK, event: retire, to: RETIRED, guards: [retire_authorized], writes: [release.state], emits: [release.retired], external_effects: none, retryable: false}

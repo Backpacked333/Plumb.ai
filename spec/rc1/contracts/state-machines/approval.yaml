@@ -1,0 +1,13 @@
+machine: Approval
+aggregate: approval
+initial: REQUESTED
+terminal: [DENIED, EXPIRED, REVOKED, INVALIDATED]
+states: [REQUESTED, GRANTED, DENIED, EXPIRED, REVOKED, INVALIDATED]
+transitions:
+  - {from: REQUESTED, event: decide_grant, to: GRANTED, guards: [approver_authenticated_and_authorized, nonce_unused, not_expired, bound_digests_match_current_artifacts, prerequisite_state_matches], writes: [approval.state, approval.decided_at, approval.nonce_consumed], emits: [approval.granted], external_effects: none, retryable: false}
+  - {from: REQUESTED, event: decide_deny, to: DENIED, guards: [approver_authenticated_and_authorized, nonce_unused], writes: [approval.state, approval.decided_at, approval.nonce_consumed], emits: [approval.denied], external_effects: none, retryable: false}
+  - {from: REQUESTED, event: expire, to: EXPIRED, guards: [expiry_passed], writes: [approval.state], emits: [approval.expired], external_effects: none, retryable: true}
+  - {from: GRANTED, event: expire, to: EXPIRED, guards: [expiry_passed], writes: [approval.state], emits: [approval.expired], external_effects: dependent_dispatch_blocked, retryable: true}
+  - {from: GRANTED, event: revoke, to: REVOKED, guards: [revoker_authorized], writes: [approval.state, approval.revoked_at], emits: [approval.revoked], external_effects: dependent_dispatch_blocked_and_queued_effects_cancelled, retryable: true}
+  - {from: GRANTED, event: artifact_or_state_changed, to: INVALIDATED, guards: [bound_digest_or_prerequisite_changed], writes: [approval.state, approval.invalidation_reason], emits: [approval.invalidated], external_effects: dependent_dispatch_blocked, retryable: true}
+  - {from: REQUESTED, event: artifact_or_state_changed, to: INVALIDATED, guards: [bound_digest_or_prerequisite_changed], writes: [approval.state, approval.invalidation_reason], emits: [approval.invalidated], external_effects: none, retryable: true}

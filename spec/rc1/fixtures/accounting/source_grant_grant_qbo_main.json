@@ -1,0 +1,32 @@
+{
+  "account_ref": "qbo-realm-4011",
+  "entity_scope": [
+    "client:*"
+  ],
+  "expires_at": "2027-04-01T00:00:00+00:00",
+  "field_scope": [],
+  "grant_id": "grant_qbo_main",
+  "granted_at": "2026-10-03T12:00:00+00:00",
+  "grantor_principal_id": "prn_owner_01",
+  "history_from": "2024-01-01T00:00:00+00:00",
+  "processors_allowed": [
+    "plumb:control",
+    "openai:api:zdr",
+    "anthropic:api:zdr"
+  ],
+  "provider": "quickbooks_online",
+  "purposes": [
+    "discovery",
+    "implementation",
+    "operation",
+    "evaluation",
+    "training"
+  ],
+  "regions_allowed": [
+    "us-east-1"
+  ],
+  "retention_days": 730,
+  "status": "active",
+  "tenant_id": "tnt_barlowkim",
+  "terms_version": "quickbooks_online-terms-2026-01"
+}

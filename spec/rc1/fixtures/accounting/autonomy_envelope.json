@@ -1,0 +1,76 @@
+{
+  "approval_id": "apr_env_v3",
+  "destinations_allowed": [
+    "mailbox:client_contacts:*",
+    "provider:quickbooks:realm_4011*",
+    "storage:tenant:*"
+  ],
+  "effect_classes_allowed": [
+    "none",
+    "internal",
+    "external_message",
+    "config_change",
+    "infra_change"
+  ],
+  "envelope_id": "env_barlowkim_v3",
+  "environments": [
+    "sandbox",
+    "shadow",
+    "canary",
+    "production"
+  ],
+  "escalation": [
+    {
+      "condition": "new_processor_required",
+      "deadline_hours": 72,
+      "route_to": "prn_owner_01"
+    }
+  ],
+  "expires_at": "2027-04-01T00:00:00+00:00",
+  "goals": [
+    "Reduce duplicate document chasing and accountant review time for monthly close"
+  ],
+  "intervention_classes_allowed": [
+    "remove_step",
+    "native_configuration",
+    "deterministic_rules",
+    "classical_model",
+    "general_model_workflow",
+    "retrieval",
+    "specialist_api",
+    "trained_component",
+    "optimizer"
+  ],
+  "max_auto_impact": "low",
+  "owner_principal_id": "prn_owner_01",
+  "processors_allowed": [
+    "plumb:control",
+    "openai:api:zdr",
+    "anthropic:api:zdr"
+  ],
+  "regions_allowed": [
+    "us-east-1"
+  ],
+  "source_grant_ids": [
+    "grant_gmail_ops",
+    "grant_qbo_main",
+    "grant_drive_docs"
+  ],
+  "spend": {
+    "build_max": {
+      "currency": "USD",
+      "minor_units": 250000
+    },
+    "monthly_operation_max": {
+      "currency": "USD",
+      "minor_units": 150000
+    },
+    "single_action_max": {
+      "currency": "USD",
+      "minor_units": 500
+    }
+  },
+  "status": "active",
+  "tenant_id": "tnt_barlowkim",
+  "version": 3
+}

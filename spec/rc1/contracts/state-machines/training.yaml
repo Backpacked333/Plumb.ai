@@ -1,0 +1,16 @@
+machine: Training
+aggregate: training
+initial: PLANNED
+terminal: [CANDIDATE, FAILED, CANCELLED]
+states: [PLANNED, SUBMITTED, SUBMISSION_UNKNOWN, RUNNING, CANDIDATE, FAILED, CANCELLED]
+transitions:
+  - {from: PLANNED, event: submit, to: SUBMITTED, guards: [spec_supported_by_provider, dataset_verified, spend_reserved, submission_identity_persisted], writes: [training.state, training.submission_identity, reservation.row, outbox.dispatch], emits: [training.submitted], external_effects: provider_job_create, retryable: false}
+  - {from: SUBMITTED, event: provider_acknowledged, to: RUNNING, guards: [provider_job_id_recorded], writes: [training.state, training.provider_job_id], emits: [training.running], external_effects: none, retryable: true}
+  - {from: SUBMITTED, event: response_lost, to: SUBMISSION_UNKNOWN, guards: [], writes: [training.state], emits: [training.submission_unknown], external_effects: none, retryable: true}
+  - {from: SUBMISSION_UNKNOWN, event: reconciled_found, to: RUNNING, guards: [provider_job_found_by_submission_identity], writes: [training.state, training.provider_job_id], emits: [training.running], external_effects: none, retryable: true}
+  - {from: SUBMISSION_UNKNOWN, event: reconciled_absent, to: PLANNED, guards: [provider_confirms_no_job_for_submission_identity], writes: [training.state, reservation.released], emits: [training.resubmittable], external_effects: none, retryable: true}
+  - {from: RUNNING, event: completed, to: CANDIDATE, guards: [artifacts_retrieved, evaluation_recorded, cost_settled], writes: [training.state, model.version_row, reservation.settled], emits: [training.candidate], external_effects: none, retryable: false}
+  - {from: RUNNING, event: failed, to: FAILED, guards: [provider_failure_recorded, cost_settled], writes: [training.state, training.reason], emits: [training.failed], external_effects: none, retryable: false}
+  - {from: RUNNING, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [training.state], emits: [training.cancelled], external_effects: provider_job_cancel, retryable: true}
+  - {from: SUBMITTED, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [training.state], emits: [training.cancelled], external_effects: provider_job_cancel, retryable: true}
+  - {from: PLANNED, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [training.state], emits: [training.cancelled], external_effects: none, retryable: false}

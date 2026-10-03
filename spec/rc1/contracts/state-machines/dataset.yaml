@@ -1,0 +1,14 @@
+machine: Dataset
+aggregate: dataset
+initial: PROPOSED
+terminal: [SUPERSEDED, UNAVAILABLE]
+states: [PROPOSED, MATERIALIZING, QUARANTINED, VERIFIED, SUPERSEDED, UNAVAILABLE]
+transitions:
+  - {from: PROPOSED, event: materialize, to: MATERIALIZING, guards: [task_definition_present, source_pins_resolved, purposes_permit_training_or_evaluation], writes: [dataset.state], emits: [dataset.materializing], external_effects: none, retryable: true}
+  - {from: MATERIALIZING, event: quality_failed, to: QUARANTINED, guards: [quality_report_recorded], writes: [dataset.state, dataset.quarantine_reason], emits: [dataset.quarantined], external_effects: none, retryable: true}
+  - {from: MATERIALIZING, event: sealed, to: VERIFIED, guards: [leakage_checks_passed, knowledge_boundary_rule_applied, label_audit_passed, manifest_digest_recorded], writes: [dataset.state, dataset.manifest_digest], emits: [dataset.verified], external_effects: none, retryable: false}
+  - {from: QUARANTINED, event: rebuild, to: MATERIALIZING, guards: [new_transformation_version], writes: [dataset.state, dataset.transformation_version], emits: [dataset.rematerializing], external_effects: none, retryable: true}
+  - {from: VERIFIED, event: supersede, to: SUPERSEDED, guards: [successor_verified], writes: [dataset.state, dataset.successor], emits: [dataset.superseded], external_effects: none, retryable: false}
+  - {from: VERIFIED, event: source_removed, to: UNAVAILABLE, guards: [removal_impact_computed], writes: [dataset.state, dataset.unavailable_reason, dataset.tombstone], emits: [dataset.unavailable], external_effects: none, retryable: false}
+  - {from: QUARANTINED, event: source_removed, to: UNAVAILABLE, guards: [removal_impact_computed], writes: [dataset.state, dataset.unavailable_reason, dataset.tombstone], emits: [dataset.unavailable], external_effects: none, retryable: false}
+  - {from: PROPOSED, event: source_removed, to: UNAVAILABLE, guards: [removal_impact_computed], writes: [dataset.state, dataset.unavailable_reason], emits: [dataset.unavailable], external_effects: none, retryable: false}

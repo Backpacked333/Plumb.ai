@@ -1,0 +1,261 @@
+requirement_id,category,subsystem,sources,artifacts,verified_by
+PR-001,product,product,B PL-001; M§2; M§6,PRODUCT_CONTRACT.md,AT-098
+PR-002,product,product,B PL-002; M§2,PRODUCT_CONTRACT.md; DELIVERY_PLAN.md,AT-097; AT-098
+PR-003,product,product,M§2; M§25,spec/ux-and-metering.md,AT-100
+PR-004,product,discovery,A§9; B PL-012; M§9; R-01,spec/discovery-and-solution-design.md,AT-090
+PR-005,product,discovery,B PL-013; M§2; M§10,SolutionSpec.candidates; spec/discovery-and-solution-design.md,AT-020
+PR-006,product,authority,B PL-002; B§17; M§2; R-04,Approval; AutonomyEnvelope; spec/authority-and-verification.md,AT-057; AT-062
+PR-007,product,engineering execution,B PL-001; M§2,ExternalDependency; contracts/state-machines/build.yaml,AT-057
+PR-008,product,product,B PL-003; M§2; M§34,WorkflowSpec.completion_predicate; acceptance/autonomy-benchmark.md,AT-096; AT-097
+PR-009,product,product,M§1; M§6,PRODUCT_CONTRACT.md,AT-004
+PR-010,product,product,A§20; B§25; M§2; M§27,spec/domain-packs.md; fixtures/industrial-rfq; fixtures/laundry-routing,AT-020
+PR-011,product,domain,A§20; B Appendix B; M§27; R-19,spec/domain-packs.md,AT-099
+PR-012,product,metering,A§19; B§24; M§26; R-13,BillableUnitRecord; spec/ux-and-metering.md,AT-096
+PR-013,product,metering,B PL-003; B PL-062; M§12; M§34; R-15,LaborRecord; acceptance/autonomy-benchmark.md,AT-097
+PR-014,product,product,B PL-062; M§34,CoverageDecision; acceptance/autonomy-benchmark.md,AT-097
+PR-015,product,product,M§6,OpportunityStatus; acceptance/autonomy-benchmark.md,AT-097
+PR-016,product,product,M§6; M§34,CoverageDecision; spec/onboarding-and-coverage.md,AT-097
+PR-017,product,delivery,B PL-063; M§33; R-16,DELIVERY_PLAN.md,AT-098
+PR-018,product,product,A§1; M§2; R-28,PRODUCT_CONTRACT.md,AT-004
+PR-019,product,discovery,M§7; R-17,DELIVERY_PLAN.md (EXP-01),AT-081
+PR-020,product,metering,M§26,acceptance/business-outcome-measurement.md; spec/ux-and-metering.md,AT-096
+SR-001,system,authority,B PL-004; M§20,ActionIntent.authority; reference/policy-gateway/gateway.py,AT-061
+SR-002,system,authority,B PL-005; M§5,AutonomyEnvelope; reference/bounded-plan-validator/validator.py P7,AT-022
+SR-003,system,authority,B PL-006; B ADR-001,database/roles-and-policies.sql; ARCHITECTURE.md,AT-070
+SR-004,system,system model,M§5; R-02,GLOSSARY.md; contracts/canonical-models,AT-002
+SR-005,system,system model,M§5,contracts/canonical-models/plumb_contracts/models.py,AT-050; AT-053
+SR-010,system,lifecycle,B PL-057; M§28,contracts/state-machines; reference/guarded-state-transitions/machine.py,AT-010; AT-051
+SR-011,system,lifecycle,M§28,contracts/state-machines; reference/guarded-state-transitions/guards.py,AT-010; AT-051
+SR-012,system,lifecycle,B PL-057; M§28,reference/effect-protocol-harness/ledger.py _transition; database/migrations,AT-030
+SR-013,system,lifecycle,M§28,reference/guarded-state-transitions/guards.py,AT-051
+SR-014,system,authority,B§17; M§20; R-04,Approval.kind; spec/authority-and-verification.md,AT-052; AT-062
+SR-015,system,authority,M§20; R-03,reference/policy-gateway/gateway.py,AT-060 to AT-072
+SR-016,system,authority,B PL-040; M§20,Approval; contracts/state-machines/approval.yaml,AT-050
+SR-020,system,evidence,B§5; M§7; R-17,spec/evidence-and-business-state.md,AT-081
+SR-021,system,onboarding,B PL-007,EnvironmentInventory; spec/onboarding-and-coverage.md,AT-098
+SR-022,system,discovery,B PL-012; M§9,OpportunitySpec,AT-001
+SR-023,system,discovery,M§9,spec/discovery-and-solution-design.md,AT-090
+SR-024,system,evidence,A§6; M§7; R-05,EvidenceEvent.modality; spec/evidence-and-business-state.md,AT-080
+SR-025,system,evidence,M§7,EvidencePacket.coverage; reference/collector-convergence/convergence.py,AT-084
+SR-026,system,evidence,M§7,spec/evidence-and-business-state.md,AT-081
+SR-030,system,artifacts,B§8; B ADR-002; M§11,artifacts and artifact_aliases tables; Ref.digest,AT-021
+SR-031,system,artifacts,M§11; R-02,reference/bounded-plan-validator/validator.py P3,AT-021
+SR-032,system,knowledge,B PL-010; M§8,Fact; facts table,AT-003
+SR-033,system,knowledge,B PL-011; M§8,identity_candidates table; spec/evidence-and-business-state.md,AT-085
+SR-034,system,knowledge,M§8; R-11,Obligation; spec/evidence-and-business-state.md,AT-086
+SR-035,system,knowledge,M§8,Fact.source_of_record,AT-003
+SR-036,system,registry,B PL-008; M§10; R-20,OperationCapability; capabilities table,AT-023
+SR-037,system,registry,M§10,spec/registry-and-selection.md,AT-071
+SR-040,system,compiler,B PL-014; M§11,StepType; reference/bounded-plan-validator/validator.py P1,AT-024
+SR-041,system,compiler,B PL-014; M§11,"BuildPlan; reference/bounded-plan-validator/validator.py P4, P12",AT-024
+SR-042,system,compiler,M§11,Port; reference/bounded-plan-validator/validator.py P5,AT-024
+SR-043,system,compiler,B PL-015; M§11,reference/bounded-plan-validator/validator.py,AT-020 to AT-024
+SR-044,system,compiler,M§11; M§20,reference/bounded-plan-validator/validator.py P7,AT-022
+SR-045,system,compiler,B PL-058; M§11,reference/bounded-plan-validator/validator.py P8,AT-022
+SR-046,system,compiler,M§11; M§19,reference/bounded-plan-validator/validator.py P9,AT-022
+SR-047,system,compiler,B PL-016; M§11,reference/bounded-plan-validator/validator.py P10,AT-022
+SR-048,system,compiler,M§22,reference/bounded-plan-validator/validator.py P11,AT-022
+SR-049,system,compiler,M§11,spec/blueprint-and-compiler.md,AT-093
+SR-050,system,compiler,B PL-016,contracts/state-machines/step.yaml deps_verified guard,AT-054
+SR-051,system,compiler,M§11,spec/blueprint-and-compiler.md,AT-093
+SR-052,system,compiler,M§11,contracts/canonical-models/plumb_contracts/canonical.py,AT-002
+SR-053,system,harness,B PL-017; M§12,AgentTask; WorkspaceSnapshot; builds and build_steps tables,AT-056
+SR-054,system,harness,M§12,spec/engineering-execution.md; contracts/state-machines/step.yaml,AT-055; AT-056
+SR-055,system,harness,B Appendix A.3; M§12,StepResult; contracts/state-machines/step.yaml,AT-053
+SR-056,system,harness,B PL-018; B Appendix A.3; M§12,FailureDiagnostic; contracts/state-machines/step.yaml,AT-057
+SR-057,system,harness,B PL-018; M§12,FailureDiagnostic; contracts/state-machines/build.yaml repair guards,AT-057
+SR-058,system,harness,B Appendix A.2; M§12,contracts/state-machines/step.yaml RECONCILING,AT-056
+SR-059,system,harness,B Appendix A.1; M§12,spec/engineering-execution.md,AT-070
+SR-060,system,harness,M§12,LaborRecord,AT-097
+SR-061,system,integrations,A§12; B PL-020; M§13; R-23,IntegrationSpec.rung; spec/integrations-and-collectors.md,AT-082
+SR-062,system,integrations,M§13,CapabilityKind; database/roles-and-policies.sql,AT-070
+SR-063,system,integrations,M§13,spec/integrations-and-collectors.md,AT-082
+SR-064,system,integrations,B PL-021; M§13,spec/integrations-and-collectors.md,AT-082
+SR-065,system,integrations,M§13,spec/integrations-and-collectors.md,AT-082
+SR-066,system,integrations,B PL-021; M§13,spec/integrations-and-collectors.md; operations/removal-and-offboarding.md,AT-095
+SR-067,system,collectors,B PL-023; M§14,CollectionSpec,AT-001
+SR-068,system,collectors,B PL-024; B PL-025; M§14,contracts/state-machines/collector.yaml; reference/collector-convergence/convergence.py; collector_health table,AT-083 to AT-087
+SR-069,system,collectors,B PL-025; M§14,contracts/state-machines/collector.yaml reconciliation_passed guard,AT-087
+SR-070,system,learning,B PL-026; M§15,spec/learning-and-model-runtime.md,AT-092
+SR-071,system,learning,B PL-027; M§15,spec/learning-and-model-runtime.md,AT-092
+SR-072,system,training,B PL-033; M§17,contracts/state-machines/training.yaml; TrainingSpec.submission_identity,AT-058
+SR-073,system,serving,B PL-034; M§17,spec/learning-and-model-runtime.md,AT-072
+SR-074,system,learning,B PL-031; M§10; R-21,SolutionSpec.candidates,AT-092
+SR-075,system,learning,M§15,spec/learning-and-model-runtime.md,AT-092
+SR-076,system,serving,M§17,reference/policy-gateway/gateway.py; contracts/state-machines/case.yaml,AT-063; AT-064
+SR-077,system,serving,M§17,model_versions.serving_audience,AT-094
+SR-078,system,serving,M§17,spec/learning-and-model-runtime.md,AT-092
+SR-079,system,serving,M§17,model_versions.strongest_identity,AT-072
+SR-080,system,effects,B PL-037; M§19,ActionIntent; reference/effect-protocol-harness/ledger.py reserve,AT-030
+SR-081,system,effects,B§16; M§19,reference/effect-protocol-harness/ledger.py; spec/workflow-and-effects.md,AT-030; AT-033
+SR-082,system,effects,B PL-039; M§19; R-11,effects table index; reference/effect-protocol-harness/ledger.py,AT-031; AT-032
+SR-083,system,effects,B Appendix A.2; M§19,"reference/effect-protocol-harness/ledger.py claim_next, expire_leases",AT-036
+SR-084,system,effects,M§19; M§20,reference/effect-protocol-harness/ledger.py claim_next; reference/policy-gateway/gateway.py,AT-037; AT-038
+SR-085,system,effects,M§19,RetryClass; contracts/state-machines/effect.yaml,AT-041
+SR-086,system,effects,B PL-038; B ADR-009; M§19,contracts/state-machines/effect.yaml,AT-033 to AT-035
+SR-087,system,effects,M§19,reference/effect-protocol-harness/ledger.py receipts,AT-039
+SR-088,system,effects,B PL-038; M§19,contracts/state-machines/effect.yaml postcondition guards,AT-030
+SR-089,system,effects,B PL-037; M§19,reference/effect-protocol-harness/ledger.py supersede,AT-040
+SR-090,system,effects,B§17; M§19; M§20,reference/effect-protocol-harness/ledger.py revoke_authority,AT-037; AT-038
+SR-091,system,effects,M§19; M§22; R-12,reference/effect-protocol-harness/ledger.py compensate,AT-042
+SR-092,system,effects,B PL-039; M§18,reference/policy-gateway/gateway.py per_recipient_budget; obligations unique index,AT-068
+SR-093,system,verification,B PL-043; M§21; R-08,spec/authority-and-verification.md,AT-091
+SR-094,system,verification,B PL-029; M§16; M§21,DatasetRow.source_availability_evidence,AT-091
+SR-095,system,verification,M§9; M§21; R-08,OutcomeObservation.method,AT-091
+SR-096,system,verification,M§21; R-09,spec/authority-and-verification.md,AT-092
+SR-097,system,verification,B PL-044; M§16; M§21; R-10,dataset_rows.exposed_to_repair,AT-093
+SR-098,system,verification,B PL-042; M§21,VerificationAttestation; contracts/state-machines/release.yaml guards,AT-053; AT-087
+SR-099,system,verification,M§21,VerificationAttestation,AT-002; AT-052
+SR-100,system,api,B PL-055; M§28,contracts/openapi.yaml,AT-005
+SR-101,system,api,B PL-055; M§28,contracts/openapi.yaml,AT-005
+SR-102,system,api,B PL-056; M§28,contracts/openapi.yaml,AT-005
+SR-103,system,api,B PL-056,contracts/openapi.yaml,AT-005
+SR-104,system,api,B§22; M§28,ErrorEnvelope,AT-005
+SR-105,system,api,B§22,ARCHITECTURE.md,AT-070
+SR-110,system,events,B§22; M§28,contracts/event-contracts/events.yaml; outbox table,AT-006
+SR-111,system,events,B§22,contracts/event-contracts/events.yaml,AT-006
+SR-112,system,events,M§28,outbox_dead_letter,AT-006
+SR-113,system,events,B§22; M§28,consumer_offsets table,AT-006
+SR-114,system,events,M§28,contracts/event-contracts/events.yaml; evidence_events.tombstoned_at,AT-074
+SR-115,system,release,B PL-046; M§22,ReleaseManifest; contracts/state-machines/release.yaml,AT-052
+SR-116,system,release,B PL-047; M§22,contracts/state-machines/release.yaml; cases.release_id,AT-052
+SR-117,system,release,B PL-045; M§22,spec/deployment-and-operations.md,AT-095
+SR-118,system,release,M§22; R-12,contracts/state-machines/release.yaml pause transitions,AT-095
+SR-119,system,release,M§22; R-12,spec/deployment-and-operations.md,AT-095
+SR-120,system,operations,B PL-048; M§22,spec/deployment-and-operations.md,AT-095
+SR-121,system,domain,M§27; R-19,spec/domain-packs.md,AT-099
+SR-122,system,ux,A§16; B Appendix A.6; M§25; R-25; R-27,spec/ux-and-metering.md,AT-100
+SR-123,system,metering,B PL-058; B PL-059; M§26; R-26,database/migrations/0006_ledgers_removal_audit.sql; spec/ux-and-metering.md,AT-096
+SR-124,system,product,M§34; R-15,acceptance/autonomy-benchmark.md,AT-097
+SR-125,system,reuse,B Appendix A.5; M§29; R-14,spec/deployment-and-operations.md,AT-094
+SR-126,system,removal,M§23; R-07,contracts/state-machines/removal.yaml; RemovalRequest,AT-074
+SR-127,system,removal,B§20; M§23,operations/removal-and-offboarding.md,AT-075
+SR-128,system,removal,M§23,contracts/state-machines/dataset.yaml source_removed,AT-074
+SR-129,system,removal,M§23,operations/removal-and-offboarding.md,AT-075
+SR-130,system,removal,M§23,contracts/state-machines/removal.yaml,AT-074
+IC-001,integration_contract,registry,M§10,OperationCapability; spec/registry-and-selection.md,AT-023
+IC-002,integration_contract,integrations,M§13; R-23,capabilities table,AT-082
+IC-003,integration_contract,integrations,M§13,spec/integrations-and-collectors.md §6,AT-082
+IC-004,integration_contract,integrations,M§13; R-23,spec/integrations-and-collectors.md,AT-082
+IC-005,integration_contract,integrations,A§20; Intuit docs; M§13,spec/integrations-and-collectors.md §6,AT-099
+IC-006,integration_contract,integrations,A§20; Plaid docs,spec/integrations-and-collectors.md §6,AT-099
+IC-007,integration_contract,integrations,fixtures/accounting,spec/integrations-and-collectors.md §6,AT-099
+IC-008,integration_contract,integrations,fixtures/accounting,spec/integrations-and-collectors.md §6,AT-082
+IC-009,integration_contract,integrations,B§3; B PL-020; M§13,ARCHITECTURE.md,AT-070
+IC-010,integration_contract,integrations,B PL-022; M§13,tests/adapter,AT-082
+IC-011,integration_contract,training,B PL-033; M§17,contracts/state-machines/training.yaml,AT-058
+IC-012,integration_contract,domain,M§27; R-19,spec/domain-packs.md §4,AT-099
+IC-013,integration_contract,ux,M§25; R-25,spec/ux-and-metering.md,AT-100
+IC-014,integration_contract,infra,B PL-045; M§22,spec/deployment-and-operations.md,AT-095
+IC-015,integration_contract,runtime,B§3; B ADR-004; M§28,ARCHITECTURE.md,AT-006
+DC-001,data_contract,contracts,M§11,tools/gen_schemas.py,AT-001; AT-002
+DC-002,data_contract,contracts,M§11,contracts/canonical-models/plumb_contracts/models.py Strict,AT-001
+DC-003,data_contract,contracts,M§11,contracts/canonical-models/plumb_contracts/canonical.py,AT-002
+DC-004,data_contract,contracts,M§11,MoneyAmount; Port,AT-001
+DC-005,data_contract,privacy,M§7; R-06,ProtectionClass; EvidenceEvent.protection,AT-073
+DC-006,data_contract,privacy,M§7; R-06,spec/privacy-and-security.md,AT-073
+DC-007,data_contract,knowledge,B PL-009; M§8,EvidenceEvent; evidence_events table,AT-003
+DC-008,data_contract,knowledge,A§8; M§8; R-18,0002 migration,AT-003
+DC-009,data_contract,knowledge,M§8,EvidencePacket.truncated,AT-003
+DC-010,data_contract,collectors,M§14,reference/collector-convergence/convergence.py,AT-087
+DC-011,data_contract,collectors,B PL-024; M§14,reference/collector-convergence/convergence.py,AT-083
+DC-012,data_contract,collectors,M§14,reference/collector-convergence/convergence.py,AT-084; AT-086
+DC-013,data_contract,collectors,M§14,reference/collector-convergence/convergence.py object_absent,AT-084
+DC-014,data_contract,collectors,M§14,reference/collector-convergence/convergence.py resync,AT-086
+DC-015,data_contract,collectors,B§11; M§14,reference/collector-convergence/convergence.py,AT-083
+DC-016,data_contract,collectors,M§14,CollectionSpec.completeness_claim,AT-001
+DC-017,data_contract,learning,B PL-028; M§16,DatasetRow,AT-001
+DC-018,data_contract,learning,M§16; R-10,DataRole; dataset_rows.exposed_to_repair,AT-093
+DC-019,data_contract,learning,B§13; M§16,SplitRule,AT-092
+DC-020,data_contract,learning,B PL-030; M§16,DatasetManifest,AT-074
+DC-021,data_contract,removal,M§23; M§28,contracts/event-contracts/events.yaml; contracts/state-machines/dataset.yaml,AT-074
+DC-022,data_contract,privacy,B PL-053; M§23,SourceGrant.purposes; spec/privacy-and-security.md,AT-063; AT-094
+DC-023,data_contract,metering,M§26,0006 migration,AT-096
+DC-024,data_contract,metering,M§26; R-13,billable_units table,AT-096
+DC-025,data_contract,audit,M§24,0006 migration; database/roles-and-policies.sql,AT-070
+SI-001,security_invariant,authority,B PL-040; M§5,contracts/canonical-models/plumb_contracts/models.py; contracts/state-machines/step.yaml; contracts/state-machines/approval.yaml,AT-050; AT-053
+SI-002,security_invariant,isolation,B PL-052; M§23,database/roles-and-policies.sql; ARCHITECTURE.md,AT-070
+SI-003,security_invariant,authority,B PL-004; M§20,reference/policy-gateway/gateway.py,AT-061
+SI-004,security_invariant,privacy,B PL-053; M§23; R-14,reference/bounded-plan-validator/validator.py P7; reference/policy-gateway/gateway.py,AT-063; AT-094
+SI-005,security_invariant,gateway,M§20; R-03,reference/policy-gateway/gateway.py,AT-065 to AT-069
+SI-006,security_invariant,gateway,B§4; M§20,database/roles-and-policies.sql,AT-070
+SI-007,security_invariant,agents,B PL-051; M§23,spec/privacy-and-security.md; reference/policy-gateway/gateway.py,AT-066
+SI-008,security_invariant,privacy,M§7; R-05,spec/privacy-and-security.md,AT-073; AT-080
+SI-009,security_invariant,secrets,B PL-019; B PL-054; M§23,spec/privacy-and-security.md,AT-070; IG-009
+SI-010,security_invariant,network,B PL-054; M§23,reference/effect-protocol-harness/ledger.py receipts; spec/privacy-and-security.md,AT-039
+SI-011,security_invariant,authority,M§20,contracts/state-machines/approval.yaml; openapi decideApproval,AT-050; AT-062
+SI-012,security_invariant,authority,B§17; M§20,reference/effect-protocol-harness/ledger.py revoke_authority; contracts/event-contracts/events.yaml grant.revoked,AT-037; AT-038
+SI-013,security_invariant,verification,B§4; M§21,database/roles-and-policies.sql; contracts/state-machines/release.yaml,AT-052; AT-053
+SI-014,security_invariant,privacy,M§25,database/roles-and-policies.sql plumb_reporting,AT-070
+SI-015,security_invariant,availability,M§24,ARCHITECTURE.md §6,AT-095
+AT-001,acceptance_test,contracts,M§32,fixtures,tests/contract/test_schemas_and_fixtures.py
+AT-002,acceptance_test,contracts,M§11; M§32,fixtures/failure-cases,tests/contract/test_schemas_and_fixtures.py
+AT-003,acceptance_test,lifecycle,M§28,contracts/state-machines,tests/contract/test_schemas_and_fixtures.py
+AT-004,acceptance_test,package,M§32,TRACEABILITY.csv,tests/contract/test_traceability.py
+AT-005,acceptance_test,api,M§28,contracts/openapi.yaml,tests/contract/test_traceability.py
+AT-006,acceptance_test,events,M§28,contracts/event-contracts/events.yaml,tests/contract/test_traceability.py
+AT-010,acceptance_test,lifecycle,M§28,reference/guarded-state-transitions/guards.py,tests/contract/test_schemas_and_fixtures.py; tests/property-and-state-machine/test_guarded_machines.py
+AT-020,acceptance_test,compiler,M§11; M§30,fixtures,tests/contract/test_plan_validator.py
+AT-021,acceptance_test,compiler,M§31,fixtures/failure-cases,tests/contract/test_plan_validator.py
+AT-022,acceptance_test,compiler,M§31,fixtures/failure-cases,tests/contract/test_plan_validator.py
+AT-023,acceptance_test,compiler,M§10; M§31,fixtures/failure-cases,tests/contract/test_plan_validator.py
+AT-024,acceptance_test,compiler,M§31,fixtures/failure-cases,tests/contract/test_plan_validator.py
+AT-030,acceptance_test,effects,M§19,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-031,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-032,acceptance_test,effects,M§19,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-033,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-034,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-035,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-036,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-037,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-038,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-039,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-040,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-041,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-042,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-043,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-044,acceptance_test,effects,M§31,reference/effect-protocol-harness/ledger.py,tests/property-and-state-machine/test_effect_ledger.py
+AT-050,acceptance_test,authority,M§20; M§31,contracts/state-machines/approval.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-051,acceptance_test,lifecycle,M§28,reference/guarded-state-transitions/machine.py,tests/property-and-state-machine/test_guarded_machines.py
+AT-052,acceptance_test,release,M§22; M§31,contracts/state-machines/release.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-053,acceptance_test,harness,M§12; M§31,contracts/state-machines/step.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-054,acceptance_test,harness,M§11,contracts/state-machines/step.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-055,acceptance_test,harness,M§12,contracts/state-machines/step.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-056,acceptance_test,harness,M§12; M§31,contracts/state-machines/step.yaml,tests/property-and-state-machine/test_guarded_machines.py
+AT-057,acceptance_test,harness,M§30; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-057
+AT-058,acceptance_test,training,M§17; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-058
+AT-060,acceptance_test,gateway,M§20,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-061,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-062,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-063,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-064,acceptance_test,gateway,M§17; M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-065,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-066,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-067,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-068,acceptance_test,gateway,M§18; M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-069,acceptance_test,gateway,M§31,reference/policy-gateway/gateway.py,tests/security/test_gateway.py
+AT-070,acceptance_test,isolation,M§23; M§28; M§31,database/roles-and-policies.sql,acceptance/production-catalog.md#AT-070
+AT-071,acceptance_test,registry,M§10; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-071
+AT-072,acceptance_test,serving,M§17; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-072
+AT-073,acceptance_test,privacy,M§7; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-073
+AT-074,acceptance_test,removal,M§23; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-074
+AT-075,acceptance_test,removal,M§23; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-075
+AT-080,acceptance_test,evidence,M§7,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-080
+AT-081,acceptance_test,evidence,M§7,DELIVERY_PLAN.md,acceptance/production-catalog.md#AT-081
+AT-082,acceptance_test,integrations,M§13,tests/adapter; tests/integration-gated,tests/adapter/test_mock_provider_contract.py; tests/integration-gated/test_live_probes.py
+AT-083,acceptance_test,collectors,M§31,reference/collector-convergence/convergence.py,tests/adapter/test_collector_convergence.py
+AT-084,acceptance_test,collectors,M§14; M§31,reference/collector-convergence/convergence.py,tests/adapter/test_collector_convergence.py
+AT-085,acceptance_test,knowledge,M§8; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-085
+AT-086,acceptance_test,collectors,M§31,reference/collector-convergence/convergence.py,tests/adapter/test_collector_convergence.py
+AT-087,acceptance_test,collectors,M§14,reference/collector-convergence/convergence.py,tests/adapter/test_collector_convergence.py; tests/integration-gated/test_live_probes.py
+AT-090,acceptance_test,discovery,M§9,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-090
+AT-091,acceptance_test,verification,M§21,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-091
+AT-092,acceptance_test,learning,M§15; M§16; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-092
+AT-093,acceptance_test,verification,M§21; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-093
+AT-094,acceptance_test,reuse,M§29; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-094
+AT-095,acceptance_test,release,M§22; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-095
+AT-096,acceptance_test,metering,M§26; M§31,acceptance/production-catalog.md,acceptance/production-catalog.md#AT-096
+AT-097,acceptance_test,product,M§34,acceptance/autonomy-benchmark.md,acceptance/autonomy-benchmark.md
+AT-098,acceptance_test,delivery,M§33,DELIVERY_PLAN.md,DELIVERY_PLAN.md
+AT-099,acceptance_test,domain,M§27,spec/domain-packs.md,tests/integration-gated/test_live_probes.py
+AT-100,acceptance_test,ux,M§25,spec/ux-and-metering.md,tests/integration-gated/test_live_probes.py

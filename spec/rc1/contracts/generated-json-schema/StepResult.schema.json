@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/StepResult.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Proposed by the worker. Never changes a step to VERIFIED on its own (SR-055).",
+  "properties": {
+    "attempt_no": {
+      "title": "Attempt No",
+      "type": "integer"
+    },
+    "claimed_postconditions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claimed Postconditions",
+      "type": "array"
+    },
+    "cost_used": {
+      "$ref": "#/$defs/MoneyAmount"
+    },
+    "effect_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Effect Refs",
+      "type": "array"
+    },
+    "environment_digest": {
+      "title": "Environment Digest",
+      "type": "string"
+    },
+    "fencing_token": {
+      "title": "Fencing Token",
+      "type": "integer"
+    },
+    "input_digests": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Input Digests",
+      "type": "array"
+    },
+    "output_artifacts": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Output Artifacts",
+      "type": "array"
+    },
+    "progress_summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "convenience only; not authoritative",
+      "title": "Progress Summary"
+    },
+    "step_id": {
+      "title": "Step Id",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "test_log_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Test Log Refs",
+      "type": "array"
+    },
+    "unresolved_dependencies": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unresolved Dependencies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "task_id",
+    "step_id",
+    "attempt_no",
+    "fencing_token",
+    "input_digests",
+    "output_artifacts",
+    "environment_digest",
+    "cost_used"
+  ],
+  "title": "StepResult",
+  "type": "object"
+}

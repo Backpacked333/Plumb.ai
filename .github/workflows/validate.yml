@@ -1,0 +1,28 @@
+name: Validate Plumb foundations
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  contracts-and-database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[test,database,spec]' ruff mypy
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-16
+      - run: python -m pytest tests
+      - run: python -m plumb.schemas_tool.generate --check
+      - run: python api/validate_openapi.py api/openapi.yaml --json
+      - run: python scripts/refresh_fixture_digests.py --check
+      - run: python spec/build_requirements_index.py --check
+      - run: python -m pytest -c spec/rc1/pytest.ini spec/rc1/tests
+      - run: python -m pytest database/tests
+        env:
+          PLUMB_PG_BIN: /usr/lib/postgresql/16/bin
+      - run: python -m ruff check database
+      - run: python -m mypy --ignore-missing-imports database

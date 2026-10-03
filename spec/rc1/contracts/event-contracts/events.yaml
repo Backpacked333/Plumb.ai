@@ -1,0 +1,56 @@
+# Event contracts (SR-110..SR-114). Envelope = canonical EventEnvelope. Delivery is at-least-once from the
+# Postgres outbox; ordering is guaranteed per aggregate (aggregate_id, aggregate_version), never globally.
+# Consumers persist processed event_id in the same transaction as their state change (SR-113).
+# Tombstones (tombstone: true) carry no payload and instruct consumers to delete derived rows (DC-021).
+envelope_model: EventEnvelope
+schema_version: "1.0"
+delivery:
+  mechanism: postgres_outbox
+  guarantee: at_least_once
+  ordering: per_aggregate_version
+  retention_days: 90
+  poison_message: "after 5 failed consumer attempts the event moves to outbox_dead_letter with the consumer id and last error; an operator replays it after a fix"
+  replay: "consumers accept replayed events because deduplication is by event_id; a replay of events older than the consumer's processed watermark is a no-op"
+upgrade_trigger: "sustained > 500 events/s for 7 days or more than 3 consumers needing independent replay beyond 7 days -> managed NATS JetStream or Kafka; the envelope does not change"
+event_types:
+  - {type: build.validated, aggregate: build, payload: {plan_digest: string}, consumers: [studio, scheduler]}
+  - {type: build.started, aggregate: build, payload: {envelope_version: integer}, consumers: [studio, ledger.cost]}
+  - {type: build.waiting_auth, aggregate: build, payload: {dependency_id: string}, consumers: [studio, notifier]}
+  - {type: build.waiting_input, aggregate: build, payload: {dependency_id: string}, consumers: [studio, notifier]}
+  - {type: build.resumed, aggregate: build, payload: {dependency_id: string}, consumers: [scheduler]}
+  - {type: build.verifying, aggregate: build, payload: {}, consumers: [verifier]}
+  - {type: build.verified, aggregate: build, payload: {release_candidate_id: string}, consumers: [release_service, studio]}
+  - {type: build.failed, aggregate: build, payload: {failure_class: string, diagnostic_id: string}, consumers: [studio, notifier, ledger.labor]}
+  - {type: build.cancelled, aggregate: build, payload: {cleanup_job_id: string}, consumers: [cleanup, studio]}
+  - {type: step.ready, aggregate: step, payload: {}, consumers: [scheduler]}
+  - {type: step.started, aggregate: step, payload: {attempt_no: integer, lease_id: string}, consumers: [studio]}
+  - {type: step.result_committed, aggregate: step, payload: {output_digests: [string]}, consumers: [verifier]}
+  - {type: step.verified, aggregate: step, payload: {attestation_id: string}, consumers: [scheduler, studio]}
+  - {type: step.failed, aggregate: step, payload: {failure_class: string}, consumers: [scheduler, studio]}
+  - {type: step.blocked, aggregate: step, payload: {dependency_id: string}, consumers: [scheduler, studio]}
+  - {type: step.lease_expired, aggregate: step, payload: {lease_id: string}, consumers: [reconciler]}
+  - {type: collector.active, aggregate: collector, payload: {attestation_id: string}, consumers: [release_service, studio]}
+  - {type: collector.degraded, aggregate: collector, payload: {health: object}, consumers: [operator, studio]}
+  - {type: collector.paused, aggregate: collector, payload: {reason: string}, consumers: [workflow_runtime, studio]}
+  - {type: evidence.event_ingested, aggregate: evidence_event, payload: {source_provider: string, modality: string}, consumers: [labeler, knowledge]}
+  - {type: evidence.tombstone, aggregate: evidence_event, payload: {}, consumers: [knowledge, datasets, retrieval_index]}
+  - {type: dataset.verified, aggregate: dataset, payload: {manifest_digest: string}, consumers: [model_factory, studio]}
+  - {type: dataset.unavailable, aggregate: dataset, payload: {reason: string}, consumers: [model_factory, studio]}
+  - {type: training.candidate, aggregate: training, payload: {model_version_id: string}, consumers: [verifier, studio]}
+  - {type: release.verified, aggregate: release, payload: {manifest_digest: string}, consumers: [studio, notifier]}
+  - {type: release.active, aggregate: release, payload: {manifest_digest: string}, consumers: [workflow_runtime, studio, ledger.billing]}
+  - {type: release.paused, aggregate: release, payload: {reason: string}, consumers: [workflow_runtime, gateway, studio]}
+  - {type: release.rolled_back, aggregate: release, payload: {rolled_back_to: string}, consumers: [workflow_runtime, gateway, studio]}
+  - {type: approval.granted, aggregate: approval, payload: {bound_digests: [string]}, consumers: [gateway, scheduler, studio]}
+  - {type: approval.revoked, aggregate: approval, payload: {}, consumers: [gateway, scheduler, workflow_runtime]}
+  - {type: approval.invalidated, aggregate: approval, payload: {reason: string}, consumers: [gateway, studio]}
+  - {type: case.started, aggregate: case, payload: {release_id: string}, consumers: [studio]}
+  - {type: case.waiting_review, aggregate: case, payload: {review_item_id: string, surface: string}, consumers: [notifier, studio]}
+  - {type: case.completed, aggregate: case, payload: {predicate: string, billable_unit_id: string}, consumers: [ledger.billing, outcomes, studio]}
+  - {type: case.reopened, aggregate: case, payload: {new_epoch: integer, reason: string}, consumers: [ledger.billing, studio]}
+  - {type: effect.dispatching, aggregate: effect, payload: {attempt_no: integer}, consumers: [studio]}
+  - {type: effect.confirmed, aggregate: effect, payload: {receipt_id: string}, consumers: [workflow_runtime, ledger.usage]}
+  - {type: effect.unknown, aggregate: effect, payload: {}, consumers: [reconciler, studio]}
+  - {type: effect.needs_human, aggregate: effect, payload: {evidence_refs: [string]}, consumers: [notifier, studio]}
+  - {type: grant.revoked, aggregate: grant, payload: {propagation: object}, consumers: [gateway, collector_manager, release_service, scheduler]}
+  - {type: removal.completed, aggregate: removal, payload: {completion_evidence_ref: string}, consumers: [studio, audit]}

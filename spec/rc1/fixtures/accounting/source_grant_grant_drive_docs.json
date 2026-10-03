@@ -1,0 +1,30 @@
+{
+  "account_ref": "gws-acct-7F2A",
+  "entity_scope": [
+    "client:*"
+  ],
+  "expires_at": "2027-04-01T00:00:00+00:00",
+  "field_scope": [],
+  "grant_id": "grant_drive_docs",
+  "granted_at": "2026-10-03T12:00:00+00:00",
+  "grantor_principal_id": "prn_owner_01",
+  "history_from": "2024-01-01T00:00:00+00:00",
+  "processors_allowed": [
+    "plumb:control",
+    "openai:api:zdr",
+    "anthropic:api:zdr"
+  ],
+  "provider": "google_drive",
+  "purposes": [
+    "discovery",
+    "implementation",
+    "operation"
+  ],
+  "regions_allowed": [
+    "us-east-1"
+  ],
+  "retention_days": 730,
+  "status": "active",
+  "tenant_id": "tnt_barlowkim",
+  "terms_version": "google_drive-terms-2026-01"
+}

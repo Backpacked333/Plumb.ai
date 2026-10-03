@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "CapabilityKind": {
+      "enum": [
+        "source_read",
+        "source_subscribe",
+        "runtime_action",
+        "integration_admin",
+        "saas_config",
+        "infra_admin",
+        "model_inference",
+        "model_training",
+        "solver"
+      ],
+      "title": "CapabilityKind",
+      "type": "string"
+    },
+    "OperationCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "account_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Ref"
+        },
+        "documentation_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Documentation Ref"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "verification expiry",
+          "title": "Expires At"
+        },
+        "history_available_from": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "History Available From"
+        },
+        "kind": {
+          "$ref": "#/$defs/CapabilityKind"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "limits": {
+          "additionalProperties": true,
+          "title": "Limits",
+          "type": "object"
+        },
+        "operation_id": {
+          "description": "provider:operation, e.g. quickbooks:query.Purchase",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "update_mechanism": {
+          "anyOf": [
+            {
+              "enum": [
+                "webhook",
+                "change_capture",
+                "poll_overlap",
+                "cdc",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Update Mechanism"
+        },
+        "verification_level": {
+          "$ref": "#/$defs/VerificationLevel"
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verified At"
+        },
+        "verified_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: verifier identity",
+          "title": "Verified By"
+        }
+      },
+      "required": [
+        "operation_id",
+        "kind",
+        "verification_level"
+      ],
+      "title": "OperationCapability",
+      "type": "object"
+    },
+    "SystemInventory": {
+      "additionalProperties": false,
+      "properties": {
+        "account_ref": {
+          "title": "Account Ref",
+          "type": "string"
+        },
+        "entitlement": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entitlement"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/OperationCapability"
+          },
+          "title": "Operations",
+          "type": "array"
+        },
+        "owner_principal_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner Principal Id"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Version"
+        }
+      },
+      "required": [
+        "provider",
+        "account_ref",
+        "operations"
+      ],
+      "title": "SystemInventory",
+      "type": "object"
+    },
+    "VerificationLevel": {
+      "description": "How a capability claim was established. Ordered weakest to strongest.",
+      "enum": [
+        "documented",
+        "locally_tested",
+        "sandbox_tested",
+        "account_verified",
+        "production_observed"
+      ],
+      "title": "VerificationLevel",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/EnvironmentInventory.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "coverage_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Coverage Notes",
+      "type": "array"
+    },
+    "inventory_id": {
+      "title": "Inventory Id",
+      "type": "string"
+    },
+    "produced_at": {
+      "format": "date-time",
+      "title": "Produced At",
+      "type": "string"
+    },
+    "systems": {
+      "items": {
+        "$ref": "#/$defs/SystemInventory"
+      },
+      "title": "Systems",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "inventory_id",
+    "tenant_id",
+    "produced_at",
+    "systems"
+  ],
+  "title": "EnvironmentInventory",
+  "type": "object"
+}

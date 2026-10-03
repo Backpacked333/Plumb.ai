@@ -1,0 +1,20 @@
+machine: Case
+aggregate: case
+initial: CREATED
+terminal: [FAILED, CANCELLED]
+states: [CREATED, ACTIVE, WAITING_EXTERNAL, WAITING_REVIEW, COMPLETED, FAILED, CANCELLED, REOPENED]
+transitions:
+  - {from: CREATED, event: start, to: ACTIVE, guards: [release_pinned, required_sources_fresh, case_key_unique_for_release_epoch], writes: [case.state, case.release_ref, case.version], emits: [case.started], external_effects: none, retryable: true}
+  - {from: ACTIVE, event: wait_external, to: WAITING_EXTERNAL, guards: [durable_wait_declared_in_workflow], writes: [case.state, case.wait_until], emits: [case.waiting_external], external_effects: none, retryable: true}
+  - {from: WAITING_EXTERNAL, event: external_event, to: ACTIVE, guards: [event_matches_case_key, event_not_already_processed], writes: [case.state, case.version, consumer.processed_event_id], emits: [case.resumed], external_effects: none, retryable: true}
+  - {from: WAITING_EXTERNAL, event: timer_fired, to: ACTIVE, guards: [timer_declared_in_workflow], writes: [case.state, case.version], emits: [case.resumed], external_effects: none, retryable: true}
+  - {from: ACTIVE, event: review_required, to: WAITING_REVIEW, guards: [review_surface_available, review_item_created], writes: [case.state, review.item], emits: [case.waiting_review], external_effects: review_item_delivered, retryable: true}
+  - {from: WAITING_REVIEW, event: review_decided, to: ACTIVE, guards: [reviewer_authorized, decision_bound_to_case_version, case_version_unchanged_since_item], writes: [case.state, case.version, approval.row], emits: [case.review_decided], external_effects: none, retryable: true}
+  - {from: WAITING_REVIEW, event: evidence_changed, to: ACTIVE, guards: [material_change_detected], writes: [case.state, case.version, review.item_invalidated], emits: [case.review_invalidated], external_effects: none, retryable: true}
+  - {from: ACTIVE, event: complete, to: COMPLETED, guards: [completion_predicate_satisfied, all_effects_confirmed_or_not_needed, no_unknown_effects], writes: [case.state, case.completed_at, billable.unit_row], emits: [case.completed], external_effects: none, retryable: false}
+  - {from: ACTIVE, event: fail, to: FAILED, guards: [terminal_failure_classified, no_unknown_effects], writes: [case.state, case.reason], emits: [case.failed], external_effects: none, retryable: false}
+  - {from: ACTIVE, event: cancel, to: CANCELLED, guards: [cancel_authorized, no_unknown_effects], writes: [case.state, case.reason], emits: [case.cancelled], external_effects: none, retryable: false}
+  - {from: WAITING_EXTERNAL, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [case.state, case.reason], emits: [case.cancelled], external_effects: none, retryable: false}
+  - {from: WAITING_REVIEW, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [case.state, case.reason], emits: [case.cancelled], external_effects: none, retryable: false}
+  - {from: COMPLETED, event: reopen, to: REOPENED, guards: [reopen_authorized_or_retroactive_change_detected, obligation_epoch_incremented], writes: [case.state, obligation.epoch, billable.unit_superseded], emits: [case.reopened], external_effects: none, retryable: true}
+  - {from: REOPENED, event: start, to: ACTIVE, guards: [release_pinned, required_sources_fresh], writes: [case.state, case.version], emits: [case.started], external_effects: none, retryable: true}

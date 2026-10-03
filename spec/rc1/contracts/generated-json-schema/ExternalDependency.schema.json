@@ -1,0 +1,129 @@
+{
+  "$id": "https://plumb.example/schemas/ExternalDependency.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "build_id": {
+      "title": "Build Id",
+      "type": "string"
+    },
+    "default_after_hours": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Default After Hours"
+    },
+    "default_option": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "never a production action",
+      "title": "Default Option"
+    },
+    "dependency_id": {
+      "title": "Dependency Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "authorization",
+        "business_decision",
+        "access",
+        "commitment",
+        "unsupported_capability"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "options": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Options",
+      "type": "array"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "resolution": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolution"
+    },
+    "resolved_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolved By"
+    },
+    "respondent_role": {
+      "title": "Respondent Role",
+      "type": "string"
+    },
+    "status": {
+      "default": "open",
+      "enum": [
+        "open",
+        "resolved",
+        "withdrawn"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "step_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Step Id"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dependency_id",
+    "tenant_id",
+    "build_id",
+    "kind",
+    "question",
+    "respondent_role"
+  ],
+  "title": "ExternalDependency",
+  "type": "object"
+}

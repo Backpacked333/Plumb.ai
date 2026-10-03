@@ -1,0 +1,24 @@
+machine: Build
+aggregate: build
+initial: DRAFT
+terminal: [VERIFIED, FAILED, CANCELLED]
+states: [DRAFT, VALIDATED, RUNNING, WAITING_AUTH, WAITING_INPUT, VERIFYING, VERIFIED, FAILED, CANCELLED]
+transitions:
+  - {from: DRAFT, event: validate, to: VALIDATED, guards: [plan_validator_passed, plan_digest_recorded], writes: [build.plan_digest, build.state, build.reason], emits: [build.validated], external_effects: none, retryable: true}
+  - {from: DRAFT, event: validation_failed, to: DRAFT, guards: [], writes: [build.last_validation_errors], emits: [build.validation_failed], external_effects: none, retryable: true}
+  - {from: VALIDATED, event: start, to: RUNNING, guards: [envelope_active, implement_approval_present_if_required, build_budget_reserved], writes: [build.state, build.started_at, budget.reservation], emits: [build.started], external_effects: none, retryable: true}
+  - {from: RUNNING, event: dependency_raised, to: WAITING_AUTH, guards: [dependency_kind_is_authorization_or_access], writes: [build.state, dependency.open], emits: [build.waiting_auth], external_effects: none, retryable: true}
+  - {from: RUNNING, event: dependency_raised, to: WAITING_INPUT, guards: [dependency_kind_is_business_decision], writes: [build.state, dependency.open], emits: [build.waiting_input], external_effects: none, retryable: true}
+  - {from: WAITING_AUTH, event: dependency_resolved, to: RUNNING, guards: [dependency_resolved_by_authorized_role, envelope_active], writes: [build.state, dependency.resolved], emits: [build.resumed], external_effects: none, retryable: true}
+  - {from: WAITING_INPUT, event: dependency_resolved, to: RUNNING, guards: [dependency_resolved_by_authorized_role, envelope_active], writes: [build.state, dependency.resolved], emits: [build.resumed], external_effects: none, retryable: true}
+  - {from: RUNNING, event: all_steps_done, to: VERIFYING, guards: [all_required_steps_verified, no_open_dependencies], writes: [build.state], emits: [build.verifying], external_effects: none, retryable: true}
+  - {from: VERIFYING, event: attestations_accepted, to: VERIFIED, guards: [required_attestations_bound_to_current_digests, attestations_not_expired], writes: [build.state, build.verified_at], emits: [build.verified], external_effects: none, retryable: false}
+  - {from: VERIFYING, event: attestation_failed, to: RUNNING, guards: [repair_budget_remaining], writes: [build.state, diagnostic.new], emits: [build.repair_started], external_effects: none, retryable: true}
+  - {from: VERIFYING, event: attestation_failed, to: FAILED, guards: [repair_budget_exhausted], writes: [build.state, build.reason], emits: [build.failed], external_effects: none, retryable: false}
+  - {from: RUNNING, event: terminal_failure, to: FAILED, guards: [failure_classified], writes: [build.state, build.reason, diagnostic.final], emits: [build.failed], external_effects: none, retryable: false}
+  - {from: DRAFT, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}
+  - {from: VALIDATED, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}
+  - {from: RUNNING, event: cancel, to: CANCELLED, guards: [cancel_authorized, uncertain_effects_reconciled], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}
+  - {from: WAITING_AUTH, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}
+  - {from: WAITING_INPUT, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}
+  - {from: VERIFYING, event: cancel, to: CANCELLED, guards: [cancel_authorized], writes: [build.state, build.reason], emits: [build.cancelled], external_effects: cleanup_job, retryable: false}

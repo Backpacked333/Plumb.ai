@@ -1,0 +1,306 @@
+{
+  "$defs": {
+    "DispatchAttempt": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_no": {
+          "title": "Attempt No",
+          "type": "integer"
+        },
+        "fencing_token": {
+          "title": "Fencing Token",
+          "type": "integer"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "idempotency_key": {
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "lease_id": {
+          "title": "Lease Id",
+          "type": "string"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Request Id"
+        },
+        "result": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "timeout",
+            "crashed",
+            "cancelled"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_no",
+        "lease_id",
+        "fencing_token",
+        "idempotency_key",
+        "started_at",
+        "result"
+      ],
+      "title": "DispatchAttempt",
+      "type": "object"
+    },
+    "EffectState": {
+      "enum": [
+        "RESERVED",
+        "DISPATCHING",
+        "DISPATCHED",
+        "UNKNOWN",
+        "CONFIRMED",
+        "NOT_OCCURRED",
+        "CONFLICT",
+        "NEEDS_HUMAN",
+        "CANCEL_REQUESTED",
+        "CANCELLED",
+        "SUPERSEDED",
+        "FAILED_FINAL",
+        "COMPENSATION_PENDING",
+        "COMPENSATED"
+      ],
+      "title": "EffectState",
+      "type": "string"
+    },
+    "Receipt": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "provider_object_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Object Id"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Request Id"
+        },
+        "raw_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Ref"
+        },
+        "receipt_id": {
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "received_at": {
+          "format": "date-time",
+          "title": "Received At",
+          "type": "string"
+        },
+        "verified": {
+          "description": "platform: signature/lookup verification result",
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "provider",
+        "received_at",
+        "verified"
+      ],
+      "title": "Receipt",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/EffectRecord.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempts": {
+      "items": {
+        "$ref": "#/$defs/DispatchAttempt"
+      },
+      "title": "Attempts",
+      "type": "array"
+    },
+    "compensation_effect_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Compensation Effect Id"
+    },
+    "effect_id": {
+      "title": "Effect Id",
+      "type": "string"
+    },
+    "intent_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "last_transition_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Transition Reason"
+    },
+    "postconditions_verified": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Postconditions Verified"
+    },
+    "receipts": {
+      "items": {
+        "$ref": "#/$defs/Receipt"
+      },
+      "title": "Receipts",
+      "type": "array"
+    },
+    "reconciliation": {
+      "anyOf": [
+        {
+          "enum": [
+            "confirmed",
+            "not_occurred",
+            "still_uncertain",
+            "conflict",
+            "needs_human"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reconciliation"
+    },
+    "state": {
+      "$ref": "#/$defs/EffectState"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "effect_id",
+    "tenant_id",
+    "intent_ref",
+    "state"
+  ],
+  "title": "EffectRecord",
+  "type": "object"
+}

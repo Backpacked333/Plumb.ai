@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "GrantStatus": {
+      "enum": [
+        "active",
+        "expired",
+        "revoked"
+      ],
+      "title": "GrantStatus",
+      "type": "string"
+    },
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    }
+  },
+  "$id": "https://plumb.example/schemas/SourceGrant.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Observation/data-use authority (layer 1). Permission to read is not permission to train (SI-004).",
+  "properties": {
+    "account_ref": {
+      "description": "external: verified provider account identity, never a display name",
+      "title": "Account Ref",
+      "type": "string"
+    },
+    "entity_scope": {
+      "description": "business entities / clients covered",
+      "items": {
+        "type": "string"
+      },
+      "title": "Entity Scope",
+      "type": "array"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "field_scope": {
+      "description": "empty = all fields the provider exposes",
+      "items": {
+        "type": "string"
+      },
+      "title": "Field Scope",
+      "type": "array"
+    },
+    "grant_id": {
+      "title": "Grant Id",
+      "type": "string"
+    },
+    "granted_at": {
+      "format": "date-time",
+      "title": "Granted At",
+      "type": "string"
+    },
+    "grantor_principal_id": {
+      "description": "asserted: authenticated grantor",
+      "title": "Grantor Principal Id",
+      "type": "string"
+    },
+    "history_from": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "History From"
+    },
+    "processors_allowed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Processors Allowed",
+      "type": "array"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "purposes": {
+      "items": {
+        "$ref": "#/$defs/Purpose"
+      },
+      "title": "Purposes",
+      "type": "array"
+    },
+    "regions_allowed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Regions Allowed",
+      "type": "array"
+    },
+    "retention_days": {
+      "minimum": 1,
+      "title": "Retention Days",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/GrantStatus",
+      "default": "active"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "terms_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "provider terms version in force at grant time",
+      "title": "Terms Version"
+    }
+  },
+  "required": [
+    "grant_id",
+    "tenant_id",
+    "grantor_principal_id",
+    "provider",
+    "account_ref",
+    "purposes",
+    "retention_days",
+    "granted_at"
+  ],
+  "title": "SourceGrant",
+  "type": "object"
+}

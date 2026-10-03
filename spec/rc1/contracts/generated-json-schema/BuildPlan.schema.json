@@ -1,0 +1,492 @@
+{
+  "$defs": {
+    "BuildStep": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_max": {
+          "$ref": "#/$defs/MoneyAmount"
+        },
+        "compensation_class": {
+          "$ref": "#/$defs/CompensationClass",
+          "default": "not_needed"
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "destinations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Destinations",
+          "type": "array"
+        },
+        "effect_class": {
+          "$ref": "#/$defs/EffectClass",
+          "default": "none"
+        },
+        "input_ports": {
+          "items": {
+            "$ref": "#/$defs/Port"
+          },
+          "title": "Input Ports",
+          "type": "array"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "max_attempts": {
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_iterations": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "required for agent_loop",
+          "title": "Max Iterations"
+        },
+        "min_capability_level": {
+          "$ref": "#/$defs/VerificationLevel",
+          "default": "sandbox_tested"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "output_ports": {
+          "items": {
+            "$ref": "#/$defs/Port"
+          },
+          "title": "Output Ports",
+          "type": "array"
+        },
+        "processors_used": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Processors Used",
+          "type": "array"
+        },
+        "produces_release_artifact": {
+          "default": false,
+          "title": "Produces Release Artifact",
+          "type": "boolean"
+        },
+        "purposes_used": {
+          "items": {
+            "$ref": "#/$defs/Purpose"
+          },
+          "title": "Purposes Used",
+          "type": "array"
+        },
+        "required_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Capabilities",
+          "type": "array"
+        },
+        "step_id": {
+          "pattern": "^step_[A-Za-z0-9_-]{2,60}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "timeout_s": {
+          "maximum": 86400,
+          "minimum": 1,
+          "title": "Timeout S",
+          "type": "integer"
+        },
+        "type": {
+          "$ref": "#/$defs/StepType"
+        },
+        "verification": {
+          "items": {
+            "$ref": "#/$defs/VerificationObligation"
+          },
+          "title": "Verification",
+          "type": "array"
+        }
+      },
+      "required": [
+        "step_id",
+        "type",
+        "budget_max",
+        "max_attempts",
+        "timeout_s"
+      ],
+      "title": "BuildStep",
+      "type": "object"
+    },
+    "CompensationClass": {
+      "enum": [
+        "not_needed",
+        "native_undo",
+        "compensating_effect",
+        "irreversible"
+      ],
+      "title": "CompensationClass",
+      "type": "string"
+    },
+    "DataRole": {
+      "enum": [
+        "training",
+        "development",
+        "calibration",
+        "regression",
+        "protected_acceptance",
+        "prospective_monitoring"
+      ],
+      "title": "DataRole",
+      "type": "string"
+    },
+    "EffectClass": {
+      "enum": [
+        "none",
+        "internal",
+        "external_message",
+        "external_record_write",
+        "external_payment",
+        "config_change",
+        "infra_change"
+      ],
+      "title": "EffectClass",
+      "type": "string"
+    },
+    "MoneyAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "description": "ISO 4217 code",
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "minor_units": {
+          "description": "Integer amount in the currency's minor unit (cents for USD)",
+          "title": "Minor Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "minor_units",
+        "currency"
+      ],
+      "title": "MoneyAmount",
+      "type": "object"
+    },
+    "Port": {
+      "additionalProperties": false,
+      "description": "A typed input or output of a build step. A name alone is not a semantic type (SR-042).",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "freshness_max_s": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freshness Max S"
+        },
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{1,40}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "default": false,
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "purpose_restrictions": {
+          "items": {
+            "$ref": "#/$defs/Purpose"
+          },
+          "title": "Purpose Restrictions",
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "entity/account scope the value is valid for",
+          "title": "Scope"
+        },
+        "semantic_type": {
+          "description": "e.g. money, timestamp, identifier, record_set, document, model_artifact",
+          "title": "Semantic Type",
+          "type": "string"
+        },
+        "tz": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tz"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "semantic_type"
+      ],
+      "title": "Port",
+      "type": "object"
+    },
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "StepType": {
+      "description": "Closed set of build step types. Unknown types are rejected by the compiler (SR-040).",
+      "enum": [
+        "probe_source",
+        "profile_source",
+        "generate_adapter",
+        "test_adapter",
+        "configure_integration",
+        "deploy_collector",
+        "backfill",
+        "reconcile_collector",
+        "discover_labels",
+        "build_dataset",
+        "audit_labels",
+        "run_experiment",
+        "submit_training",
+        "evaluate_candidate",
+        "compile_workflow",
+        "generate_tests",
+        "request_verification",
+        "preview_infra",
+        "apply_infra",
+        "create_release",
+        "agent_loop"
+      ],
+      "title": "StepType",
+      "type": "string"
+    },
+    "VerificationLevel": {
+      "description": "How a capability claim was established. Ordered weakest to strongest.",
+      "enum": [
+        "documented",
+        "locally_tested",
+        "sandbox_tested",
+        "account_verified",
+        "production_observed"
+      ],
+      "title": "VerificationLevel",
+      "type": "string"
+    },
+    "VerificationObligation": {
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "title": "Check Id",
+          "type": "string"
+        },
+        "criteria_version": {
+          "title": "Criteria Version",
+          "type": "string"
+        },
+        "data_role": {
+          "$ref": "#/$defs/DataRole",
+          "default": "regression"
+        }
+      },
+      "required": [
+        "check_id",
+        "criteria_version"
+      ],
+      "title": "VerificationObligation",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/BuildPlan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_migration_declared": {
+      "default": false,
+      "title": "Case Migration Declared",
+      "type": "boolean"
+    },
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content Digest"
+    },
+    "envelope_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "release_schema_version": {
+      "default": "1.0",
+      "title": "Release Schema Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solution_ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/BuildStep"
+      },
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "total_budget_max": {
+      "$ref": "#/$defs/MoneyAmount"
+    }
+  },
+  "required": [
+    "plan_id",
+    "tenant_id",
+    "solution_ref",
+    "envelope_ref",
+    "steps",
+    "total_budget_max"
+  ],
+  "title": "BuildPlan",
+  "type": "object"
+}

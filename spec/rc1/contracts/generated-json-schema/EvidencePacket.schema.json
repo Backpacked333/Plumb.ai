@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "Purpose": {
+      "enum": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training",
+        "export",
+        "support"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "description": "Reference to an artifact or record. Artifacts consumed by a run MUST carry a digest (SR-031).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mutable alias the ref was resolved from, if any",
+          "title": "Alias"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "platform: sha256 of canonical bytes",
+          "title": "Digest"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "object_type": {
+          "pattern": "^[A-Za-z]{3,40}$",
+          "title": "Object Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_type",
+        "id"
+      ],
+      "title": "Ref",
+      "type": "object"
+    }
+  },
+  "$id": "https://plumb.example/schemas/EvidencePacket.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assembled_at": {
+      "format": "date-time",
+      "title": "Assembled At",
+      "type": "string"
+    },
+    "coverage": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "coverage fractions by dimension",
+      "title": "Coverage",
+      "type": "object"
+    },
+    "event_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Event Refs",
+      "type": "array"
+    },
+    "fact_refs": {
+      "items": {
+        "$ref": "#/$defs/Ref"
+      },
+      "title": "Fact Refs",
+      "type": "array"
+    },
+    "grants_used": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Grants Used",
+      "type": "array"
+    },
+    "knowledge_boundary": {
+      "description": "only events with available_time <= boundary are inside",
+      "format": "date-time",
+      "title": "Knowledge Boundary",
+      "type": "string"
+    },
+    "packet_id": {
+      "title": "Packet Id",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/Purpose"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "truncated": {
+      "default": false,
+      "title": "Truncated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "packet_id",
+    "tenant_id",
+    "purpose",
+    "knowledge_boundary",
+    "event_refs",
+    "grants_used",
+    "assembled_at"
+  ],
+  "title": "EvidencePacket",
+  "type": "object"
+}

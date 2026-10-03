@@ -1,0 +1,290 @@
+openapi: 3.1.0
+info:
+  title: Plumb Control Plane API (first slice)
+  version: 1.0.0-rc1
+  description: |
+    Proposed interface, not a running endpoint. Tenant identity is derived from the bearer credential; the
+    tenantId path segment MUST equal the authenticated tenant or the request fails with SCOPE_DENIED (SI-003).
+    Long-running mutations return 202 with a JobEnvelope (SR-100). Every POST accepts an Idempotency-Key;
+    same key + same payload replays the original response, same key + different payload returns 409
+    PAYLOAD_CONFLICT (SR-101). Versioned resources require If-Match; a stale ETag returns 412 (SR-102).
+    Object shapes are the canonical models (contracts/generated-json-schema); each schema below names its
+    canonical model in x-plumb-canonical-model and tests check that name exists.
+servers:
+  - url: https://api.plumb.example
+security:
+  - bearerAuth: []
+tags:
+  - {name: authority}
+  - {name: discovery}
+  - {name: build}
+  - {name: release}
+  - {name: runtime}
+  - {name: ledgers}
+  - {name: jobs}
+paths:
+  /v1/jobs/{jobId}:
+    get:
+      tags: [jobs]
+      operationId: getJob
+      parameters: [{$ref: '#/components/parameters/jobId'}]
+      responses:
+        '200': {description: Job status, content: {application/json: {schema: {$ref: '#/components/schemas/JobEnvelope'}}}}
+        '404': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/envelopes:
+    post:
+      tags: [authority]
+      operationId: createEnvelope
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AutonomyEnvelope'}}}}
+      responses:
+        '201': {description: Draft envelope created (status draft until approved), content: {application/json: {schema: {$ref: '#/components/schemas/AutonomyEnvelope'}}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/envelopes/{envelopeId}:activate:
+    post:
+      tags: [authority]
+      operationId: activateEnvelope
+      description: Requires an Approval of kind data_use bound to the envelope digest; the approval is detached and verified server-side.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/envelopeId'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [approval_id], properties: {approval_id: {type: string}}}}}}
+      responses:
+        '200': {description: Envelope active, content: {application/json: {schema: {$ref: '#/components/schemas/AutonomyEnvelope'}}}}
+        '409': {$ref: '#/components/responses/Error'}
+        '412': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/grants:
+    post:
+      tags: [authority]
+      operationId: recordGrant
+      description: Called by the OAuth callback handler after provider identity is verified; the account_ref is set from the provider, never from the client body.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceGrant'}}}}
+      responses:
+        '201': {description: Grant recorded, content: {application/json: {schema: {$ref: '#/components/schemas/SourceGrant'}}}}
+        '400': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/grants/{grantId}:revoke:
+    post:
+      tags: [authority]
+      operationId: revokeGrant
+      description: High-priority. Propagates to collectors (pause), queued effects (cancel), cached capability grants and dependent releases (pause) before returning.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/grantId'}]
+      responses:
+        '200': {description: Revocation applied with propagation report, content: {application/json: {schema: {$ref: '#/components/schemas/RevocationReport'}}}}
+  /v1/tenants/{tenantId}/inventory-jobs:
+    post:
+      tags: [discovery]
+      operationId: startInventory
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [grant_ids, purpose], properties: {grant_ids: {type: array, items: {type: string}}, purpose: {type: string, enum: [discovery]}}}}}}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+  /v1/tenants/{tenantId}/discovery-jobs:
+    post:
+      tags: [discovery]
+      operationId: startDiscovery
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [envelope_id, inventory_id], properties: {envelope_id: {type: string}, inventory_id: {type: string}, routes: {type: array, items: {type: string, enum: [friction, unmet_obligation, new_capability]}}}}}}}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+  /v1/tenants/{tenantId}/opportunities:
+    get:
+      tags: [discovery]
+      operationId: listOpportunities
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses:
+        '200': {description: Page of opportunities, content: {application/json: {schema: {$ref: '#/components/schemas/OpportunityPage'}}}}
+  /v1/tenants/{tenantId}/opportunities/{opportunityId}:accept-objective:
+    post:
+      tags: [discovery]
+      operationId: acceptObjective
+      description: The owner accepts the business objective (not a technical design). Records objective_accepted_by from the authenticated principal.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/opportunityId'}, {$ref: '#/components/parameters/ifMatch'}]
+      responses:
+        '200': {description: Objective accepted, content: {application/json: {schema: {$ref: '#/components/schemas/OpportunitySpec'}}}}
+        '412': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/builds:
+    post:
+      tags: [build]
+      operationId: createBuild
+      description: Compiles the SolutionSpec into a BuildPlan, validates it and starts execution if the envelope covers it; otherwise raises a dependency and returns the build in WAITING_AUTH.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [solution_id, envelope_id], properties: {solution_id: {type: string}, envelope_id: {type: string}}}}}}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        '422': {description: Validation failed with pass codes, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+  /v1/tenants/{tenantId}/builds/{buildId}:
+    get:
+      tags: [build]
+      operationId: getBuild
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/buildId'}]
+      responses:
+        '200': {description: "Build with step states, open dependencies and labor records", content: {application/json: {schema: {$ref: '#/components/schemas/BuildView'}}}}
+  /v1/tenants/{tenantId}/builds/{buildId}/events:
+    get:
+      tags: [build]
+      operationId: listBuildEvents
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/buildId'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses:
+        '200': {description: Ordered events for the build aggregate, content: {application/json: {schema: {$ref: '#/components/schemas/EventPage'}}}}
+  /v1/tenants/{tenantId}/builds/{buildId}:cancel:
+    post:
+      tags: [build]
+      operationId: cancelBuild
+      description: Cancels after reconciling uncertain effects; sandbox cleanup is a tracked job.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/buildId'}, {$ref: '#/components/parameters/ifMatch'}]
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+  /v1/tenants/{tenantId}/dependencies:
+    get:
+      tags: [build]
+      operationId: listDependencies
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses:
+        '200': {description: Open external dependencies grouped by respondent role, content: {application/json: {schema: {$ref: '#/components/schemas/DependencyPage'}}}}
+  /v1/tenants/{tenantId}/dependencies/{dependencyId}:resolve:
+    post:
+      tags: [build]
+      operationId: resolveDependency
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/dependencyId'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [resolution], properties: {resolution: {type: string}, option_id: {type: string}, scope: {type: string, enum: [this_build, this_tenant, this_vertical]}}}}}}
+      responses:
+        '200': {description: Dependency resolved; the build resumes from persisted state, content: {application/json: {schema: {$ref: '#/components/schemas/ExternalDependency'}}}}
+        '403': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/approvals/{approvalId}:decide:
+    post:
+      tags: [authority]
+      operationId: decideApproval
+      description: Decision binds exact digests and prerequisite state. The nonce is single-use; a forwarded or prefetched link cannot decide because prefetch is GET and decision is POST with the nonce and an authenticated principal.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/approvalId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, nonce], properties: {decision: {type: string, enum: [granted, denied]}, nonce: {type: string}, reason: {type: string}}}}}}
+      responses:
+        '200': {description: Decision recorded, content: {application/json: {schema: {$ref: '#/components/schemas/Approval'}}}}
+        '409': {description: "Nonce consumed, expired, or bound artifact changed (INVALIDATED)", content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+  /v1/tenants/{tenantId}/releases/{releaseId}:
+    get:
+      tags: [release]
+      operationId: getRelease
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/releaseId'}]
+      responses:
+        '200': {description: "Release manifest with attestation status", content: {application/json: {schema: {$ref: '#/components/schemas/ReleaseView'}}}}
+  /v1/tenants/{tenantId}/releases/{releaseId}:transition:
+    post:
+      tags: [release]
+      operationId: transitionRelease
+      description: Fires a release machine event (start_shadow, start_canary, activate, pause, resume, rollback, retire). Guards are evaluated server-side from authoritative state.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/releaseId'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [event, reason], properties: {event: {type: string, enum: [start_shadow, start_canary, activate, pause, resume, rollback, retire]}, reason: {type: string}}}}}}
+      responses:
+        '200': {description: Transition applied, content: {application/json: {schema: {$ref: '#/components/schemas/ReleaseView'}}}}
+        '409': {description: Guard refused (reason names the guard), content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+  /v1/tenants/{tenantId}/cases:
+    get:
+      tags: [runtime]
+      operationId: listCases
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}, {name: state, in: query, schema: {type: string}}]
+      responses:
+        '200': {description: Page of cases, content: {application/json: {schema: {$ref: '#/components/schemas/CasePage'}}}}
+  /v1/tenants/{tenantId}/cases/{caseId}:
+    get:
+      tags: [runtime]
+      operationId: getCase
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/caseId'}]
+      responses:
+        '200': {description: "Case with version, pinned release, effects and review items", content: {application/json: {schema: {$ref: '#/components/schemas/CaseView'}}}}
+  /v1/tenants/{tenantId}/cases/{caseId}/reviews/{reviewItemId}:decide:
+    post:
+      tags: [runtime]
+      operationId: decideReviewItem
+      description: Case-level business decision (layer 3). Bound to the review item's digest and the case version at item creation; a changed case returns 409 STATE_CONFLICT.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/caseId'}, {name: reviewItemId, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, nonce], properties: {decision: {type: string, enum: [approve, reject, correct]}, nonce: {type: string}, correction: {type: object, additionalProperties: true}, reason: {type: string}}}}}}
+      responses:
+        '200': {description: Decision recorded; the case resumes, content: {application/json: {schema: {$ref: '#/components/schemas/CaseView'}}}}
+        '409': {$ref: '#/components/responses/Error'}
+  /v1/tenants/{tenantId}/effects/{effectId}:
+    get:
+      tags: [runtime]
+      operationId: getEffect
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/effectId'}]
+      responses:
+        '200': {description: "Effect record with attempts, receipts and reconciliation", content: {application/json: {schema: {$ref: '#/components/schemas/EffectRecord'}}}}
+  /v1/tenants/{tenantId}/effects/{effectId}:reconcile:
+    post:
+      tags: [runtime]
+      operationId: reconcileEffect
+      description: Operator- or human-triggered reconciliation of an UNKNOWN effect; may return NEEDS_HUMAN with the evidence gathered.
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/effectId'}]
+      requestBody: {required: false, content: {application/json: {schema: {type: object, properties: {human_resolution: {type: string, enum: [occurred, absent]}, reason: {type: string}}}}}}
+      responses:
+        '200': {description: Reconciliation result, content: {application/json: {schema: {$ref: '#/components/schemas/EffectRecord'}}}}
+  /v1/tenants/{tenantId}/outcomes:
+    get:
+      tags: [ledgers]
+      operationId: listOutcomes
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}, {name: release_id, in: query, schema: {type: string}}]
+      responses:
+        '200': {description: Outcome observations with method and limitations, content: {application/json: {schema: {$ref: '#/components/schemas/OutcomePage'}}}}
+  /v1/tenants/{tenantId}/ledgers/{ledger}:
+    get:
+      tags: [ledgers]
+      operationId: getLedger
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {name: ledger, in: path, required: true, schema: {type: string, enum: [usage, cost, labor, billable_units]}}, {name: period, in: query, required: true, schema: {type: string, pattern: '^[0-9]{4}-[0-9]{2}$'}}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses:
+        '200': {description: Ledger rows for the period, content: {application/json: {schema: {$ref: '#/components/schemas/LedgerPage'}}}}
+  /v1/tenants/{tenantId}/removals:
+    post:
+      tags: [authority]
+      operationId: requestRemoval
+      parameters: [{$ref: '#/components/parameters/tenantId'}, {$ref: '#/components/parameters/idempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RemovalRequest'}}}}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  parameters:
+    tenantId: {name: tenantId, in: path, required: true, schema: {type: string}}
+    jobId: {name: jobId, in: path, required: true, schema: {type: string}}
+    envelopeId: {name: envelopeId, in: path, required: true, schema: {type: string}}
+    grantId: {name: grantId, in: path, required: true, schema: {type: string}}
+    opportunityId: {name: opportunityId, in: path, required: true, schema: {type: string}}
+    buildId: {name: buildId, in: path, required: true, schema: {type: string}}
+    dependencyId: {name: dependencyId, in: path, required: true, schema: {type: string}}
+    approvalId: {name: approvalId, in: path, required: true, schema: {type: string}}
+    releaseId: {name: releaseId, in: path, required: true, schema: {type: string}}
+    caseId: {name: caseId, in: path, required: true, schema: {type: string}}
+    effectId: {name: effectId, in: path, required: true, schema: {type: string}}
+    cursor: {name: cursor, in: query, required: false, schema: {type: string}, description: "Opaque, stable across inserts"}
+    limit: {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+    idempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 16, maxLength: 128}}
+    ifMatch: {name: If-Match, in: header, required: true, schema: {type: string}, description: ETag of the resource version being changed}
+  responses:
+    Accepted:
+      description: Long-running operation accepted
+      headers:
+        Location: {schema: {type: string}, description: URL of the job}
+      content: {application/json: {schema: {$ref: '#/components/schemas/JobEnvelope'}}}
+    Error:
+      description: Error envelope; never reveals another tenant's resource existence
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+  schemas:
+    JobEnvelope: {type: object, x-plumb-canonical-model: JobEnvelope, required: [job_id, tenant_id, kind, status], properties: {job_id: {type: string}, tenant_id: {type: string}, kind: {type: string}, status: {type: string, enum: [queued, running, waiting, succeeded, failed, cancelled]}, result_ref: {type: object}, dependency_id: {type: string}, error: {$ref: '#/components/schemas/ErrorEnvelope'}}}
+    ErrorEnvelope: {type: object, x-plumb-canonical-model: ErrorEnvelope, required: [code, message, retryable], properties: {code: {type: string}, message: {type: string}, retryable: {type: boolean}, dependency_id: {type: string}, operator_action: {type: string}, details: {type: array, items: {type: object}}}}
+    AutonomyEnvelope: {type: object, x-plumb-canonical-model: AutonomyEnvelope, additionalProperties: true}
+    SourceGrant: {type: object, x-plumb-canonical-model: SourceGrant, additionalProperties: true}
+    OpportunitySpec: {type: object, x-plumb-canonical-model: OpportunitySpec, additionalProperties: true}
+    ExternalDependency: {type: object, x-plumb-canonical-model: ExternalDependency, additionalProperties: true}
+    Approval: {type: object, x-plumb-canonical-model: Approval, additionalProperties: true}
+    EffectRecord: {type: object, x-plumb-canonical-model: EffectRecord, additionalProperties: true}
+    RemovalRequest: {type: object, x-plumb-canonical-model: RemovalRequest, additionalProperties: true}
+    RevocationReport: {type: object, required: [grant_id, collectors_paused, effects_cancelled, effects_cancel_requested, releases_paused, completed_at], properties: {grant_id: {type: string}, collectors_paused: {type: array, items: {type: string}}, effects_cancelled: {type: array, items: {type: string}}, effects_cancel_requested: {type: array, items: {type: string}}, releases_paused: {type: array, items: {type: string}}, completed_at: {type: string, format: date-time}}}
+    BuildView: {type: object, required: [build_id, state, version, plan_digest, steps, open_dependencies, labor], properties: {build_id: {type: string}, state: {type: string}, version: {type: integer}, plan_digest: {type: string}, steps: {type: array, items: {type: object, required: [step_id, state, attempt_no], properties: {step_id: {type: string}, state: {type: string}, attempt_no: {type: integer}, verified_at: {type: string, format: date-time}}}}, open_dependencies: {type: array, items: {$ref: '#/components/schemas/ExternalDependency'}}, labor: {type: array, items: {type: object, x-plumb-canonical-model: LaborRecord, additionalProperties: true}}}}
+    ReleaseView: {type: object, required: [release_id, state, version, manifest_digest, attestations], properties: {release_id: {type: string}, state: {type: string}, version: {type: integer}, manifest_digest: {type: string}, attestations: {type: array, items: {type: object, x-plumb-canonical-model: VerificationAttestation, additionalProperties: true}}}}
+    CaseView: {type: object, required: [case_id, state, version, release_id, effects, review_items], properties: {case_id: {type: string}, state: {type: string}, version: {type: integer}, release_id: {type: string}, effects: {type: array, items: {$ref: '#/components/schemas/EffectRecord'}}, review_items: {type: array, items: {type: object, required: [review_item_id, item_digest, case_version_at_creation, status], properties: {review_item_id: {type: string}, item_digest: {type: string}, case_version_at_creation: {type: integer}, status: {type: string}}}}}}
+    OpportunityPage: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/OpportunitySpec'}}, next_cursor: {type: string}}}
+    DependencyPage: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/ExternalDependency'}}, next_cursor: {type: string}}}
+    CasePage: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/CaseView'}}, next_cursor: {type: string}}}
+    EventPage: {type: object, required: [items], properties: {items: {type: array, items: {type: object, x-plumb-canonical-model: EventEnvelope, additionalProperties: true}}, next_cursor: {type: string}}}
+    OutcomePage: {type: object, required: [items], properties: {items: {type: array, items: {type: object, x-plumb-canonical-model: OutcomeObservation, additionalProperties: true}}, next_cursor: {type: string}}}
+    LedgerPage: {type: object, required: [ledger, period, items], properties: {ledger: {type: string}, period: {type: string}, items: {type: array, items: {type: object, additionalProperties: true}}, next_cursor: {type: string}}}

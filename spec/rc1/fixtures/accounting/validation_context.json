@@ -1,0 +1,295 @@
+{
+  "approval_obligations": [],
+  "artifacts": {
+    "chk_bundle_doc_intake_v1": {
+      "digest": "sha256:8317bd30eb354bc9d66d07e6d038b33ca8f351d281942cf47bfefa27869f96f5",
+      "kind": "ProtectedCheckBundle",
+      "tenant_id": "tnt_barlowkim"
+    },
+    "env_barlowkim_v3": {
+      "digest": "sha256:7c918e8ea8d91eb4edca0f0e183171a5d717977df37ec7d870cf7d1d8100b7b5",
+      "kind": "AutonomyEnvelope",
+      "tenant_id": "tnt_barlowkim",
+      "version": 3
+    },
+    "inv_barlowkim_2026_09": {
+      "digest": "sha256:d7294a1a13c344a8c9d854d71c6bde2857676d47355c9025d4cbf3dc3a8dd5a1",
+      "kind": "EnvironmentInventory",
+      "tenant_id": "tnt_barlowkim"
+    },
+    "pkt_doc_chase_evidence": {
+      "digest": "sha256:19a973c6d947569f283038d8d6a19a1dc69f04e8d17249de91d07fbed9a09b5c",
+      "kind": "EvidencePacket",
+      "tenant_id": "tnt_barlowkim"
+    },
+    "pkt_other_tenant": {
+      "digest": "sha256:abbd9be851535085d8d855ce2e2359b2ed29125dc6f72aec3815bce4be861ff6",
+      "kind": "EvidencePacket",
+      "tenant_id": "tnt_other_firm"
+    },
+    "sol_doc_intake_v1": {
+      "digest": "sha256:53b7942daf42d2d37ac1dc54a249c6e056aac7adb221914b551aa51ddded79dc",
+      "impact_class": "low",
+      "kind": "SolutionSpec",
+      "tenant_id": "tnt_barlowkim"
+    },
+    "tsk_categorization_v1": {
+      "digest": "sha256:b79ed54549d2e32e8b6f7ef4f83dee5d7b076ff02403de910d371f529584feee",
+      "kind": "TaskDefinition",
+      "tenant_id": "tnt_barlowkim"
+    }
+  },
+  "capabilities": {
+    "google_drive:changes.watch": {
+      "account_ref": "gws-acct-7F2A",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "sandbox_tested"
+    },
+    "google_drive:files.list": {
+      "account_ref": "gws-acct-7F2A",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "account_verified"
+    },
+    "google_workspace:gmail.drafts.create": {
+      "account_ref": "gws-acct-7F2A",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "account_verified"
+    },
+    "google_workspace:gmail.messages.send": {
+      "account_ref": "gws-acct-7F2A",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "sandbox_tested"
+    },
+    "google_workspace:gmail.threads.list": {
+      "account_ref": "gws-acct-7F2A",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "account_verified"
+    },
+    "plumb:agent.harness": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "sandbox_tested"
+    },
+    "plumb:collector.deploy": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "production_observed"
+    },
+    "plumb:dataset.build": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "production_observed"
+    },
+    "plumb:infra.pulumi": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "sandbox_tested"
+    },
+    "plumb:release.create": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "production_observed"
+    },
+    "plumb:verifier.request": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "production_observed"
+    },
+    "plumb:workflow.compile": {
+      "account_ref": "plumb",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "production_observed"
+    },
+    "quickbooks_online:attachable.create": {
+      "account_ref": "qbo-realm-4011",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "documented"
+    },
+    "quickbooks_online:cdc": {
+      "account_ref": "qbo-realm-4011",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "account_verified"
+    },
+    "quickbooks_online:query.Purchase": {
+      "account_ref": "qbo-realm-4011",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "account_verified"
+    },
+    "quickbooks_online:webhooks.subscribe": {
+      "account_ref": "qbo-realm-4011",
+      "tenant_id": "tnt_barlowkim",
+      "verification_level": "sandbox_tested"
+    }
+  },
+  "envelope": {
+    "approval_id": "apr_env_v3",
+    "destinations_allowed": [
+      "mailbox:client_contacts:*",
+      "provider:quickbooks:realm_4011*",
+      "storage:tenant:*"
+    ],
+    "effect_classes_allowed": [
+      "none",
+      "internal",
+      "external_message",
+      "config_change",
+      "infra_change"
+    ],
+    "envelope_id": "env_barlowkim_v3",
+    "environments": [
+      "sandbox",
+      "shadow",
+      "canary",
+      "production"
+    ],
+    "escalation": [
+      {
+        "condition": "new_processor_required",
+        "deadline_hours": 72,
+        "route_to": "prn_owner_01"
+      }
+    ],
+    "expires_at": "2027-04-01T00:00:00+00:00",
+    "goals": [
+      "Reduce duplicate document chasing and accountant review time for monthly close"
+    ],
+    "intervention_classes_allowed": [
+      "remove_step",
+      "native_configuration",
+      "deterministic_rules",
+      "classical_model",
+      "general_model_workflow",
+      "retrieval",
+      "specialist_api",
+      "trained_component",
+      "optimizer"
+    ],
+    "max_auto_impact": "low",
+    "owner_principal_id": "prn_owner_01",
+    "processors_allowed": [
+      "plumb:control",
+      "openai:api:zdr",
+      "anthropic:api:zdr"
+    ],
+    "regions_allowed": [
+      "us-east-1"
+    ],
+    "source_grant_ids": [
+      "grant_gmail_ops",
+      "grant_qbo_main",
+      "grant_drive_docs"
+    ],
+    "spend": {
+      "build_max": {
+        "currency": "USD",
+        "minor_units": 250000
+      },
+      "monthly_operation_max": {
+        "currency": "USD",
+        "minor_units": 150000
+      },
+      "single_action_max": {
+        "currency": "USD",
+        "minor_units": 500
+      }
+    },
+    "status": "active",
+    "tenant_id": "tnt_barlowkim",
+    "version": 3
+  },
+  "grants": {
+    "grant_drive_docs": {
+      "account_ref": "gws-acct-7F2A",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_drive_docs",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "google_drive",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_barlowkim",
+      "terms_version": "google_drive-terms-2026-01"
+    },
+    "grant_gmail_ops": {
+      "account_ref": "gws-acct-7F2A",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_gmail_ops",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "google_workspace",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_barlowkim",
+      "terms_version": "google_workspace-terms-2026-01"
+    },
+    "grant_qbo_main": {
+      "account_ref": "qbo-realm-4011",
+      "entity_scope": [
+        "client:*"
+      ],
+      "expires_at": "2027-04-01T00:00:00+00:00",
+      "field_scope": [],
+      "grant_id": "grant_qbo_main",
+      "granted_at": "2026-10-03T12:00:00+00:00",
+      "grantor_principal_id": "prn_owner_01",
+      "history_from": "2024-01-01T00:00:00+00:00",
+      "processors_allowed": [
+        "plumb:control",
+        "openai:api:zdr",
+        "anthropic:api:zdr"
+      ],
+      "provider": "quickbooks_online",
+      "purposes": [
+        "discovery",
+        "implementation",
+        "operation",
+        "evaluation",
+        "training"
+      ],
+      "regions_allowed": [
+        "us-east-1"
+      ],
+      "retention_days": 730,
+      "status": "active",
+      "tenant_id": "tnt_barlowkim",
+      "terms_version": "quickbooks_online-terms-2026-01"
+    }
+  },
+  "tenant_id": "tnt_barlowkim"
+}

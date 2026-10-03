@@ -1,0 +1,89 @@
+{
+  "approval_self_reference": [
+    "E_SYNTAX:Approval"
+  ],
+  "fact_confirmed_with_residual_confidence": [
+    "E_SYNTAX:Fact"
+  ],
+  "plan_alias_unresolved": [
+    "E_ARTIFACT_IDENTITY"
+  ],
+  "plan_budget_over_envelope": [
+    "E_BUDGET_EXCEEDED"
+  ],
+  "plan_capability_level_too_low": [
+    "E_CAPABILITY_UNAVAILABLE"
+  ],
+  "plan_capability_unknown": [
+    "E_CAPABILITY_UNAVAILABLE"
+  ],
+  "plan_cross_tenant_reference": [
+    "E_AUTHZ_CROSS_TENANT"
+  ],
+  "plan_currency_mismatch": [
+    "E_TYPE_MISMATCH"
+  ],
+  "plan_cycle": [
+    "E_GRAPH_CYCLE"
+  ],
+  "plan_dangling_dependency": [
+    "E_GRAPH_DANGLING"
+  ],
+  "plan_destination_outside_envelope": [
+    "E_AUTHZ_DESTINATION"
+  ],
+  "plan_effect_class_outside_envelope": [
+    "E_AUTHZ_EFFECT_CLASS"
+  ],
+  "plan_effect_without_compensation": [
+    "E_EFFECT_NO_COMPENSATION"
+  ],
+  "plan_hidden_unbounded_loop": [
+    "E_SYNTAX"
+  ],
+  "plan_irreversible_without_approval": [
+    "E_EFFECT_IRREVERSIBLE_UNAPPROVED"
+  ],
+  "plan_missing_ref": [
+    "E_REF_UNRESOLVED"
+  ],
+  "plan_missing_verifier": [
+    "E_VERIFIER_COVERAGE"
+  ],
+  "plan_over_budget": [
+    "E_BUDGET_EXCEEDED"
+  ],
+  "plan_payment_in_build": [
+    "E_EFFECT_PAYMENT_IN_BUILD"
+  ],
+  "plan_processor_outside_envelope": [
+    "E_AUTHZ_PROCESSOR"
+  ],
+  "plan_purpose_denied": [
+    "E_AUTHZ_PURPOSE"
+  ],
+  "plan_release_schema_change_without_migration": [
+    "E_RELEASE_COMPAT"
+  ],
+  "plan_stale_artifact": [
+    "E_ARTIFACT_IDENTITY"
+  ],
+  "plan_unit_mismatch": [
+    "E_TYPE_MISMATCH"
+  ],
+  "plan_unsupported_step_type": [
+    "E_SYNTAX"
+  ],
+  "plan_verifier_only_training_role": [
+    "E_VERIFIER_COVERAGE"
+  ],
+  "port_money_without_currency": [
+    "E_SYNTAX:CollectionSpec"
+  ],
+  "release_component_without_digest": [
+    "E_SYNTAX:ReleaseManifest"
+  ],
+  "workflow_terminal_with_outgoing": [
+    "E_SYNTAX:WorkflowSpec"
+  ]
+}
