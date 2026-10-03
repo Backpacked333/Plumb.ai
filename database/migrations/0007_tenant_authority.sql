@@ -92,10 +92,13 @@ GRANT SELECT, INSERT ON artifacts, evidence_events, business_objects, object_att
     outcome_observations TO plumb_control;
 GRANT SELECT ON verification_attestations TO plumb_control;
 GRANT UPDATE (invalidated_at) ON verification_attestations TO plumb_control;
+GRANT UPDATE (status, confidence, source_of_record, valid_to, superseded_by) ON facts TO plumb_control;
+GRANT UPDATE (status, epoch, version) ON obligations TO plumb_control;
+GRANT UPDATE (status) ON billable_units TO plumb_control;
 
 GRANT SELECT ON cases, releases, review_items, action_intents, effects, effect_attempts,
     receipts, approvals, source_grants, autonomy_envelopes TO plumb_runtime;
-GRANT SELECT ON builds, build_steps, releases, datasets, dataset_rows TO plumb_verifier;
+GRANT SELECT ON builds, build_steps, releases, datasets, dataset_rows, artifacts TO plumb_verifier;
 GRANT SELECT, INSERT ON verification_attestations TO plumb_verifier;
 GRANT SELECT ON builds, build_steps, task_leases, budget_reservations, failure_diagnostics,
     external_dependencies, artifacts, artifact_aliases, source_grants, autonomy_envelopes,

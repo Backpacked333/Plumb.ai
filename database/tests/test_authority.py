@@ -70,6 +70,20 @@ def test_every_foreign_key_binds_both_tenant_ids(admin: psycopg.Connection[Any])
     assert missing == []
 
 
+def test_every_table_has_the_fail_closed_tenant_predicate(admin: psycopg.Connection[Any]) -> None:
+    rows = admin.execute("""
+        SELECT c.relname, p.polcmd, p.polpermissive,
+               pg_get_expr(p.polqual, p.polrelid), pg_get_expr(p.polwithcheck, p.polrelid)
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        LEFT JOIN pg_policy p ON p.polrelid = c.oid AND p.polname = 'tenant_isolation'
+        WHERE n.nspname = 'plumb' AND c.relkind = 'r'
+    """).fetchall()
+    predicate = "(tenant_id = NULLIF(current_setting('plumb.tenant_id'::text, true), ''::text))"
+    assert rows
+    assert [(name, command, permissive, using, check) for name, command, permissive, using, check in rows
+            if (command, permissive, using, check) != ('*', True, predicate, predicate)] == []
+
+
 @pytest.mark.parametrize("role", ROLES)
 def test_service_roles_are_unprivileged(cluster: dict[str, Any], role: str) -> None:
     with psycopg.connect(**cluster, user=role) as connection:
@@ -98,6 +112,73 @@ def test_cross_tenant_insert_rejected(cluster: dict[str, Any]) -> None:
         set_tenant(connection, "t1")
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             connection.execute("INSERT INTO plumb.principals (principal_id, tenant_id, kind) VALUES ('bad', 't2', 'employee')")
+
+
+@pytest.mark.parametrize("table", ["evidence_events", "receipts", "consumer_offsets"])
+def test_runtime_writes_are_routed_through_control(cluster: dict[str, Any], table: str) -> None:
+    with psycopg.connect(**cluster, user="plumb_runtime") as connection:
+        set_tenant(connection, "t1")
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            connection.execute(sql.SQL("INSERT INTO plumb.{} (tenant_id) VALUES ('t1')").format(sql.Identifier(table)))
+
+
+def test_control_can_persist_ingestion_receipts_and_consumer_progress(cluster: dict[str, Any]) -> None:
+    with psycopg.connect(**cluster, user="plumb_control") as connection:
+        set_tenant(connection, "t1")
+        connection.execute("""
+            INSERT INTO plumb.evidence_events (event_id, tenant_id, source_provider, source_account_ref,
+                modality, content_digest, access_policy_ref, retention_class, extraction_version)
+            VALUES ('evidence1', 't1', 'gmail', 'acct', 'message', 'digest:evidence', 'grant:1', 'test', '1');
+            INSERT INTO plumb.effects (effect_id, tenant_id, intent_id, effect_slot, state, idempotency_key)
+            VALUES ('effect1', 't1', 'i1', 'slot1', 'DISPATCHED', 'key1');
+            INSERT INTO plumb.receipts (receipt_id, tenant_id, effect_id, provider, provider_request_id, signature_valid)
+            VALUES ('receipt1', 't1', 'effect1', 'gmail', 'request1', true);
+            INSERT INTO plumb.outbox (tenant_id, aggregate_type, aggregate_id, aggregate_version,
+                event_id, event_type, schema_version, occurred_at, correlation_id)
+            VALUES ('t1', 'effect', 'effect1', 1, 'event1', 'effect.changed', '1', now(), 'correlation1');
+            INSERT INTO plumb.consumer_offsets (tenant_id, consumer_id, event_id)
+            VALUES ('t1', 'consumer1', 'event1')
+        """)
+        for table in ("evidence_events", "receipts", "consumer_offsets"):
+            assert connection.execute(sql.SQL("SELECT count(*) FROM plumb.{}").format(sql.Identifier(table))).fetchone() == (1,)
+
+
+def test_verifier_can_read_only_own_tenant_artifact_metadata(cluster: dict[str, Any], admin: psycopg.Connection[Any]) -> None:
+    admin.execute("""
+        INSERT INTO plumb.artifacts
+            (artifact_id, version, tenant_id, kind, content_digest, object_ref, producer, schema_version)
+        VALUES ('a1', 1, 't1', 'profile', 'digest:one', 'object:one', 'builder', '1'),
+               ('a2', 1, 't2', 'profile', 'digest:two', 'object:two', 'builder', '1')
+    """)
+    with psycopg.connect(**cluster, user="plumb_verifier") as connection:
+        assert connection.execute("SELECT * FROM plumb.artifacts").fetchall() == []
+        set_tenant(connection, "t1")
+        assert connection.execute("SELECT content_digest, object_ref FROM plumb.artifacts").fetchall() == [("digest:one", "object:one")]
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            connection.execute("UPDATE plumb.artifacts SET object_ref = 'object:altered'")
+
+
+@pytest.mark.parametrize("table,status", [("facts", "confirmed"), ("obligations", "satisfied"), ("billable_units", "void")])
+def test_control_can_update_lifecycle_status(cluster: dict[str, Any], admin: psycopg.Connection[Any], table: str, status: str) -> None:
+    admin.execute("""
+        INSERT INTO plumb.business_objects (object_id, tenant_id, object_type, identity_status)
+        VALUES ('o1', 't1', 'client', 'confirmed'), ('o2', 't2', 'client', 'confirmed');
+        INSERT INTO plumb.facts (fact_id, tenant_id, subject_object_id, predicate, status, evidence_event_ids, derivation_version)
+        VALUES ('f1', 't1', 'o1', 'received', 'observed', ARRAY['ev1'], '1'),
+               ('f2', 't2', 'o2', 'received', 'observed', ARRAY['ev2'], '1');
+        INSERT INTO plumb.obligations (obligation_id, tenant_id, obligor_object_id, obligee_object_id, case_key, rule_version, fulfillment_predicate, status)
+        VALUES ('ob1', 't1', 'o1', 'o1', '{}', '1', 'received', 'open'),
+               ('ob2', 't2', 'o2', 'o2', '{}', '1', 'received', 'open');
+        INSERT INTO plumb.billable_units (unit_id, tenant_id, case_id, obligation_epoch, predicate, release_id, satisfied_at, status)
+        VALUES ('u1', 't1', 'c1', 1, 'review_package_accepted', 'r1', now(), 'billable'),
+               ('u2', 't2', 'c2', 1, 'review_package_accepted', 'r2', now(), 'billable')
+    """)
+    with psycopg.connect(**cluster, user="plumb_control") as connection:
+        set_tenant(connection, "t1")
+        assert connection.execute(sql.SQL("UPDATE plumb.{} SET status = %s").format(sql.Identifier(table)), (status,)).rowcount == 1
+        assert connection.execute(sql.SQL("SELECT status FROM plumb.{}").format(sql.Identifier(table))).fetchall() == [(status,)]
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            connection.execute(sql.SQL("UPDATE plumb.{} SET tenant_id = tenant_id").format(sql.Identifier(table)))
 
 
 def test_same_tenant_write_allowed_and_other_tenant_update_hidden(cluster: dict[str, Any]) -> None:

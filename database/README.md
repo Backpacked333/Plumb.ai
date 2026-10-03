@@ -51,6 +51,11 @@ the incompatible historical v0.2 design.
 - Service roles cannot bypass RLS, create roles or become the schema owner.
 - Only control mutates lifecycle state; builder/runtime submit proposals through
   the future control API rather than directly modifying builds, cases or effects.
+- Evidence ingestion, receipt recording and consumer-offset commits also belong
+  to `plumb_control` in this slice. Runtime workers submit evidence/receipt proposals
+  to that future trusted service, which must check authority and atomically commit
+  the corresponding state/audit/outbox changes. Direct runtime inserts are denied;
+  no ingestion endpoint, dispatcher or event consumer is implemented yet.
 - Only verifier inserts attestations. A restrictive policy binds issuer identity
   to the database role, not a caller-settable service-identity variable. Control
   may invalidate an attestation, but cannot rewrite its outcome or signature.
