@@ -19,14 +19,19 @@ the cheapest test of PL-063 that could fail, while a paid design-partner cohort 
 will pay.
 
 **Who first.** US accounting firms with 10 to 40 staff whose work leans to client accounting services
-and bookkeeping, at least 50 recurring monthly-close clients, and a mixed stack (QBO and/or Xero,
-Google Workspace or Microsoft 365, a separate document store). Firms standardized on one ecosystem
-whose native chase-and-match already works are qualified out ([market](08-market-and-positioning.md)).
+and bookkeeping (at least 60% of revenue), at least 50 recurring monthly-close clients with 12-24
+months of history, and a mixed stack (QBO and/or Xero, Google Workspace or Microsoft 365, a separate
+document store). Firms standardized on one ecosystem whose native chase-and-match already works are
+qualified out ([market](08-market-and-positioning.md)).
 
 **What first.** Monthly-close evidence readiness, preparation-only: for every recurring client-period
 Plumb knows which required documents are present, confirmed absent or unknown, with provenance, and
-prepares one ready-for-review package for the accountant. No client communication until a production
-action gateway passes the high-severity effect scenarios ([MVP scope](03-mvp-scope.md)).
+prepares one ready-for-review package for the accountant. The Prepare tier uses only the READ,
+INTERNAL_WRITE and EXTERNAL_WRITE_REVERSIBLE effect classes (connector setup and incremental capture on
+the firm's own accounts), never EXTERNAL_COMMUNICATION. No client communication until a production
+action gateway passes the high-severity effect scenarios, which is after day 180; staff-sent mailbox
+drafts come first, and the earliest policy-approved Send canary close is around July 2027
+([MVP scope](03-mvp-scope.md)).
 
 **In what order** ([roadmap](04-roadmap.md)):
 
@@ -37,8 +42,8 @@ action gateway passes the high-severity effect scenarios ([MVP scope](03-mvp-sco
 | P2 M1 | An agent-built, verifier-attested integration-and-collection path on firm 1 (PA-001 plus a safety bundle) |
 | P3 M1R | The same path reproduced on firms 2 and 3 with less audited engineering: the second half of PL-063, pulled forward |
 | P4 M3-lite | A preparation-only review-package workflow, attested in sandbox, then in production shadow |
-| P5 Day-180 packet | Ready-for-review packages on at least 30 client-periods in a full close, measured against a month-0 baseline; go, pivot or kill |
-| P6 M4-accounting and M5 | Draft, then policy-approved Send of consolidated requests; full replication on the next three customers (PA-027) |
+| P5 Day-180 packet | Verifier-attested ready-for-review packages on at least 30 client-periods in a full shadow close, measured against a month-0 baseline; go, pivot or kill. The packet records tenant 1's evidence toward paid conversion to date |
+| P6 M4-accounting and M5 | In the Apr-Jun 2027 window (earliest): the Prepare tier's canary and ACTIVE closes and tenant 1's expected paid conversion, the Draft tier (mailbox drafts staff send), and the start of full replication on the next three customers (PA-027). The policy-approved Send canary needs two Draft closes first, so its earliest close is around July 2027 (about weeks 39-41) |
 
 **How success is measured** ([metrics](06-metrics.md)). North star: engineering-intervention hours
 per verified deployment (EIH/VD), per new firm in onboarding order, with platform-investment hours
@@ -46,14 +51,18 @@ shown beside it and never netted. Customer co-headline: accepted review packages
 
 **How it is sold** ([market](08-market-and-positioning.md)). "Verified implementation" for accounting
 firms: "Close-ready, with receipts." Hypothesis: $15 per active client-month for Prepare, $25 once
-policy-approved sending ships, no seats, no implementation fee, and nothing billed for dependency or
-failure outcomes.
+policy-approved sending ships, annual, with a $500 monthly firm minimum, no seats and no implementation
+fee. Only attested packages are billed: customer-side dependencies are not billed while open (the
+minimum still applies), and Plumb-side blocks and failures never are. Design partners pay a
+$1,500-$3,000 pilot fee at signature and convert to paid annual after one full close with the workflow
+ACTIVE at or above the correct-package threshold; tenant 1's conversion is expected in P6 (a founder
+decision to ratify).
 
 **What we never claim.** That local tests validate models, outcomes, security or integrations; that
 the synthetic scenarios show cross-industry autonomy; that 90 days is a commitment; an autonomous
 close or posting; "fully autonomous" or "no humans needed"; integration coverage from the synthetic
-registry; savings without a baseline and a denominator. The full checklist is decision D8 in the
-[decision record](02-strategy-decisions.md).
+registry; savings without a baseline and a denominator; anything beyond the released tier. The full
+12-item checklist is decision D8 in the [decision record](02-strategy-decisions.md).
 
 ## Documents
 

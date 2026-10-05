@@ -13,7 +13,7 @@ Part of the product doc set ([index](README.md)). This document expands three de
   - **Package implements**: what the reference package in this repository contains today.
   - **Proposed**: what this document recommends. It needs founder ratification.
 - Nothing is deployed. The reference package has no running service, connector, verifier, UI, metering or billing. Prices, thresholds and dates are hypotheses unless the spec states them.
-- Market facts come only from the two market research notes (market-accounting and market-implementation; searches dated before October 4, 2026). Each fact cites a numbered source in [section 11](#11-sources). Source numbers are local to this document; sibling documents number their sources independently.
+- Market facts come only from the two market research notes (market-accounting and market-implementation, compiled by October 4, 2026; the implementation note checked its facts against search results dated before that day). Each fact cites a numbered source in [section 11](#11-sources). Source numbers are local to this document; sibling documents number their sources independently.
 - The "How Plumb differs" column in the landscape tables describes the specified design (spec v0.2), not shipped capability.
 - Vendor capabilities are as described by the vendors and were not independently tested. Several 2026 launches may not yet be generally available, or may have changed.
 
@@ -33,9 +33,9 @@ Part of the product doc set ([index](README.md)). This document expands three de
 
 **The market is crowded at the workflow layer and filling up at the agent layer.**
 
-- Plumb's wedge is monthly-close evidence readiness and review-package preparation for accounting firms, shipped preparation-only (D2). Seven layers of players compete with it or substitute for it ([section 2](#2-market-landscape-for-the-accounting-wedge)).
-- Chase-and-remind is table stakes. Practice-management suites and point tools sell it at roughly $5-$99 a month. Xero and Intuit bundle it, and Intuit's Accountant Suite is free during its introductory period (US pricing from a secondary source) [M9], [M10].
-- We found no incumbent producing, across a mixed stack, a provenance-backed review package that keeps UNKNOWN separate from CONFIRMED_ABSENT (PL-010). We also found none that does the implementation for the firm, verifies independently and publishes a human-labor ledger. This is absence of evidence from a US-only web search, not proof.
+- Plumb's wedge is monthly-close evidence readiness and review-package preparation for accounting firms, planned to be released preparation-only first (D2). Seven layers of players compete with it or substitute for it ([section 2](#2-market-landscape-for-the-accounting-wedge)).
+- Chase-and-remind is table stakes. Practice-management suites, per-client close tools and point tools sell it at roughly $5-$99 a month, per user or per client. Xero and Intuit are bundling it: Xero's Document Requests (pricing not disclosed) and Intuit's Accountant Suite, whose entry tiers are free during the introductory period (US pricing from a secondary source) [M9], [M10].
+- We found no incumbent producing, across a mixed stack, a provenance-backed review package that keeps UNKNOWN separate from CONFIRMED_ABSENT (PL-010). We also found none that does the implementation for the firm, verifies independently and publishes a human-labor ledger. This is absence of evidence from web searches (the implementation search was US-only), not proof.
 
 **The "who implements AI for SMBs" market leaves a gap, but connectors are commoditizing** ([section 3](#3-who-implements-ai-for-smbs)).
 
@@ -46,8 +46,8 @@ Part of the product doc set ([index](README.md)). This document expands three de
 
 **The pain is documented; the binding barrier is implementation, not price** ([section 4](#4-market-size-and-pain-evidence)).
 
-- Getting documents from clients is the #1 workflow issue in Financial Cents' 2025 survey of 816 professionals [M59]. 68% of firms in Uku's small 2026 survey would hand document chasing to an agent first (directional) [M61].
-- 41% of small accounting firms cite time to learn and implement as the top AI barrier, against 6% for cost (Financial Cents 2026, n=486) [M60].
+- Getting documents from clients is the #1 workflow issue in Financial Cents' 2025 survey of 816 professionals (vendor-run; a rank, not a percentage) [M59]. 68% of firms in Uku's small 2026 survey would hand document chasing to an agent first (directional) [M61].
+- 41% of small accounting firms cite time to learn and implement as the top AI barrier, against 6% for cost (Financial Cents 2026, n=486, vendor-run) [M60].
 - Hiring experienced staff is the #1 issue for CPA firms with 11-30 professionals (AICPA PCPS, June 2026) [M62].
 - No reputable source gives hours per client-month for close work or chasing. Every value claim must come from the firm's own month-0 baseline (D2).
 
@@ -64,7 +64,7 @@ Part of the product doc set ([index](README.md)). This document expands three de
 
 **Pricing is a hypothesis to test from day one** ([section 9](#9-pricing-and-packaging-hypothesis)).
 
-- D7: price per active client-month. Prepare $15; Prepare + Chase $25. Annual contract, $500 firm minimum, no seats, no implementation fee. Bill only attested packages. Price at no more than one-third of measured value.
+- D7: price per active client-month. Prepare $15; Prepare + Chase $25, only once Send ships (earliest Send canary close around July 2027). Annual contract, $500 firm minimum, no seats, no implementation fee. Bill only attested packages. Price at no more than one-third of measured value.
 - At 100 active clients, Prepare costs $18,000 a year. That is close to the average firm's entire tech spend of about $21,000 a year (vendor-run survey) [M58]. The price must therefore be justified against labor and outsourcing spend, not against the software budget.
 
 **Channels are direct first** ([section 10](#10-channels)). Founder-led sales to firms, with one optional roll-up slot as a channel probe. MSPs and marketplace or MCP surfaces (Xero App Store, Karbon and Uku MCP servers) come later, as integration and distribution surfaces, never as coverage claims.
@@ -75,10 +75,10 @@ Part of the product doc set ([index](README.md)). This document expands three de
 |---|---|---|---|
 | Commercial model | PL-001: every run ends in a verified operating intervention, an actionable external dependency, or an explained terminal failure. A recommendation, prompt or code archive alone does not count. The spec sets no price or packaging | No metering or billing. The proposed `listOutcomes` API returns an OutcomeObservation with `realized_value` and `review_minutes` ([OpenAPI](../api/openapi.yaml)). The verification levels include ECONOMIC_RESULT | Pricing per active client-month, billed only for attested packages, with credits keyed to PL-001 outcomes ([section 9.4](#94-billing-rules-tied-to-pl-001-outcomes)) |
 | Value claims | spec §7 L136: no causal cycle-time claims from historical replay; report theoretical capacity, usable capacity and realized cash separately. PL-012: every opportunity needs a baseline and a prospective measurement plan | The OpportunitySpec contract allows only prospective measurement methods (STAGED_ROLLOUT, COMPARABLE_CASE_COHORTS) | Month-0 time study before shadow (D2). No ROI or hours-saved claim without a baseline and denominator. PA-P12 (economic-result attestation) before any external value claim |
-| Integration claims | PL-007: an application logo is not an operation capability. PL-008: four maturity levels, with probe evidence for the higher ones | A synthetic [capability registry](../plumb/registry/capability_registry.json): 25 records, 15 of them PRODUCTION_VERIFIED, all placeholders | A published "supported environments v1" list per operation and maturity level (D3). No logo walls |
-| Autonomy claims | PL-003: no autonomy claim if a person secretly did the implementation. PL-062 and ADR-010: count manual engineering and failed builds. spec §1 L51 allows a supervised first delivery. Appendix A.6 (L580): avoid statuses that obscure manual engineering | The HumanEffortCategory enum and a SQL `human_effort` table exist. There is no effort-capture API and no autonomy-metric computation | The labor ledger as a customer-facing proof point, and a claim ladder tied to milestones ([section 6.5](#65-claim-ladder-what-we-may-say-when)) |
+| Integration claims | PL-007: an application logo is not an operation capability. PL-008: four maturity levels, with probe evidence for the higher ones | A synthetic [capability registry](../plumb/registry/capability_registry.json): 25 records covering 23 step types, 15 of the records PRODUCTION_VERIFIED, all placeholders | A published "supported environments v1" list per operation and maturity level (D3). No logo walls |
+| Autonomy claims | PL-003: no autonomy claim if a person secretly did the implementation. PL-062: count manual engineering and failed builds. ADR-010: measure implementation autonomy separately from runtime autonomy. spec §1 L51 allows a supervised first delivery. Appendix A.6 (L580): avoid statuses that obscure manual engineering | The HumanEffortCategory enum and a SQL `human_effort` table exist. There is no effort-capture API and no autonomy-metric computation | The labor ledger as a customer-facing proof point, and a claim ladder tied to milestones ([section 6.5](#65-claim-ladder-what-we-may-say-when)) |
 | Native features | PL-013: compare every candidate against the current process and a reasonable native-feature baseline; include configuration of existing products | The OpportunitySpec contract requires both CURRENT_PROCESS and NATIVE_FEATURE comparison entries | Qualify out single-ecosystem firms whose native tools work. Bill native-setting outcomes at the same rate as built ones (D7) |
-| Claim limits | spec §25 L398, §26 L418, §28 L450, §29 L492, §15 L248, §20 L318 | 819 local tests pass ([validation report](../VALIDATION_REPORT.md)). They do not validate models, business outcomes, tenant security, cloud isolation or integrations | The never-claim checklist as a formal gate ([section 8](#8-messaging-guardrails)) |
+| Claim limits | spec §25 L398, §26 L418, §28 L450, §29 L492, §15 L248, §20 L318 | The local contract tests pass (counts in [VALIDATION_REPORT.md](../VALIDATION_REPORT.md)). They do not validate models, business outcomes, tenant security, cloud isolation or integrations. The spec's "56 tests" figure (header table and Appendix C) is stale | The never-claim checklist as a formal gate ([section 8](#8-messaging-guardrails)) |
 
 ---
 
@@ -164,7 +164,7 @@ What this layer means for Plumb: do not lead with chasing (D8). Leading with it 
 | Puzzle (software plus service) | See layer 4. Its Expert Reviewed service competes for the same end clients | Indirect | As layer 4 | Service from $171/mo (vendor page) | [puzzle.io/pricing](https://puzzle.io/pricing) [M12] |
 | Offshore and outsourced staffing | Firms outsource AP/AR, tax preparation and financial statements. 80% outsource at least one service and 65% plan to increase (Intuit 2026 survey, vendor-run) | High: the budget Plumb competes for is often labor, not software | Plumb must beat offshore cost and quality per completed review package. Its labor ledger makes a like-for-like comparison possible | Offshore bookkeepers about $8-$45/hr; outsourced bookkeeping $300-$2,500/mo per SMB (vendor blogs, unverified) | [vjmglobal.com blog](https://www.vjmglobal.com/feeds/blog/cost-outsourcing-accounting-services-us) [M26], [M58] |
 | Current (formerly Crete Professionals Alliance) | Thrive-backed roll-up acquiring majority stakes in CPA firms; a $500M plan reported June 4, 2025 (Reuters, via syndication); over $300M revenue, 20+ firms and 900 employees at that time. Thrive's in-house team builds OpenAI-powered tools. Rebranded as Current in June 2026; reports 31% average savings in tax-prep time (vendor-reported) | Builds its own AI tooling for acquired firms, so it competes for the same workflows | Roll-ups build in-house. Plumb could be the buy option for roll-ups and PE platforms without in-house AI teams, especially to standardize heterogeneous acquired stacks | Not applicable | [kfgo.com (Reuters)](https://kfgo.com/2025/06/04/thrive-backed-accounting-firm-crete-to-spend-500-million-in-ai-roll-up/) [M24] |
-| Bench (shut down) | Tech-enabled bookkeeping service. Went dark December 27, 2024 after raising $113M, leaving about 35,000 US customers; acquired by Employer.com days later | None directly; a trust signal | Shows that firms and SMBs worry about vendor continuity and data portability. Tenant-owned storage, exportable artifacts and a vendor-continuity clause (D9) answer it | Not applicable | [geekwire.com Bench](https://www.geekwire.com/2024/vancouver-fintech-company-bench-accounting-announces-sudden-shutdown/) [M25] |
+| Bench (shut down) | Tech-enabled bookkeeping service. Went dark December 27, 2024 after raising $113M, leaving about 35,000 US customers; acquired by Employer.com days later | None directly; a trust signal | Shows that firms and SMBs worry about vendor continuity and data portability. Tenant-owned storage, exportable artifacts and a vendor-continuity clause (D9) are designed to answer it | Not applicable | [geekwire.com Bench](https://www.geekwire.com/2024/vancouver-fintech-company-bench-accounting-announces-sudden-shutdown/) [M25] |
 
 What this layer means for Plumb: the realistic comparison for a buyer is often "hire, offshore or Plumb". Pricing per active client-month ([section 9](#9-pricing-and-packaging-hypothesis)) and the labor ledger let a firm owner compare like for like. Direct-to-SMB autonomous accountants (Pilot, Zeni, Puzzle) could also shrink the small-firm market over time (R5).
 
@@ -240,7 +240,7 @@ The spec names Nango (integration management), Airbyte (source ingestion) and Pu
 | Player | What they do | Overlap | How Plumb differs | Pricing signal | Source |
 |---|---|---|---|---|---|
 | Nango | "Integrations for your products & agents": 1,000+ APIs, 7,000+ templates, integrations generated in code from plain-English use cases, MCP tools. The Management MCP (guide published September 4, 2026) lets coding agents create and update integrations, mint connect sessions, call APIs through a proxy, deploy functions and query logs, with development keys separate from runtime keys. Nango says the Management MCP is "still growing toward the full public API" | Provides the primitives Plumb's integration factory needs; its "build integrations with AI" pitch overlaps Plumb's connector claims | Developer infrastructure. Plumb adds discovery, business-object identity, verification, the authority envelope and delivery to firms. The candidate certified-transport substrate for M1 (D3) | Not found on homepage | [nango.dev blog](https://nango.dev/blog/how-to-build-ai-agent-integrations-using-the-nango-management-mcp) [M49] |
-| Airbyte | 600+ replication connectors and a declarative Connector Builder. Agent Engine public beta (February 19, 2026); Airbyte Agents (May 4, 2026) with a Context Store, 50 agent connectors, controlled writes, MCP, SDK and CLI; claims 40% fewer tool calls and up to 80% fewer tokens (vendor-reported) | Ingestion and agent context; now writes too | A substrate. Plumb still separates ingestion from action execution and verifies each operation ("a test that reads an invoice does not establish access to bank statements", spec Appendix B L604) | Not found | [airbyte.com Airbyte Agents](https://airbyte.com/blog/airbyte-agents) [M50] |
+| Airbyte | 600+ replication connectors and a declarative Connector Builder. Agent Engine public beta (February 19, 2026); Airbyte Agents (May 4, 2026) with a Context Store, 50 agent connectors, controlled writes, MCP, SDK and CLI; claims 40% fewer tool calls and up to 80% fewer tokens (vendor-reported) | Ingestion and agent context; now writes too | A substrate. Plumb still separates ingestion from action execution and verifies each operation ("A test that reads an invoice does not establish access to bank statements", spec Appendix B L604) | Not found | [airbyte.com Airbyte Agents](https://airbyte.com/blog/airbyte-agents) [M50] |
 | Temporal | Durable workflow orchestration marketed as the reliability layer for agents. $550M Series E at $12.55B led by Lightspeed (September 14, 2026) after a $300M Series D (February 2026); revenue run-rate up more than 200% year over year; 1.9T billable actions in August 2026; 4,300+ paying customers | Plumb's business runtime is specified on Temporal | Temporal supplies durable coordination. Plumb's effect ledger, UNKNOWN-effect reconciliation and obligation-level de-duplication sit on top | Not found | [temporal.io Series E](https://temporal.io/blog/temporal-raises-usd550m-series-e-at-usd12-55b-valuation-ai) [M51] |
 | Pulumi (Automation API, Neo) | Programmatic preview, apply and refresh; Neo, an "AI platform engineer" agent (September 16, 2025; expanded May 2026). Pulumi reports agents drive about 20% of operations on its platform (snippet) | Agentic infrastructure changes with guardrails | Infrastructure scope only; Plumb wraps it in a narrow deployment adapter inside the envelope | Not found | [info.pulumi.com Neo](https://info.pulumi.com/press-release/pulumi-neo) [M52] |
 | Composio | Prebuilt integrations and tools for AI agents; $25M led by Lightspeed (2025) | Agent access to business apps | Developer infrastructure for agent builders; a possible substrate | Not found | [cxodigitalpulse.com Composio](https://www.cxodigitalpulse.com/agentic-ai-startup-composio-secures-25-million-to-accelerate-workflow-automation-innovation/) [M48] |
@@ -331,19 +331,21 @@ From D1. Thresholds are hypotheses, ratified at M0.
 | Revenue mix | At least 60% from recurring bookkeeping/CAS (hypothesis) | Tax season (February to April 15) must not stall the domain owner | D1; the 60% filter may shrink the pool because most small CPA firms do both CAS and tax (dissent record) |
 | Book | At least 50 recurring monthly-close clients with 12-24 months of history | Enough client-periods for a 30-client-period shadow cohort; history for backfill and baseline | D2 (at least 30 client-periods per firm); D5 (12-24 months backfill) |
 | Stack | QBO and/or Xero client ledgers; Google Workspace or Microsoft 365 mail; a document store separate from the ledger (Drive, SharePoint/OneDrive, Dropbox or SmartVault); optionally Karbon, Financial Cents or Double, read-only | Mixed stacks are where incumbents are weakest | About 10 apps per firm; 48% "functional but fragmented" (vendor-run survey) [M58] |
-| Region | One US region | Single-region deployment; the fixtures are EU/EUR (eu-west-1) and must be re-templated | [Envelope fixture](../fixtures/envelopes/accounting_evidence_preparation.json) |
+| Region | One US region | Single-region deployment. The accounting envelope and plan fixtures are EU/EUR (eu-west-1) and must be re-templated to US/USD | Accounting [envelope](../fixtures/envelopes/accounting_evidence_preparation.json) and [plan](../fixtures/plans/accounting_evidence_preparation.json) fixtures |
 | Commitments | Read OAuth; a named domain owner with about 2 hours a week; a 2-week baseline time study; anonymized labor-ledger publication; a paid pilot | Without these, M0 cannot pass and value cannot be measured | D1, D7, D9 |
 
 ### 5.2 Buying roles
 
 | Persona | Role in the deal | What they need to see | Effort category when working with Plumb |
 |---|---|---|---|
-| Firm owner (buyer; HUMAN_OWNER of the envelope). Managing partner, COO or CAS director | Signs the pilot, the DPA and the envelope; approves data use and implementation | Measured value against the firm's own baseline; data-rights terms (TRAIN off by default, tax-return data excluded); a pre-agreed exit; the labor ledger | CUSTOMER_AUTHORIZATION; DOMAIN_CLARIFICATION for convention answers and the baseline study |
-| Reviewing accountant (champion, primary user). Reviewing manager or senior accountant who assembles packages today | Champions internally; runs the review surface; signs off packages | Correct, attributed packages that cut assembly minutes; sign-off stays with them; no "please send what you already sent" errors | NORMAL_BUSINESS_REVIEW |
+| Firm owner (buyer; HUMAN_OWNER of the envelope). Managing partner, COO or CAS director | Signs the pilot, the DPA and the envelope; approves data use and implementation | Measured value against the firm's own baseline; data-rights terms (TRAIN off by default, tax-return data excluded); a pre-agreed exit; the labor ledger | CUSTOMER_AUTHORIZATION for grants, envelope decisions and approving the reminder policy; DOMAIN_CLARIFICATION for convention answers, the baseline study and scheduled weekly check-ins |
+| Reviewing accountant (champion, primary user). Reviewing manager or senior accountant who assembles packages today | Champions internally; runs the review surface; signs off packages | Correct, attributed packages that cut assembly minutes; sign-off stays with them; no "please send what you already sent" errors | NORMAL_BUSINESS_REVIEW; DOMAIN_CLARIFICATION for baseline-study recording |
 | Bookkeeper (secondary user) | Uses the readiness ledger; later reviews and sends drafts | One shared obligation owner instead of per-person reminder lists | NORMAL_BUSINESS_REVIEW for draft review |
-| Firm's client (affected party, not a principal) | Not in the deal. Receives requests only after the Draft and Send gates pass | One consolidated request per missing item, never a stale one; proof that their data is protected | None. Their effort is not a PL-003 category |
+| Firm's client (affected party, not a principal) | Not in the deal. Receives staff-sent drafts only after the Draft gate, and Plumb-sent requests only after the Send gate | One consolidated request per missing item, never a stale one; proof that their data is protected | None (proposed): the client is not a principal, so its replies are business events, not labor-ledger entries |
 
-The Plumb domain expert joins first calls where the month-0 time study is designed. The Plumb engineer/operator and the Independent verifier (service + owner) do not sell. Their work appears in the labor ledger and verification receipts.
+Effort categories follow the amended D6 rubric in the [decision record](02-strategy-decisions.md) (founder decision 18, to ratify). All partner time lands in one of the five categories, and implementation work by anyone, firm staff included (wiring, mapping, writing the workflow), is ENGINEERING_INTERVENTION (spec Appendix B L652).
+
+The Plumb domain expert joins first calls where the month-0 time study is designed. Plumb's engineers and the independent verifier do not sell. Plumb staff time appears in the labor ledger (the contracts still lack a principal type for Plumb staff, a recorded gap), and verifier results appear as verification receipts.
 
 ### 5.3 Qualify-out
 
@@ -470,9 +472,9 @@ The proof points are D8's. The phase in which evidence first exists comes from t
 | Engineering hours per verified deployment, including failed attempts (EIH/VD) | Effort ledger plus build ledger | Tenant 1 baseline in P2; a three-tenant trend in P3 | PL-062, PA-027 |
 | Correct-package rate, with denominators that include failures | Review surface plus verifier | P4 (sandbox); first full-close reading in P5 | Spec Appendix B L650-652 |
 | Accountant minutes against the firm's own baseline | Month-0 time study plus review-surface timing | P5 (first full shadow close on tenant 1) | Spec §7 L136 |
-| Duplicate and stale requests per client-period | Effect ledger plus provider logs, against the 24-month reminder-history baseline | P6 (Send canary) | PA-005, PA-007 |
+| Duplicate and stale requests per client-period | Effect ledger plus provider logs, beside the 24-month reminder-history baseline (historical, non-causal) | Send canary in P6 or later: the earliest policy-approved Send canary close is around July 2027 (about weeks 39-41) | PA-005, PA-007 |
 
-The customer-facing co-headline from M3-lite onward is accepted review packages per month, always shown with its rate over all eligible client-periods and with Plumb human minutes per accepted package (D10). The north star, EIH/VD, is a platform metric and an investor proof point. It is shown to partners in the results view but is not a sales headline.
+The customer-facing co-headline from M3-lite onward is accepted review packages per month, always shown with its rate over all eligible client-periods and with Plumb human minutes per accepted package (D10). The north star, EIH/VD, is a platform metric and an investor proof point, not a sales headline: it means little to a customer on its own, though each partner sees its own labor ledger (D9).
 
 ### 6.5 Claim ladder: what we may say when
 
@@ -480,15 +482,15 @@ Every external claim must match the evidence that exists at that moment and the 
 
 | Stage | Evidence that unlocks it | What we may say | Still not allowed |
 |---|---|---|---|
-| Now (P0, weeks 0-2) | Spec v0.2; reference package (819 local tests, contracts and checkers only); synthetic scenarios | "We are building verified implementation for accounting firms and recruiting paid design partners." Describe the design and the partner terms | Any customer result; any integration coverage; "automatically"; any time-saving figure; any registry maturity |
+| Now (P0, weeks 0-2) | Spec v0.2; reference package (local contract tests, contracts and checkers only; counts in [VALIDATION_REPORT.md](../VALIDATION_REPORT.md)); synthetic scenarios | "We are building verified implementation for accounting firms and recruiting paid design partners." Describe the design and the partner terms | Any customer result; any integration coverage; "automatically"; any time-saving figure; any registry maturity |
 | M0 (P1) | SANDBOX_TESTED probe receipts on tenant 1's real accounts; effort ledger live | "These exact operations are tested on a real firm's accounts at SANDBOX_TESTED", per operation | Logos; "integrates with X" in general |
 | M1 (P2) | PA-001 attested on tenant 1 with the safety bundle; tenant 1 EIH/VD baseline; supported environments v1 published | "Agent-configured certified connectors and agent-built collection, verified on a live firm's data." Label the deployment "supervised", with labor shown | "Automatically constructed"; "generated integrations"; "autonomous" |
 | M1R (P3) | PA-001 re-attested on tenants 2 and 3, with at least one non-VERIFIED_ADAPTER operation; an auditor outside the delivery team finds zero unrecorded manual work; EIH/VD falls at each tenant, with tenant 3 at or below 50% of tenant 1 (hypothesis, D4) | "The collection path was automatically constructed for three firms, with a published labor ledger including failed attempts." If workflow authoring dominates engineering minutes (D5 revisit trigger), say only "collection path reproduced" | "Autonomous"; claims about review packages |
 | M3-lite sandbox (P4) | PA-002 run as written in sandbox; PA-003, PA-004, PA-006, PA-008, PA-010 and PA-011 pass in sandbox | "The preparation workflow passed its acceptance scenarios in sandbox" | Any production or customer result |
 | Shadow results (P5) | Verifier-attested ready-for-review packages on at least 30 client-periods on tenant 1 across a full close; correct-package rate with exclusions in the denominator; accountant minutes against the month-0 baseline; PA-P12 first read | "In shadow at one firm, Plumb prepared N verifier-attested ready-for-review packages; X% were correct over all eligible client-periods; accountant minutes changed by Y against the firm's own baseline" | "Fewer duplicate requests"; "one request per missing item"; generalizing from one firm; any figure without its denominator |
 | Draft tier (P6) | Production gateway passes the draft gates; a Draft canary for at least one close | "Plumb drafts consolidated requests in your mailbox; your staff send them" | "Sends for you"; duplicate-reduction outcomes |
-| Send canary (P6) | Canary report with denominators and effect receipts; zero duplicate, stale or wrong-client requests reached real clients | Add "one owner and one request per missing item" to the headline; report duplicate and stale requests per client-period | Claims beyond the canary's scope |
-| M5 (P6) | PA-027 passes on tenants 2-4 with falling EIH/VD and stable quality; PA-P12 attested | "Replicated on the next three firms with falling engineering hours." "Autonomously implemented" only for a path with PA-027-level evidence, the ledger shown, and (if ratified) the PA-P13 HIGH-severity gate | "Fully autonomous", "zero human", "AI employee": never, at any stage |
+| Send canary (P6 or later; earliest close around July 2027, about weeks 39-41, because the D6 ladder needs at least two Draft closes) | Canary report with denominators and effect receipts; zero duplicate, stale or wrong-client requests reached real clients | Add "one owner and one request per missing item" to the headline; report duplicate and stale requests per client-period | Claims beyond the canary's scope |
+| M5 (starts in P6; completes P6 or later) | PA-027 passes on tenants 2-4 with falling EIH/VD and stable quality; PA-P12 attested | "Replicated on the next three firms with falling engineering hours." "Autonomously implemented" only for a path with PA-027-level evidence, the ledger shown, and (if ratified) the PA-P13 HIGH-severity gate | "Fully autonomous", "zero human", "AI employee": never, at any stage |
 
 ### 6.6 Message testing
 
@@ -532,14 +534,14 @@ A formal gate for sales, marketing and investor materials. The founder owns it. 
 
 | # | Never claim | Say instead | Basis |
 |---|---|---|---|
-| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or integrations. Never quote Appendix C's stale 56 | "819 local contract and failure tests pass" ([validation report](../VALIDATION_REPORT.md)), presented only as local test results of the reference package | spec §28 L450; Appendix C |
+| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or integrations. Never quote the spec's stale "56 tests" figure (header table and Appendix C) | "More than 800 local contract and failure tests pass" (current counts in [VALIDATION_REPORT.md](../VALIDATION_REPORT.md)), presented only as local test results of the reference package | spec §28 L450; spec header table and Appendix C |
 | 2 | Cross-industry autonomy from the three synthetic scenarios | "The three synthetic scenarios show representational reuse, not verified cross-industry autonomy" | spec §25 L398 |
 | 3 | 90 days as anything but a planning hypothesis | "Our planning hypothesis is a 90-day supervised reference deployment, contingent on access and staffing." The 90-day pilot clock is a contract window that starts at the first attested collection path, not a delivery promise | spec §26 L418 |
 | 4 | Product-video results as evidence | Show only measured results with their denominators | spec §29 L492 |
 | 5 | An "autonomous close", or any posting | "A review package ready for your accountant." A package is "ready for review" until sign-off | spec §15 L248; Appendix B L652 |
 | 6 | "Fully autonomous", "zero human", "no humans needed" or "AI employee". No autonomy claim if any hidden human implementation occurred | "Supervised deployment, with every human hour shown." Label deployments "supervised" until that path has PA-027-level evidence | PL-003; PA-027 |
 | 7 | "Automatically constructed" before M1R | "Agent-configured certified connectors and agent-built collection" | PL-063; D4 |
-| 8 | Logo walls. The synthetic registry's PRODUCTION_VERIFIED entries are synthetic and are never cited | "Supported environments v1": each operation at its maturity level (DOCUMENTED, SANDBOX_TESTED, PRODUCTION_VERIFIED) with probe evidence | PL-007, PL-008 |
+| 8 | Logo walls. The synthetic registry's PRODUCTION_VERIFIED entries are synthetic and are never cited | "Supported environments v1": each operation at its maturity level (DISCOVERED, DOCUMENTED, SANDBOX_TESTED or PRODUCTION_VERIFIED) with probe evidence | PL-007, PL-008 |
 | 9 | Any hours-saved or ROI figure without a baseline and a denominator, or any causal claim from historical replay | "Accountant minutes per client-period against your own month-0 baseline, over N eligible client-periods." The historical duplicate-chase baseline is labeled historical and non-causal | spec §7 L136 |
 | 10 | Exact unlearning | "Affected derived data is quarantined or retired, with a deletion certificate" | spec §20 L318 |
 | 11 | That a message was not sent after the provider accepted it | "The provider accepted it before the revocation landed; here is the receipt and the remediation" | PA-014 |
@@ -555,7 +557,7 @@ From the market-implementation research. Buyers have absorbed the failure and tr
 | "Deploy in minutes" | Time to learn and implement is the top barrier small firms cite (41%) [M60]; the calendar floors in D5 (backfill, a full shadow close) rule it out | "Time to first verified event", split into Plumb-controlled and dependency time |
 | "No humans needed" / "fully autonomous" | Builder.ai [M81]; trust drop [M80]; FTC enforcement [M82] | The labor ledger across five categories |
 | "AI employee" / "AI teammate" | The same signals; Ema and Lindy use this framing | "Verified implementation" |
-| Hours-saved figures with no denominator | Only 20% of small accounting firms see clear measurable ROI [M60] | Measured review minutes against the firm's own baseline, with the eligible population stated |
+| Hours-saved figures with no denominator | Only 20% of respondents, mostly at small accounting and bookkeeping firms, report clear measurable ROI (vendor-run survey) [M60] | Measured review minutes against the firm's own baseline, with the eligible population stated |
 | ROI without a baseline | As above; spec §7 L136 | Value as a range with assumptions, tested prospectively (PL-012) |
 | "We build integrations automatically" | Table stakes (Nango, Membrane, superglue, Make, Zapier, n8n) | Evidence coverage, verification receipts, cost per verified deployment including failed attempts |
 | Integration logo walls | PL-007: a logo is not an operation capability | Operations at maturity level |
@@ -603,17 +605,17 @@ Pricing tiers and release tiers share the word "Prepare". This table maps them.
 
 | Pricing tier (D7) | Price per active client-month | Release tiers covered | Includes | Available from |
 |---|---|---|---|---|
-| Prepare | $15 | Prepare (preparation-only / shadow, then ACTIVE preparation-only) and Draft (mailbox drafts staff send) | Close-readiness ledger; ready-for-review package per client-period; later, consolidated requests as mailbox drafts | Annual billing starts at conversion, once the workflow has been ACTIVE through one full close at or above the correct-package threshold. For tenant 1 that is expected in P6: the P5 packet records the pilot-to-paid decision with evidence to date, and conversion takes effect after an ACTIVE close (see the [roadmap](04-roadmap.md)). Drafts arrive in P6 |
-| Prepare + Chase | $25 | Send (policy-approved sending, canary first) | Everything in Prepare, plus policy-approved consolidated sending with cross-staff de-duplication | Only once Send ships (P6, after the canary evidence) |
+| Prepare | $15 | Prepare (preparation-only: SHADOW for at least one full close, then CANARY on a subset of client-periods whose accountants use the prepared packages in their real review, then ACTIVE; no EXTERNAL_COMMUNICATION in any state) and Draft (mailbox drafts staff send) | Close-readiness ledger; ready-for-review package per client-period; later, consolidated requests as mailbox drafts | Annual billing starts at conversion: a partner converts after one full close in ACTIVE at or above the correct-package threshold (founder decision 17 in the [decision record](02-strategy-decisions.md), to ratify). The day-180 packet records tenant 1's evidence to date; tenant 1's conversion is expected in P6 (see the [roadmap](04-roadmap.md)). Drafts arrive no earlier than P6 |
+| Prepare + Chase | $25 | Send (policy-approved sending, canary first) | Everything in Prepare, plus policy-approved consolidated sending with cross-staff de-duplication | Only once Send ships, after Send-canary evidence. The earliest Send canary close is around July 2027 (about weeks 39-41) |
 
-Never included, at any price, in the first 180 days: posting or any FINANCIAL_COMMITMENT, tax-return data, training on firm data (TRAIN is off by default and opt-in per source), screen capture, and second domains (D3).
+Never included, at any price, in the first 180 days: posting or any FINANCIAL_COMMITMENT, tax-return data, training on firm data (no training runs in the first 180 days; afterwards TRAIN stays off by default and opt-in per source), screen capture, and second domains (D3).
 
 ### 9.3 Contract terms
 
 - Annual contract.
 - Firm minimum of $500 a month. At $15 that equals about 33 active client-months, so it rarely binds for a firm with at least 50 recurring clients. It does apply while customer-side dependencies are open.
 - No per-seat price. Per-seat pricing fights an average tech budget of about $21,000 a year [M58] and positions Plumb as one more app.
-- No implementation fee for supported environments. Plumb absorbs its own engineering interventions and never bills by the hour (ADR-010). Hourly implementation would reward hidden labor.
+- No implementation fee for supported environments. Plumb absorbs its own engineering interventions and never bills by the hour, so that labor stays a measured cost rather than revenue (ADR-010 measures implementation autonomy separately). Hourly implementation would reward hidden labor.
 - No price discount in exchange for training rights.
 
 ### 9.4 Billing rules tied to PL-001 outcomes
@@ -628,7 +630,7 @@ Never included, at any price, in the first 180 days: posting or any FINANCIAL_CO
 | Terminal failure with explanation | Never billed. Shown in the results view |
 | Native-setting outcome (PL-013), for example configuring the firm's Xero or Financial Cents reminders | Billed at the same rate as a built outcome |
 
-**What exists today (package implements):** none of this. There is no metering, billing, verifier service, effort-capture API or results view. The contracts provide seeds: VerificationAttestation and the ECONOMIC_RESULT verification level; OutcomeObservation with `realized_value`, `review_minutes` and a nullable `human_effort_category`; and the SQL `outcome_observations` and `human_effort` tables. Billing therefore depends on the verifier, the effort ledger and the results view in the [backlog](05-backlog.md).
+**What exists today (package implements):** none of this. There is no metering, billing, verifier service, effort-capture API or results view. The package provides seeds: the VerificationAttestation contract and the ECONOMIC_RESULT verification level; the OpenAPI proposal's OutcomeObservation with `realized_value`, `review_minutes` and a nullable `human_effort_category`; and the SQL `outcome_observations` and `human_effort` tables. Billing therefore depends on the verifier, the effort ledger and the results view in the [backlog](05-backlog.md).
 
 ### 9.5 Price guardrail and measured value
 
@@ -640,7 +642,7 @@ Never included, at any price, in the first 180 days: posting or any FINANCIAL_CO
 | $25 | $75 or more |
 | $35 | $105 or more |
 
-D7 trigger: if pilot time studies show measured value under about $45 per client-month, cap Chase at $15 or fold it into Prepare.
+Measured value under about $45 per client-month fires a D7 revisit trigger ([section 9.11](#911-revisit-triggers)).
 
 **How measured value is computed (proposed, to ratify with the domain expert).** The definition follows spec §7 L136, which separates theoretical labor capacity, usable capacity and realized cash or contribution margin:
 
@@ -660,7 +662,7 @@ Arithmetic at D7 list prices. These are not forecasts.
 | 100 | $18,000 | $30,000 |
 | 150 | $27,000 | $45,000 |
 
-**The budget tension.** The average firm's total tech spend is about $21,000 a year (Intuit survey, vendor-run, all firm sizes) [M58]. A 100-client firm on Prepare would pay about 86% of that average, and on Prepare + Chase more than all of it. So the purchase cannot come out of the software line. It has to be justified against labor: hiring (77% had hiring struggles [M58]), outsourcing (80% outsource at least one service [M58]) and reviewer capacity. This is why the guardrail, the month-0 baseline and the labor ledger matter commercially, not only for honesty. It is also a reason to watch R5's cost and conversion triggers closely.
+**The budget tension.** The average firm's total tech spend is about $21,000 a year (Intuit survey, vendor-run; the notes do not break it down by firm size) [M58]. A 100-client firm on Prepare would pay about 86% of that average, and on Prepare + Chase more than all of it. So the purchase cannot come out of the software line. It has to be justified against labor: hiring (77% had hiring struggles [M58]), outsourcing (80% outsource at least one service [M58]) and reviewer capacity. This is why the guardrail, the month-0 baseline and the labor ledger matter commercially, not only for honesty. It is also a reason to watch R5's cost and conversion triggers closely.
 
 ### 9.7 Pilot terms
 
@@ -680,7 +682,7 @@ From D7:
 | 20-29 staff | $2,250 |
 | 30-40 staff | $3,000 |
 
-**Fallback (D7, D9):** if there are fewer than 2 paid pilot LOIs after about 30 qualified conversations, offer a free pilot with a pre-committed conversion price and a measurable gate, rather than lowering qualification.
+**Fallback (D7, D9):** the free-pilot trigger in [section 9.11](#911-revisit-triggers). Qualification is never lowered instead.
 
 ### 9.8 Price test design
 
@@ -708,13 +710,13 @@ Prices as found in the research notes, with reliability flags. Units differ, so 
 | Practice-management seats | Financial Cents, Karbon, Uku, Liscio | $19-$99 | Per user per month | Vendor pages | [M1], [M2], [M4], [M5] |
 | | TaxDome | $800-$1,200 | Per user per year | Third-party (vendor page 403) | [M3] |
 | | Canopy | $24-$40 per module | Per user per month | Third-party | [M6] |
-| Ledger bundles | Intuit Accountant Suite | Free during introductory period | Per firm | US pricing from a secondary source | [M9] |
+| Ledger bundles | Intuit Accountant Suite | Entry tiers free during the introductory period | Per firm | US pricing from a secondary source | [M9] |
 | | Hubdoc | Free with Xero Business plans | Per firm | Third-party listing | [M10] |
 | | Xero JAX, XeroForce, Partner Hub | Not disclosed | Not applicable | Not applicable | [M10] |
 | Document-collection point tools | Content Snare | $35-$215+ annual; $42-$258+ monthly | Per account per month | Vendor page | [M20] |
 | AI bookkeeping engines and capture | Booke AI; Docyt; Botkeeper; Dext | $129/business/mo; from $299/mo; about $149/license/mo; from about $25.21/mo | Mixed | Third-party | [M14], [M15] |
 | Outsourced bookkeeping | Offshore staff; outsourced bookkeeping | $8-$45/hr; $300-$2,500/mo | Per hour; per end client per month | Vendor blogs, unverified | [M26] |
-| End-client substitutes | Zeni; Puzzle; Pilot | $549-$799/mo; $30-$360/mo software plus service from $171/mo; about $599/mo | Per end client per month | Zeni and Puzzle vendor pages; Pilot unverified | [M23], [M12], [M22] |
+| End-client substitutes | Zeni; Puzzle; Pilot | From $549 (Starter) or $799 (Growth) a month, less if billed annually; $30-$360/mo software plus service from $171/mo; about $599/mo | Per end client per month | Zeni and Puzzle vendor pages; Pilot unverified | [M23], [M12], [M22] |
 | DIY builders | Zapier; n8n; Make; Lindy | $19.99-$69/mo; EUR 20-667/mo; $9-$29/mo; from $29.99/mo | Per account per month | Zapier, n8n and Lindy vendor pages; Make third-party | [M27], [M28], [M29], [M30] |
 | | Microsoft Copilot Studio | $200 per 25,000 credits/mo; Copilot Business $21/user/mo | Credits; per user | Third-party | [M33] |
 | Agencies | Boutique SMB AI agencies | $4,500-$25,000 for a first system | Per project | Vendor-written guide, low reliability | [M40] |
@@ -723,7 +725,7 @@ Prices as found in the research notes, with reliability flags. Units differ, so 
 | FDE consulting | OpenAI | $10M minimum | Per engagement | Reported | [M36] |
 | Firm budget context | Average firm tech spend | About $21,000/yr | Per firm per year | Vendor-run survey | [M58] |
 
-**Where Plumb sits.** Prepare at $15 sits inside the per-client close-tool range ($5-$50) and above the Financial Cents add-on and most of Xenett. Prepare + Chase at $25 matches Double's reported Plus tier. Both sit far below outsourced bookkeeping per end client, which is a broader service. Against agencies, a 50-client firm on Prepare pays $9,000 a year with implementation, maintenance and verification included and no project fee. The market-implementation research suggests positioning between DIY tools and human services, ideally per verified outcome. D7 does that.
+**Where Plumb sits.** Prepare at $15 sits inside the per-client close-tool range ($5-$50), above the Financial Cents add-on and Xenett's plans (about $7.5-$10), and level with Xenett's $15 accruals-and-AI add-on. Prepare + Chase at $25 matches Double's Plus tier as reported by third-party listings. Both sit far below outsourced bookkeeping per end client, which is a broader service. Against agencies, a 50-client firm on Prepare would pay $9,000 a year at the D7 list hypothesis, with implementation, maintenance and verification meant to be included and no project fee. The market-implementation research suggests positioning between DIY tools and human services, ideally per verified outcome. D7 does that.
 
 ### 9.10 What we will not do
 
@@ -795,7 +797,7 @@ Rules for every surface:
 
 ## 11. Sources
 
-Numbering is local to this document. Access and recency notes come from the research notes. All searches were dated before October 4, 2026.
+Numbering is local to this document. Access and recency notes come from the research notes, which were compiled by October 4, 2026 (the implementation note checked its facts against search results dated before that day).
 
 **A. Accounting-market players**
 
@@ -889,4 +891,4 @@ Numbering is local to this document. Access and recency notes come from the rese
 82. [M82] FTC Operation AI Comply, two years on (Holland & Knight, August 18, 2026): https://www.hklaw.com/en/insights/publications/2026/08/operation-ai-comply-2-years-later-continued-enforcement .
 83. [M83] IRC Section 7216 and AI tools (secondary compliance commentary, not IRS guidance or legal advice; verify with counsel): https://my-cpe.com/blogs/ai-compliance-for-cpa-accounting-firms-irc-7216-aicpa-ftc .
 
-**Repository sources:** [spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md) (§1 L49, L51; §3 L84; §4 L98; §7 L136; §15 L248; §20 L318; §25 L398; §26 L404-418; §28 L450; §29 L492; Appendix A.6 L580; Appendix B L596, L598, L604, L650-654); [requirements index](../spec/requirements_index.json); [acceptance catalog](../acceptance/production_acceptance_catalog.yaml); [capability registry](../plumb/registry/capability_registry.json) (synthetic); [OpenAPI proposal](../api/openapi.yaml) (`listOutcomes`, OutcomeObservation); [accounting envelope fixture](../fixtures/envelopes/accounting_evidence_preparation.json) (eu-west-1; expires 2027-03-31); [validation report](../VALIDATION_REPORT.md) (819 local tests); [README](../README.md).
+**Repository sources:** [spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md) (§1 L49, L51; §3 L84; §4 L98; §7 L132, L136; §15 L248; §20 L318; §25 L398; §26 L404-418; §28 L450; §29 L492; Appendix A.6 L580; Appendix B L596, L598, L604, L650-654; the stale "56" test count at L15 and Appendix C L662); [requirements index](../spec/requirements_index.json); [acceptance catalog](../acceptance/production_acceptance_catalog.yaml); [capability registry](../plumb/registry/capability_registry.json) (synthetic; 25 records covering 23 step types); [OpenAPI proposal](../api/openapi.yaml) (`listOutcomes`, OutcomeObservation); [contracts](../plumb/contracts/) (VerificationAttestation, HumanEffortCategory, OpportunitySpec); [SQL design](../sql/001_initial_design.sql) (`outcome_observations`, `human_effort`); accounting [envelope](../fixtures/envelopes/accounting_evidence_preparation.json) and [plan](../fixtures/plans/accounting_evidence_preparation.json) fixtures (eu-west-1, EUR; the envelope expires 2027-03-31); [validation report](../VALIDATION_REPORT.md) (current local test counts); [README](../README.md).

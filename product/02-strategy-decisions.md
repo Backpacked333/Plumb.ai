@@ -2,7 +2,7 @@
 
 - Status: Draft v0.1 (2026-10-04), proposed — requires founder ratification
 - Owner: Product
-- Basis: [spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md), [decision record](02-strategy-decisions.md) (this document is the readable rendering of the strategy panel's decision record), [acceptance catalog](../acceptance/production_acceptance_catalog.yaml), [requirements index](../spec/requirements_index.json)
+- Basis: [spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md), the strategy panel's decision record (this document is its readable rendering, with the corrections listed at the end), [acceptance catalog](../acceptance/production_acceptance_catalog.yaml), [requirements index](../spec/requirements_index.json)
 - Elaborated in: [product brief](01-product-brief.md), [MVP scope](03-mvp-scope.md), [roadmap](04-roadmap.md), [backlog](05-backlog.md), [metrics](06-metrics.md), [risks and assumptions](07-risks-and-assumptions.md), [market and positioning](08-market-and-positioning.md), [design-partner program](09-design-partner-program.md). Index: [README](README.md).
 
 This record holds the twelve strategy decisions (D1-D12) that the rest of the product doc set builds on. Where a sibling document and this record disagree, this record governs until the founder ratifies a change.
@@ -19,17 +19,20 @@ Three kinds of statement appear here. Where the difference matters, the text say
 
 Ground truth about the package, as of 2026-10-04:
 
-- The reference package implements a deterministic policy kernel: typed contracts, a registry-backed plan checker, approval, release and dataset checkers, a SQLite effect ledger and the state machines. [VALIDATION_REPORT.md](../VALIDATION_REPORT.md) reports 819 passing local tests.
+- The reference package implements a deterministic policy kernel: typed contracts, a registry-backed plan checker, approval, release and dataset checkers, a SQLite effect ledger and the state machines. Its local contract tests pass (more than 800; counts in [VALIDATION_REPORT.md](../VALIDATION_REPORT.md)). They are local results only, and the spec's "56 tests" figure (header table and Appendix C) is stale.
 - Nothing is deployed. None of the 30 catalog scenarios has run against production; the catalog says so itself (`executed_against_production: false`). The value-producing loop (inventory, connect, collect, plan, execute, verify, release, measure) is not built (research notes: implementation-reality).
-- The capability registry is synthetic. Its 25 entries include 15 marked PRODUCTION_VERIFIED, and none of them establishes access to a real account ([capability_registry.json](../plumb/registry/capability_registry.json)).
+- The capability registry is synthetic. Its 25 capability records cover 23 step types; 15 records are marked PRODUCTION_VERIFIED, and none of them establishes access to a real account ([capability_registry.json](../plumb/registry/capability_registry.json)).
 
 Conventions:
 
 - Every number in a decision (thresholds, prices, windows, staffing weeks, funnel counts) is a hypothesis unless it is quoted from the spec. Each table says so once. Hypotheses are pre-registered in threshold sheet v1 at M0 and change only through the revisit triggers.
 - Week 0 starts Oct 5, 2026. Day 180 is Apr 3, 2027.
 - Milestone labels used across the doc set: M0, M1, M1R, M3-lite, M4-accounting, M5, M2 (gated learning factory) and M6 (second domain: laundry route preparation, then RFQ). When this record says "the spec §26 table", it means the spec's own M0-M6 milestone table.
-- Phases P0-P6 follow the phased plan in D5.
-- Release tiers: Prepare (preparation-only, shadow), Draft (mailbox drafts that staff send), Send (policy-approved sending, canary first).
+- Phases P0-P6 follow the phased plan in D5. P0-P6 are phase names only; backlog priorities are Must, Should and Could ([backlog](05-backlog.md)).
+- Release tiers:
+  - Prepare: preparation-only. Its effect classes are READ, INTERNAL_WRITE and EXTERNAL_WRITE_REVERSIBLE (connector setup and enabling incremental capture on the firm's own accounts, as in the accounting fixture), and never EXTERNAL_COMMUNICATION. It is promoted SHADOW, then CANARY, then ACTIVE (D4).
+  - Draft: mailbox drafts that staff send.
+  - Send: policy-approved sending, canary first. The earliest Send canary close is around July 2027 (D5).
 - Proposed new acceptance scenarios get ids in the [roadmap](04-roadmap.md). This record describes them in words and never reports them under a catalog id.
 
 ## How this record was produced
@@ -104,7 +107,7 @@ The first 26 weeks therefore buy the cheapest test of PL-063 that could fail. In
   - M3-lite: a preparation-only review-package workflow. PA-002 is attested in sandbox, then the workflow runs in production shadow with no external communication.
 - **First measurable customer deliverable.** Verifier-attested ready-for-review packages on at least 30 client-periods in a full live close, measured against a month-0 time study.
 - **Gating.**
-  - Mailbox drafts, then policy-approved sends, come only after a production action gateway passes the HIGH-severity effect scenarios. That is after day 180.
+  - Mailbox drafts, then policy-approved sends, come only after a production action gateway passes the HIGH-severity effect scenarios. That is after day 180; the earliest Send canary close is around July 2027 (D5).
   - Training, screen capture, posting, tax-return data and second domains wait behind evidence gates.
 - **Commercial model.** Customers pay per active client-month for attested packages. Plumb never bills its own engineering.
 - **North star.** Engineering-intervention hours per verified deployment (EIH/VD), reported per tenant in onboarding order. Platform-investment hours are shown beside it and never netted.
@@ -230,9 +233,9 @@ Visible results arrive in this order:
 | # | Result | What it is | Constraints |
 |---|---|---|---|
 | 0 | Month-0 baseline | A 2-week time study of accountant assembly and review minutes. The firm owner runs it with Plumb's domain expert before shadow, so the time-saving claim can be falsified | Before shadow |
-| 1 | The M1 moment, and the interim deliverable | A read-only close-readiness ledger built on the PA-001 collection path. A document a client drops into the firm's folder appears exactly once, attributed to the right client and period, with lineage, within the 5-minute health deadline | Uses only the READ and COLLECT effect classes, so the first value needs no gateway writes and none of the HIGH-severity effect scenarios. The platform proof and the customer value are the same artifact |
+| 1 | The M1 moment, and the interim deliverable | A read-only close-readiness ledger built on the PA-001 collection path. A document a client drops into the firm's folder appears exactly once, attributed to the right client and period, with lineage, within the 5-minute health deadline | Uses only the READ, INTERNAL_WRITE and EXTERNAL_WRITE_REVERSIBLE effect classes (connector setup and enabling incremental capture on the firm's own accounts, as in the accounting fixture) and no EXTERNAL_COMMUNICATION. The first value therefore sends nothing to clients and needs none of the HIGH-severity client-request scenarios (PA-006, PA-007, PA-009, PA-005's dispatch half). The platform proof and the customer value are the same artifact |
 | 2 | Historical duplicate-chase baseline | Once mail-history read is connected (phase 2), a 24-month reminder backfill shows duplicate chases per client-period-obligation, re-requests for documents already held, and days to receive | Labeled historical and non-causal (spec §7 L136). Never counted as a PL-001 outcome |
-| 3 | First measurable deliverable | In the first full live close after the preparation-only workflow enters production shadow: verifier-attested ready-for-review packages on an agreed cohort of at least 30 client-periods per firm, with zero external sends, compared with the accountants' actual decisions in a "what Plumb would have done" report | Measures: correct-package rate; accountant assembly-plus-review minutes against the month-0 study; false-chase rate (PA-005 class); missing-item recall; wrong-client attribution (PA-003 class) |
+| 3 | First measurable deliverable | In the first full live close after the preparation-only workflow enters production SHADOW: verifier-attested ready-for-review packages on an agreed cohort of at least 30 client-periods per firm, with zero external sends, compared with the accountants' actual decisions in a "what Plumb would have done" report | Measures: correct-package rate; accountant assembly-plus-review minutes against the month-0 study; false-chase rate (PA-005 class); missing-item recall; wrong-client attribution (PA-003 class) |
 | 4 | Gated | First, consolidated requests as mailbox drafts that staff send (Draft). Then policy-approved sends (Send): one per client-period-obligation epoch, with one owner across staff | After the production gateway passes its gates (D4) |
 
 The cohort size of 30 and all quality targets are hypotheses.
@@ -341,7 +344,7 @@ PL-001, PL-009, PL-010, PL-025, PL-035; PA-001, PA-003, PA-005, PA-011; spec §7
 | `collection.backfill` | INTERNAL_WRITE (not shadow) | SANDBOX_TESTED | M0 |
 | `workflow.compile` | INTERNAL_WRITE | SANDBOX_TESTED | A sandbox receipt before the M3-lite build (added while rendering; see corrections) |
 | `dataset.build`, `training.submit` | INTERNAL_WRITE | SANDBOX_TESTED | Out of scope until M2 |
-| `release.create`, `release.activate_shadow`, `release.canary` | release.* | PRODUCTION_VERIFIED | Platform qualification run in M3-lite for create and activate_shadow; canary at M4-accounting |
+| `release.create`, `release.activate_shadow`, `release.canary` | INTERNAL_WRITE (create, activate_shadow); EXTERNAL_COMMUNICATION (canary of reminders). The floor follows the `release.*` prefix | PRODUCTION_VERIFIED | Platform qualification run in M3-lite for create and activate_shadow. `release.canary` must also be qualified before the Prepare-tier CANARY (a preparation-only canary declares no EXTERNAL_COMMUNICATION), and again for the Send canary in M4-accounting |
 | `infrastructure.apply` | INFRASTRUCTURE_CHANGE | PRODUCTION_VERIFIED | The same qualification run, if the tenant plan keeps the fixture's serving-infrastructure step |
 | `dependency.raise` | INTERNAL_WRITE | DOCUMENTED | Already sufficient |
 
@@ -435,10 +438,18 @@ PL-007, PL-008, PL-012, PL-013, PL-014, PL-015, PL-017, PL-018, PL-019, PL-020, 
 
 | Tier / milestone | Catalog scenarios that must pass | Adaptations run, never reported as the catalog id | Environment |
 |---|---|---|---|
-| Prepare (M3-lite) | PA-002 as written in sandbox, where its single send goes only through the sandbox mail adapter against sandbox copies of the sources; PA-003, PA-004, PA-006, PA-008, PA-010, PA-011 | PA-021 parser bounds on client PDFs. A preparation-mode variant of PA-002 is proposed to the catalog and is never reported as PA-002 | Sandbox, then production shadow with no EXTERNAL_COMMUNICATION in the envelope |
+| Prepare (M3-lite) | PA-002 as written in sandbox, where its single send goes only through the sandbox mail adapter against sandbox copies of the sources; PA-003, PA-004, PA-006, PA-008, PA-010, PA-011 | PA-021 parser bounds on client PDFs. A preparation-mode variant of PA-002 is proposed to the catalog and is never reported as PA-002 | Sandbox, then production SHADOW, CANARY and ACTIVE (promotion path below), with no EXTERNAL_COMMUNICATION in the envelope |
 | Draft | Against draft creation on the production gateway: PA-005's dispatch-time re-check; PA-009 and PA-015 behaviors; PA-006 and PA-010 approval binding | None | Production gateway; pause and kill from CANARY must work |
 | Send (M4-accounting) | Full PA-002 in canary; PA-005; PA-007, which needs concurrent ACTIVE and CANARY releases; PA-009; PA-010 | The PA-014 revocation-race mechanism and a PA-016-style schema-drift repair on an accounting source. Both are RFQ-domain scenarios, run as accounting adaptations | Canary, plus a recovery drill and recorded support effort |
 | M5 | Full PA-027 on the next three customers (tenants 2-4), with at least one month of prospective measurement; full PA-017 before any training job | None | Production |
+
+**Prepare-tier promotion and paid conversion (founder decision 17, to ratify).** A preparation-only release moves through three states, with no EXTERNAL_COMMUNICATION in any of them:
+
+1. SHADOW for at least one full close.
+2. CANARY on a subset of client-periods whose accountants use the prepared packages in their real review.
+3. ACTIVE.
+
+A partner converts to paid annual after one full close in ACTIVE at or above the correct-package threshold (D7, D9). The day-180 packet records tenant 1's evidence to date. Tenant 1's conversion is expected in P6, not at day 180.
 
 **Labeling:**
 
@@ -528,7 +539,8 @@ One corollary was added while rendering. Both fixture budgets are shorter than t
 
 - Tenant 1 shadow results land around weeks 20-26.
 - A second tenant's full-close shadow reading may land after day 180.
-- The Send canary and M5 cannot finish before about weeks 30-36, even if everything goes right.
+- The Draft tier and M5 can start no earlier than P6 (about weeks 26-36, Apr-Jun 2027).
+- The calibration ladder (D6) needs at least two Draft closes. The earliest policy-approved Send canary close is therefore around July 2027 (about weeks 39-41), even if everything goes right.
 - "90 days" stays a hypothesis.
 
 **M2 entry gates.** All are required. The domain expert ratifies the thresholds.
@@ -547,8 +559,8 @@ One corollary was added while rendering. Both fixture budgets are shorter than t
 | P2 M1: tenant 1 integration-and-collection path | Weeks 8-14 (Nov 30, 2026-Jan 10, 2027); sandbox build work may begin from week 6 | Prove automatic construction on tenant 1; ship the read-only close-readiness ledger | PA-001 attested as in D4, plus the safety bundle; tenant 1's EIH/VD baseline; time to first verified event, split into Plumb-controlled and dependency time; tenant 1's 90-day pilot clock starts. Runway rule: if PA-001 has not passed by week 14, cut scope to one ledger and one document store | PA-001, PA-005 (collector half), PA-011 (health half), PA-015, PA-017 (surface subset), PA-019, PA-022, PA-026 (if generated code ran) |
 | P3 M1R: reproduction on tenants 2 and 3 | Weeks 12-20 (Dec 28, 2026-Feb 21, 2027); starts on M1 attestation | Prove the path reproduces for new customers with explicit labor accounting | PA-001 for both tenants with at least one non-VERIFIED_ADAPTER operation; PA-026 and PA-019 on the generated path; PA-017 surfaces with co-resident tenants; EIH/VD falls, tenant 3 at or below 50% of tenant 1; reuse recorded with fork count 0; audit finds zero unrecorded manual work; experiment-1 proxy recorded; R1 checkpoint memo | PA-001, PA-017, PA-019, PA-026 |
 | P4 M3-lite | Weeks 14-22 (Jan 11-Mar 7, 2027); parallel track gated on M1, not on M1R | Compile and attest a preparation-only review-package workflow, then run it in production shadow on tenant 1 | PA-002 run as written in sandbox with a BUSINESS_OUTCOME attestation; PA-003, PA-004, PA-006, PA-008, PA-010 and PA-011 pass in sandbox; PA-021 parser-bounds adaptation passes; numeric correct-package threshold set; DOMAIN_CLARIFICATION per workflow measured; production shadow active with no EXTERNAL_COMMUNICATION | PA-002, PA-003, PA-004, PA-006, PA-008, PA-010, PA-011 |
-| P5 Shadow results, gateway hardening and day-180 decision packet | Weeks 20-26 (Feb 22-Apr 4, 2027); day 180 is Apr 3, 2027 | Deliver the first measurable customer deliverable on tenant 1, harden the gateway in sandbox, and decide go, pivot or kill | Attested packages on at least 30 client-periods across a full close; correct-package rate against threshold; minutes against baseline; false-chase rate of 2% or less and recall of 90% or more; tenants 2-3 shadow started; owner time within budget, repeat asks 0; gateway sandbox crash tests; day-180 packet | PA-005, PA-009, PA-015 |
-| P6 M4-accounting and M5 | Weeks 26-36 or later (Apr-Jun 2027), earliest; evidence-gated | Graduate from preparation to effects safely, and prove replication of the full workflow on the next three customers | Canary report with denominators and effect receipts; zero duplicate, stale or wrong-client requests reached real clients; PA-005, PA-007, PA-009 and PA-010 pass; PA-027 passes; at least 2 of the first 4 partners on paid annual at $15 or more per active client-month | PA-002, PA-005, PA-007, PA-009, PA-010, PA-017, PA-027 |
+| P5 Shadow results, gateway hardening and day-180 decision packet | Weeks 20-26 (Feb 22-Apr 4, 2027); day 180 is Apr 3, 2027 | Deliver the first measurable customer deliverable on tenant 1, harden the gateway in sandbox, and decide go, pivot or kill | Attested packages on at least 30 client-periods across a full close; correct-package rate against threshold; minutes against baseline; false-chase rate of 2% or less and recall of 90% or more; tenants 2-3 shadow started; owner time within budget, repeat asks 0; gateway sandbox crash tests; day-180 packet recording tenant 1's evidence to date (tenant 1's paid conversion is expected in P6) | PA-005, PA-009, PA-015 |
+| P6 M4-accounting and M5 | Weeks 26-36 or later (Apr-Jun 2027), earliest, for the Prepare-tier CANARY and ACTIVE closes, the Draft tier and the start of M5. The earliest Send canary close is around July 2027 (about weeks 39-41), so P6 cannot exit before then; evidence-gated | Graduate from preparation to effects safely, and prove replication of the full workflow on the next three customers | Canary report with denominators and effect receipts; zero duplicate, stale or wrong-client requests reached real clients; PA-005, PA-007, PA-009 and PA-010 pass; PA-027 passes; at least 2 of the first 4 partners on paid annual at $15 or more per active client-month | PA-002, PA-005, PA-007, PA-009, PA-010, PA-017, PA-027 |
 
 ### Rationale
 
@@ -556,7 +568,7 @@ One corollary was added while rendering. Both fixture budgets are shorter than t
 
 **Early replication is the cheapest learning.** It gives the first read on experiment 3 (cheap adapter adaptation) and experiment 6 (maintainable reuse).
 
-**The table's M4 evidence is in the wrong domain.** PA-013 is a laundry scenario. Following it would force a second-domain partner before M5.
+**The table's M4 evidence is in the wrong domain.** The catalog's M4 evidence scenario, PA-013, is a laundry route release. Following it would force a second-domain partner before M5.
 
 **Learning waits.**
 
@@ -583,7 +595,7 @@ One corollary was added while rendering. Both fixture budgets are shorter than t
 
 ### Sources
 
-PL-063 (spec §26 L404) against the spec §26 table (L406-414); spec §26 (L418, 90-day hypothesis); spec §14 (L232); spec Appendix A.7 (L586); [accounting plan fixture](../fixtures/plans/accounting_evidence_preparation.json) (`activate-shadow-processing` max_elapsed_seconds 1,209,600; `canary-consolidated-reminders` 1,814,400; plan total 5,184,000); [laundry plan fixture](../fixtures/plans/laundry_route_preparation.json) (ends at `release.activate_shadow`); PA-012 (requires real_adapter, grants and model, not training); PA-013 (laundry; canary on at most 2 of 9 vehicles for 3 days), PA-025, PA-029, PA-030; PA-027 (first-month measurement). Research notes: acceptance-and-index (tension 1, replication at M5; tension 2, M4 in laundry; calendar floors), implementation-reality (laundry plan stops at shadow).
+PL-063 (spec §26 L404) against the spec §26 table (L406-414); spec §26 (L418, 90-day hypothesis); spec §14 (L232); spec Appendix A.7 (L586); [accounting plan fixture](../fixtures/plans/accounting_evidence_preparation.json) (`activate-shadow-processing` max_elapsed_seconds 1,209,600; `canary-consolidated-reminders` 1,814,400; plan total 5,184,000); [laundry plan fixture](../fixtures/plans/laundry_route_preparation.json) (its release steps stop at `release.activate_shadow`; no `release.canary`); PA-012 (requires real_adapter, grants and model, not training); PA-013 (laundry; canary on at most 2 of 9 vehicles for 3 days), PA-025, PA-029, PA-030; PA-027 (first-month measurement). Research notes: acceptance-and-index (tension 1, replication at M5; tension 2, M4 in laundry; calendar floors), implementation-reality (laundry plan stops at shadow).
 
 ---
 
@@ -636,15 +648,19 @@ A stale source blocks the send instead of asking (PA-011).
 | After calibration | At most 10% of requests need per-case approval |
 | Review cost | Accountant review minutes per package stay below baseline assembly-plus-review minutes |
 
-**Effort rubric (frozen in week 1).** These are the five spec categories (PL-003), with the assignments Appendix B leaves open.
+The budget counts unscheduled asks. Scheduled time, such as the weekly check-in (D9), is reported beside it, not inside it.
+
+**Effort rubric (frozen in week 1).** These are the five spec categories (PL-003), with the assignments Appendix B leaves open. PL-003 requires all human effort to be recorded by category, so every minute of partner time lands in one of the five. The rubric below includes clarifications that amend the panel's D6 rubric (flagged; founder decision 18).
 
 | Category | Includes |
 |---|---|
-| CUSTOMER_AUTHORIZATION | Grants and envelope decisions |
-| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; participation in the baseline time study |
+| CUSTOMER_AUTHORIZATION | Grants and envelope decisions; approving the reminder policy (amended: the record did not place it) |
+| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; baseline-study recording overhead; scheduled weekly check-ins (amended: the record did not place check-ins) |
 | NORMAL_BUSINESS_REVIEW | Per-case approvals, draft review and package sign-off |
-| ENGINEERING_INTERVENTION | Any Plumb staff wiring, mapping, plan or workflow authoring or editing, and manual deployment |
+| ENGINEERING_INTERVENTION | Implementation work by any person, Plumb or customer staff: wiring, mapping, plan or workflow authoring or editing, and manual deployment (amended: the record said "Plumb staff". Spec Appendix B L652: if a person manually wires the integrations or writes the production workflow, record that labor) |
 | OPERATIONAL_REPAIR | Plumb staff fixing a running collector or workflow |
+
+Gap: the package's `PrincipalType` has no type for Plumb staff (it has human owner, reviewer and approver, plus service, agent, verifier and release-executor types). The contracts need one before Plumb's own labor can be captured automatically.
 
 ### Rationale
 
@@ -656,7 +672,7 @@ A stale source blocks the send instead of asking (PA-011).
 
 **The rubric fills a gap.** Appendix B never assigns categories to label audits or per-case approvals.
 
-**Part of the plumbing exists in the package.** `approval_checker.py` defines the three decision kinds and `group_missing_authorizations`. Nothing wires them to a product surface yet.
+**Part of the plumbing exists in the package.** `plumb/contracts/approval.py` defines the three decision kinds, and `approval_checker.py` defines `group_missing_authorizations`. Nothing wires them to a product surface yet.
 
 **How the design was assembled.** The judges split three ways on this decision. The design keeps platform-proof's structure, budget and rubric, learning-velocity's triggers, and customer-value's Draft edit-rate graduation.
 
@@ -696,7 +712,7 @@ PL-003, PL-037, PL-040, PL-041, PL-053, PL-059; PA-003, PA-004, PA-006, PA-010, 
 | Prepare + Chase | Adds policy-approved consolidated sending with cross-staff dedupe, once Send ships | $25 per active client-month |
 
 - Annual contract, a firm minimum of $500/month, and no per-seat price.
-- No implementation fee for supported environments. Plumb absorbs its own engineering interventions and never bills by the hour (ADR-010).
+- No implementation fee for supported environments. Plumb absorbs its own engineering interventions and never bills by the hour, so that labor stays a measured cost rather than revenue (ADR-010 measures implementation autonomy separately).
 
 **Billing rules (PL-001):**
 
@@ -725,7 +741,7 @@ PL-003, PL-037, PL-040, PL-041, PL-053, PL-059; PA-003, PA-004, PA-006, PA-010, 
 **Benchmarks** (from the market notes; flags in [market sources](#market-sources)):
 
 - Double: $10/$25/$50 per client-month. These tier prices come from secondary listings. Double's own page confirms only the per-connected-client model and a $200/month annual-commitment tier [M9].
-- Xenett: about $7.5-$15 per client-month [M10]. Financial Cents month-end close add-on: $5 per client-month [M11].
+- Xenett: about $7.5 (AI Review) or $10 (Workflow) per client-month, plus a $15 accruals-and-AI add-on [M10]. Financial Cents month-end close add-on: $5 per client-month [M11].
 - Practice-management seats: $19-$99 per user-month [M11], [M12], [M13]. Intuit Accountant Suite: no charge during its introductory period [M14].
 - Average firm tech spend is about $21k a year, and 80% of firms outsource at least one service (Intuit 2026 survey, vendor-run [M5]).
 - SMB agency AI builds cost about $4.5k-$25k (a vendor-written guide, low reliability [M32]).
@@ -791,7 +807,7 @@ PL-001, PL-003, PL-013, PL-059, PL-062; ADR-010. Research notes: market-accounti
 
 | # | Never claim | Basis |
 |---|---|---|
-| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or third-party integrations. Quote the current [VALIDATION_REPORT.md](../VALIDATION_REPORT.md) count (819 today) only as local test results, and never quote Appendix C's stale 56 | spec §28 L450; Appendix C |
+| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or third-party integrations. Take any test count from the current [VALIDATION_REPORT.md](../VALIDATION_REPORT.md), present it only as local test results, and never quote the spec's stale "56 tests" (header table and Appendix C) | spec §28 L450; Appendix C |
 | 2 | Cross-industry autonomy from the three synthetic scenarios. They show representational reuse | spec §25 L398 |
 | 3 | 90 days as anything but a planning hypothesis | spec §26 L418 |
 | 4 | Product-video results as evidence | spec §29 L492 |
@@ -824,7 +840,7 @@ PL-001, PL-003, PL-013, PL-059, PL-062; ADR-010. Research notes: market-accounti
 
 **Agent-built integrations are becoming table stakes.** Nango's Management MCP, Membrane and Make's Maia all claim a version of it (vendor claims [M27], [M28], [M29]).
 
-**The two claims no competitor makes.** Neither market scan found a competitor offering the labor ledger or independent verification. That is absence of evidence from a US-only web search, not proof. The two claims answer stated objections: trust and accuracy (21% [M6]) and fear of errors (35%, vendor survey of 128 [M23]).
+**The two claims no competitor makes.** Neither market scan found a competitor offering the labor ledger or independent verification. That is absence of evidence from web searches (the implementation search was US-only), not proof. The two claims answer stated objections: trust and accuracy (21% [M6]) and fear of errors (35%, vendor survey of 128 [M23]).
 
 **Chasing is a commodity.** Leading with chasing would put Plumb in a $5-$99 category.
 
@@ -886,7 +902,7 @@ At most 3 active builds until M1R passes.
 - A 100-pair attribution or label review.
 - Willingness to be a reference.
 
-**Partners give:** grants and access; domain-owner time within the interruption budget; the baseline; feedback; a 20-minute weekly check-in; case-study rights.
+**Partners give:** grants and access; domain-owner time within the interruption budget; the baseline; feedback; a 20-minute weekly check-in (recorded as DOMAIN_CLARIFICATION, D6); case-study rights.
 
 **Partners get:** implementation with no fee; the 24-month price lock; the readiness ledger and shadow reports; founder access; roadmap influence; Plumb absorbing all adaptation engineering; ownership and export of every artifact and test.
 
@@ -921,7 +937,7 @@ At most 3 active builds until M1R passes.
 
 **Program rules:**
 
-- A partner graduates to paid annual once the workflow has been ACTIVE through one full close at or above the correct-package threshold.
+- A partner graduates to paid annual once the workflow has been ACTIVE through one full close at or above the correct-package threshold, after the SHADOW and CANARY stages in D4. For tenant 1 that is expected in P6.
 - A partner is offboarded if its dependencies stay unresolved for more than 30 days or its stack drifts outside the certified operations. Those builds are recorded as blocked attempts in the denominator.
 
 The full program, including the selection scorecard, is in the [design-partner program](09-design-partner-program.md).
@@ -1017,7 +1033,7 @@ The effort-category rubric is frozen in week 1 (D6). Effort is captured automati
 - The reuse rate reads out experiment 6.
 - The spec rejects a universal 99% bar (spec §24 L382), so every threshold is a task-specific hypothesis.
 
-**What exists today.** The package has no effort-capture API. Its OutcomeObservation carries a single nullable effort category (research notes: implementation-reality). Every metric above is proposed, and none has been measured.
+**What exists today.** The package has a `HumanEffortRecord` contract and a `human_effort` table in its unexecuted SQL design, but no API operation that captures effort. Its OutcomeObservation carries a single nullable effort category (research notes: implementation-reality). Every metric above is proposed, and none has been measured.
 
 ### Alternatives considered
 
@@ -1060,7 +1076,7 @@ There are five primary risks and two operational ones. Each is tied to a spec §
 | R2: Hidden human labor presented as autonomy (PL-003; the Builder.ai pattern) | Medium. Commercial pressure during the supervised first delivery (spec §1 L51) | Existential to credibility. It invalidates every PL-062 claim and invites AI-washing enforcement | Automatic capture of human-principal actions; customer-visible ledger; separate platform-investment ledger; an auditor outside the delivery team at M1, M1R and M5, plus a monthly audit of the delivery team's account using PA-027's method; no per-customer delivery engineers; the never-claim checklist | Any unrecorded engineering found in an audit invalidates the milestone and forces a re-run. A second occurrence triggers an external audit before any external claim |
 | R3: Interruption load turns the customer into the systems integrator (experiment 4) | Medium. Engagement checklists may not be inferable, and conventions vary by firm | High. Breaks "without constant interruption" and erodes the value case | Engagement-checklist templates; focused-question queue with a budget; answers become versioned conventions (PA-004); `group_missing_authorizations` batching; the D6 budget, with overruns triaged as defects | On tenant 3, any of: median DOMAIN_CLARIFICATION per workflow above 10 questions or 3 hours; steady-state owner decision time above 60 minutes a week; owner clarification plus authorization above 3x the budget at two partners. Response: pivot to a fixed vertical template with firm-level defaults, narrow the ICP to firms with documented engagement checklists, and stop claiming self-discovery in this vertical. If owner minutes exceed measured accountant savings, kill the wedge |
 | R4: Generated failure handling is unreliable and causes an effect-safety incident (experiment 5) | Medium. The package's effect ledger is a SQLite simulation, and a canary cannot be paused today | High. One duplicate, stale or wrong-client email can cost a partner its client, and cost Plumb the partner | Preparation-only first, Draft before Send; production gateway with outbox, leases and dispatch-time authority, revocation and pause checks; pause and kill from CANARY; the protected verifier against the Appendix B failure set; any HIGH-severity failure blocks activation (PL-061) | After bounded repair, generated workflows fail more than 10% of the protected Appendix B failure cases (PA-003, PA-004, PA-005, PA-006, PA-007, PA-008, PA-009, PA-010, PA-011) across two tenants: stop generating workflow logic, use only certified template workflows, and never claim "generated workflows". One real-client duplicate, stale or wrong-client request in canary: halt sends, revert to Draft, run root-cause analysis. Two such incidents within 90 days: Send leaves the product for two quarters, and preparation-only becomes the product |
-| R5: Market squeeze and low willingness to pay (Intuit's free suite, Xero Document Requests, Double's 4,000+ firms, Basis and Digits moving down-market, commoditized agent-built connectors) | Medium-High | High. A proven platform that cannot be sold | Qualify out single-ecosystem firms; run a PL-013 native-feature baseline and configure native tools when they are enough; lead with verified packages, not chasing; per-client outcome pricing; paid pilots from day one; a roll-up channel probe | Any of: at least 3 of 5 qualified prospects choose native tools after a PL-013 comparison; 50% or more of qualified mixed-stack prospects pick an incumbent head-to-head; fewer than 2 of the first 4 partners convert to annual at $15 or more per active client-month; fully loaded cost per active client-month at tenant 4 above 2x price with no downward trend. Response: pivot to the roll-up/MSP channel or per-package pricing, and re-examine the ICP before cutting price |
+| R5: Market squeeze and low willingness to pay (Intuit's suite, free during its introductory period; Xero Document Requests; Double's 4,000+ firms; a possible down-market move by Basis or Digits; commoditized agent-built connectors) | Medium-High | High. A proven platform that cannot be sold | Qualify out single-ecosystem firms; run a PL-013 native-feature baseline and configure native tools when they are enough; lead with verified packages, not chasing; per-client outcome pricing; paid pilots from day one; a roll-up channel probe | Any of: at least 3 of 5 qualified prospects choose native tools after a PL-013 comparison; 50% or more of qualified mixed-stack prospects pick an incumbent head-to-head; fewer than 2 of the first 4 partners convert to annual at $15 or more per active client-month; fully loaded cost per active client-month at tenant 4 above 2x price with no downward trend. Response: pivot to the roll-up/MSP channel or per-package pricing, and re-examine the ICP before cutting price |
 | R6: Build time versus runway. The value loop is not built, and the verifier, fault-injection harness and gateway are unlisted products | High | High. Evidence arrives after the money runs out | Wrap the existing policy kernel rather than rewriting; follow the vertical-proof order (Appendix A.7); keep certified operations narrow; make the security and verification hires early; cap concurrency at 3 builds; windows start on gate exit | PA-001 has not passed on tenant 1 by week 14: cut scope to one ledger and one document store instead of adding platform. M1R has not passed by week 24: the day-180 memo must choose between a reduced-scope extension and the R1 pivot |
 | R7: Data rights and access block the evidence (refused mailbox scopes, vendor app-review delays, IRC 7216, 53% of firms refusing training) | Medium | Medium-High. Delays M3-lite and the duplicate-chase baseline, and blocks M2 | Start vendor app reviews in week 0; TRAIN off by default; exclude tax-return information; counsel opinion before first signature; keep a forwarding-address intake as a fallback | At least 2 of 5 partners refuse mailbox scopes, or vendor approval for mail scopes is not granted by M3-lite: run on document store plus ledger, with a forwarding-address intake for mail. Fewer than 2 tenants grant TRAIN: M2 stays deferred, which is not a company kill. Counsel finds IRC 7216 blocks monthly-close sources at most ICP firms: re-scope sources or the ICP |
 
@@ -1104,7 +1120,7 @@ There are five primary risks and two operational ones. Each is tied to a spec §
 
 ### Sources
 
-PL-003, PL-013, PL-027, PL-061, PL-062; PA-003, PA-004, PA-005, PA-006, PA-007, PA-008, PA-009, PA-010, PA-011, PA-012; spec §1 (L51), §5 (L106, never bypass vendor approvals, MFA or licensing), §21 (L328), §27 (L442). Research notes: market-implementation (Builder.ai; Nango and Membrane commoditization; Gartner FDE prediction), market-accounting (Basis and Digits down-market; Intuit and Xero bundling; Double), spec-8-16 (recast experiments as learning milestones with kill/pivot criteria). Market: [M4], [M8], [M9], [M14], [M15], [M20].
+PL-003, PL-013, PL-027, PL-061, PL-062; PA-003, PA-004, PA-005, PA-006, PA-007, PA-008, PA-009, PA-010, PA-011, PA-012; spec §1 (L51), §5 (L106, never bypass vendor approvals, MFA or licensing), §21 (L328), §27 (L442). Research notes: market-implementation (Builder.ai; Nango and Membrane commoditization; Gartner FDE prediction), market-accounting (possible Basis and Digits down-market moves; Intuit and Xero bundling; Double), spec-8-16 (recast experiments as learning milestones with kill/pivot criteria). Market: [M4], [M8], [M9], [M14], [M15], [M20].
 
 ---
 
@@ -1182,7 +1198,7 @@ PL-042, PL-044; ADR-007; PA-017, PA-019, PA-021, PA-022, PA-026; spec Appendix A
 
 ## Founder decisions needed
 
-Every default is the panel's recommendation and every number is a hypothesis. "Decide by" names the phase whose work depends on the decision.
+Rows 1-16 carry the panel's recommended defaults; rows 17 and 18 were added by the head of product while rendering. Every number is a hypothesis. "Decide by" names the phase whose work depends on the decision.
 
 | # | Decision | Options | Recommended default | Decide by |
 |---|---|---|---|---|
@@ -1199,15 +1215,17 @@ Every default is the panel's recommendation and every number is a hypothesis. "D
 | 11 | Labor-ledger publication | (a) Customer-visible ledger, plus the right to publish anonymized per-tenant EIH/VD, failed attempts included. (b) Customer-visible only. (c) Internal only | (a) | P0 |
 | 12 | Early hires | (a) A security/platform engineer in weeks 0-4 and an independent verification engineer by week 6. (b) Combine those roles into the tech lead and eval engineer, as A.7 allows. (c) Security around week 8 (customer-value) | (a). Delay the security hire until before the Draft tier only if a managed sandbox passes PA-019 and PA-026 in M0 contract tests | P0 |
 | 13 | Early human-built value (learning-velocity's Disclosed-Labor Mode) | (a) No human-engineered deliverables on partner data before the M1 isolation subset and PA-019 pass. (b) Disclosed-Labor Mode from weeks 2-8 | (a). Customer value before M1 comes from the month-0 baseline and the read-only readiness ledger | P0 |
-| 14 | Timing of external effects | (a) Draft and Send canaries after day 180, gated on the production gateway. (b) Draft and a Send canary inside 26 weeks (customer-value). (c) Draft-to-mailbox in M3, before the gateway (learning-velocity) | (a). Revisit only if 2 of 3 partners make reminders a condition of continuing, and even then never skip PA-005, PA-007, PA-009 and PA-010 | P5, in the day-180 packet |
+| 14 | Timing of external effects | (a) Draft and Send canaries after day 180, gated on the production gateway. (b) Draft and a Send canary inside 26 weeks (customer-value). (c) Draft-to-mailbox in M3, before the gateway (learning-velocity) | (a). Draft starts no earlier than P6. Because the D6 ladder needs at least two Draft closes, the earliest Send canary close is around July 2027 (about weeks 39-41). Revisit only if 2 of 3 partners make reminders a condition of continuing, and even then never skip PA-005, PA-007, PA-009 and PA-010 | P5, in the day-180 packet |
 | 15 | Region and fixtures | (a) A single US region. (b) US plus a Canada fast-follow. (c) Multi-region | (a). Re-template the EUR/eu-west-1 accounting fixtures to US/USD, and refresh or clock-pin fixture envelopes that expire 2027-03-31, which falls inside the 180-day window | P0 |
 | 16 | Roll-up channel | (a) One optional roll-up slot, off the critical path. (b) A roll-up as the primary buyer. (c) None | (a), as tenant 5 or a sixth slot. Promote it to primary channel only if R5 fires | P1, at cohort signing |
+| 17 | Prepare-tier promotion and paid conversion (added by the head of product) | (a) SHADOW for at least one full close, then CANARY on a subset of client-periods whose accountants use the prepared packages in their real review, then ACTIVE, all with no EXTERNAL_COMMUNICATION. Convert to paid annual after one full close in ACTIVE at or above the correct-package threshold. No alternative is offered; the head of product has decided it | Ratify (a). The day-180 packet records tenant 1's evidence to date; tenant 1's conversion is expected in P6 | P4, before production shadow |
+| 18 | Effort-rubric amendment to D6 (added by the head of product) | (a) The amended rubric: ENGINEERING_INTERVENTION covers implementation work by any person, Plumb or customer staff (spec Appendix B L652); approving the reminder policy is CUSTOMER_AUTHORIZATION; scheduled weekly check-ins and baseline-study recording overhead are DOMAIN_CLARIFICATION; the interruption budget counts unscheduled asks and reports scheduled check-in time beside it. No alternative is offered; the head of product has decided it | Ratify (a), with a principal type for Plumb staff added to the contracts (a gap today) | P0, when the rubric is frozen in week 1 |
 
 ## Where the panel disagreed
 
-- **Overall ranking.** Platform-proof won every judge's total: 46, 46 and 46, for 138. Customer-value scored 45, 44 and 44 (133); learning-velocity 43, 43 and 45 (131). Judge 3 ranked learning-velocity above customer-value for its experiment discipline. The record uses platform-proof's spine for D1, D3, D4, D5, D9, D10, D11 and D12, customer-value's answers for D2, D7 and D8, and a synthesis for D6.
+- **Overall ranking.** Platform-proof won every judge's total (138, against 133 and 131; tables above). The record uses platform-proof's spine for D1, D3, D4, D5, D9, D10, D11 and D12, customer-value's answers for D2, D7 and D8, and a synthesis for D6.
 - **M1 construction bar.** Platform-proof requires an agent-generated semantic mapping at M1. Customer-value and learning-velocity accept PA-001 as written and push the generated path to M1R. All three judges preferred platform-proof but flagged the scope risk. The record keeps the stricter bar, with an explicit fallback if the sandbox slips more than 4 weeks.
-- **D2 first deliverable.** Judges 1 and 2 preferred customer-value: verified packages on 30 or more client-periods in the first live close. Judge 3 preferred platform-proof: the M1 readiness ledger as the first deliverable, since it needs only READ and COLLECT. The record sequences both, readiness ledger first and then packages. It also corrects customer-value's "baseline within days of consent", which depended on a collector that does not exist yet.
+- **D2 first deliverable.** Judges 1 and 2 preferred customer-value: verified packages on 30 or more client-periods in the first live close. Judge 3 preferred platform-proof: the M1 readiness ledger as the first deliverable, since it needs no EXTERNAL_COMMUNICATION (the record said "only READ and COLLECT"; see correction 11). The record sequences both, readiness ledger first and then packages. It also corrects customer-value's "baseline within days of consent", which depended on a collector that does not exist yet.
 - **D6 approvals split three ways.** Judge 1 chose platform-proof (structure, budget, rubric). Judge 2 chose customer-value (Draft tier with edit-rate graduation). Judge 3 chose learning-velocity (the most precise materiality triggers). The record merges all three. Its graduation thresholds (2 closes, 95% approve-without-edit, under 2% material edits) are a compromise to ratify, not a consensus.
 - **D8 messaging.** Judge 1 preferred platform-proof's checklist. Judges 2 and 3 preferred customer-value's "Close-ready, with receipts" and its fuller never-claim list. The record adopts customer-value's framing with platform-proof's formal gate and named owner. It also restricts the headline, because "one request per missing item" cannot be claimed before the Send canary.
 - **North star.** Customer-value proposed accepted review packages per month. Learning-velocity proposed accepted client-periods per week, paired with human minutes. The judges chose platform-proof's EIH/VD. Accepted packages become a customer-facing co-headline from M3-lite, because EIH/VD is invisible to customers.
@@ -1241,16 +1259,22 @@ Every default is the panel's recommendation and every number is a hypothesis. "D
 
 These points were verified against the repository on 2026-10-04. Where the panel's record was imprecise, this document uses the corrected wording.
 
-1. **Fixture region and currency.** The record says "the fixtures are EU/EUR (eu-west-1)". Only the accounting fixtures are: the accounting envelope and plan are EUR with `allowed_regions` eu-west-1. The industrial RFQ envelope is already USD/us-east-1, and the laundry envelope is GBP/eu-west-2. The P0 re-templating task therefore applies to the accounting fixtures. The malformed-plan fixtures in `fixtures/invalid/` also use eu-west-1; they exercise checker rules and do not need re-templating for the product. Separately, PA-001's catalog preconditions name region "eu" and fixture identifiers. Running PA-001 on a US tenant substitutes the tenant's identifiers and region. This record treats that as instance parameters, not a scenario change, and flags it for the catalog owner.
+1. **Fixture region and currency (resolution R-C).** The record says "The fixtures are EU/EUR (eu-west-1)". Only the accounting fixtures are: the accounting envelope and plan are EUR with `allowed_regions` eu-west-1. The industrial RFQ envelope is already USD/us-east-1, and the laundry envelope is GBP/eu-west-2. The P0 re-templating task therefore applies to the accounting fixtures. The malformed-plan fixtures in `fixtures/invalid/` also use eu-west-1; they exercise checker rules and do not need re-templating for the product. Separately, PA-001's catalog preconditions name region "eu" and fixture identifiers. Running PA-001 on a US tenant substitutes the tenant's identifiers and region. This record treats that as instance parameters, not a scenario change, and flags it for the catalog owner.
 2. **Envelope expiry 2027-03-31.** Confirmed: all three fixture envelopes, and every source grant in them, expire at 2027-03-31T00:00:00Z. That is day 177 of the plan, inside the 180-day window. One clarification: the plan checker evaluates authority at the later of the plan's `planned_at` (2026-10-02T08:00Z) and an explicit `now`. The local suite therefore does not start failing on that date, and `tests/test_fixture_plans.py` already exercises after-expiry behavior with a pinned clock. Running the checker CLI with `--now 2027-04-01T00:00:00Z` fails with ENVELOPE_INACTIVE. The refresh matters for any envelope templated from the fixtures, and for any run against a real clock. The malformed-plan fixtures carry an earlier envelope expiry, 2027-01-01, and are pinned the same way.
-3. **Shadow and canary budgets.** Confirmed: `activate-shadow-processing` has `max_elapsed_seconds` 1,209,600 (14 days), and `canary-consolidated-reminders` has 1,814,400 (21 days). Both are upper bounds. Corollary added to D5: both budgets fall short of the one-close floor, and the plan's total budget is 5,184,000 s (60 days). A real tenant plan needs larger step and total budgets.
+3. **Shadow and canary budgets.** Confirmed: 1,209,600 s and 1,814,400 s are `max_elapsed_seconds` upper bounds. The corollary in D5 (real tenant plans need larger step and total budgets than the fixture's 5,184,000 s) was added while rendering.
 4. **Maturity floors.** Confirmed: `required_maturity` (plan_checker.py L217-238; the record cited L215-238) gives `release.*` and `infrastructure.apply` PRODUCTION_VERIFIED, `dependency.raise` DOCUMENTED, READ steps and shadow deployments DOCUMENTED, and every other step SANDBOX_TESTED. With the registry reset to DOCUMENTED, the accounting plan fails at ten steps. The record names seven of them (configure, backfill, enable_incremental, infrastructure.apply and the three release steps). It omits `dataset.build`, `training.submit` and `workflow.compile`. The first two are out of scope. `workflow.compile` is on the M3-lite path and needs a SANDBOX_TESTED receipt before the M3-lite build, as added to the D3 table.
 5. **Read-step maturity.** D3 says "DOCUMENTED for read steps", while the P1 exit evidence requires SANDBOX_TESTED receipts for `list_folder_changes`, `fetch_document` and the ledger-metadata reads. Both hold. DOCUMENTED is the checker's floor, but PA-001's preconditions require SANDBOX_TESTED inventory records for the two document reads. This document states both.
-6. **Registry composition.** The registry has 25 entries: 15 PRODUCTION_VERIFIED, 8 SANDBOX_TESTED and 2 DOCUMENTED. Its own description calls all of them synthetic placeholders. The P0 reset therefore covers every entry, not only the 15.
-7. **Materiality trigger wording.** The record lists "Presence UNKNOWN or STALE". In the package, STALE is a `FactStatus` value; `Presence` has only PRESENT, CONFIRMED_ABSENT and UNKNOWN. D6 renders the trigger as "Presence UNKNOWN, or fact status STALE, DISPUTED, or INFERRED below the auto-accept threshold".
+6. **Registry composition.** The registry holds 25 capability records covering 23 step types (`inventory.probe` and `training.submit` each have two records; the README and VALIDATION_REPORT.md count step types). The records split 15 PRODUCTION_VERIFIED, 8 SANDBOX_TESTED and 2 DOCUMENTED, and the registry's own description calls its providers and operations plausible placeholders. The P0 reset therefore covers every record, not only the 15.
+7. **Materiality trigger wording (resolution R-B).** The record lists "Presence UNKNOWN or STALE". In the package, STALE is a `FactStatus` value; `Presence` has only PRESENT, CONFIRMED_ABSENT and UNKNOWN. D6 renders the trigger as "Presence UNKNOWN, or fact status STALE, DISPUTED, or INFERRED below the auto-accept threshold".
 8. **Market wording on bundling.** The record says "Xero and Intuit bundle it free". The market notes support a narrower claim. Intuit Accountant Suite entry tiers are no-charge during the introductory period (explicit for the UK and Australia; the US per a secondary source). Xero Partner Hub Document Requests exist, but their pricing is not disclosed. D2 uses the narrower wording.
-9. **Test count.** 819 is the count in the current VALIDATION_REPORT.md, and it will change as tests are added. Never-claim item 1 is worded so that it does not go stale.
+9. **Test count.** The local suite grows (a product-docs test was added with this doc set), so this record does not hard-code a count. It cites VALIDATION_REPORT.md, and never-claim item 1 is worded so that it does not go stale. The spec's "56 tests" (header table and Appendix C) is stale.
 10. **RELEASE state machine.** Confirmed: PAUSED is reachable only from ACTIVE. CANARY can already move to ROLLED_BACK, so a canary can be rolled back but not paused. SHADOW can only advance to CANARY or retire. "Pause and kill from SHADOW and CANARY" therefore needs a PAUSED transition from both states and a rollback transition from SHADOW.
+11. **Effect classes of M1 and the Prepare tier (resolution R-A).** The record says the M1 readiness ledger "uses only READ and COLLECT effect classes". COLLECT is a data purpose (`DataPurpose`), not an effect class. The accounting plan's collection path declares READ, INTERNAL_WRITE (shadow deploy, backfill) and EXTERNAL_WRITE_REVERSIBLE (`integration.configure`, `collection.enable_incremental`). The decision stands; the corrected wording, used in the conventions, D2 and the disagreement notes, is: READ, INTERNAL_WRITE and EXTERNAL_WRITE_REVERSIBLE on the firm's own accounts, and no EXTERNAL_COMMUNICATION.
+12. **Send timing (resolution R-G).** The record's P6 window, "Weeks 26-36 or later (Apr-Jun 2027), earliest", and its D5 line that the Send canary cannot finish before about weeks 30-36 both ignore the D6 calibration ladder. Two Draft closes must come first, so the earliest policy-approved Send canary close is around July 2027 (about weeks 39-41). The P6 window covers the Draft tier and the start of M5, not Send.
+13. **Tenant 1 conversion timing (resolution R-D).** The record's P5 scope lists a "Tenant 1 pilot-to-paid decision", but D7 and D9 convert only after a full close in ACTIVE, and tenant 1 is still in SHADOW at day 180. The Prepare-tier promotion path (D4) and founder decision 17 resolve this: the day-180 packet records tenant 1's evidence to date, and conversion is expected in P6.
+14. **Effort rubric (resolution R-F).** The record's D6 rubric limits ENGINEERING_INTERVENTION to Plumb staff and leaves the reminder-policy approval and the weekly check-ins unplaced. D6 now carries the amended rubric, flagged as an amendment, and founder decision 18 asks for ratification. The missing principal type for Plumb staff is recorded as a contracts gap.
+15. **Approval decision kinds.** The record attributes DATA_USE, IMPLEMENT_OPERATE and CASE_LEVEL_BUSINESS to `approval_checker.py`. They are defined in `plumb/contracts/approval.py`; `approval_checker.py` holds `group_missing_authorizations`.
+16. **Xenett pricing.** The record gives Xenett as "about $7.5-$15" per client-month. The market notes give about $7.5 (AI Review) and about $10 (Workflow) per client-month; $15 is an accruals-and-AI add-on, not a plan price. D7 and the market-sources table use the notes' wording.
 
 ## References
 
@@ -1286,7 +1310,7 @@ All market facts come from the panel's market notes. The flags are: vendor-run o
 | M7 | Top barrier is training and implementation time (31%) | Ramp and CalCPA 2026, https://ramp.com/reports/benchmarking-the-modern-cpa-firm-2026-or-calcpa-and-ramp | Vendor co-branded; California only |
 | M8 | Basis works with about 30% of the top 25 firms and 20% of the top 150 | CPA Practice Advisor, Feb 24, 2026, https://www.cpapracticeadvisor.com/2026/02/24/basis-raises-100-million-to-deploy-ai-agents-for-accounting-firms/178759/ | Vendor-reported |
 | M9 | Double: 4,000+ firms and 150% NDR; per-connected-client pricing and a $200/month annual-commitment tier; $10/$25/$50 tier prices | https://www.cpapracticeadvisor.com/2025/12/13/double-raises-6-5-million-series-a/174948/; https://doublehq.com/pricing; tier prices from https://www.capterra.com/p/10012825/Keeper/ | NDR and firm count vendor-reported; tier prices secondary |
-| M10 | Xenett about $7.5-$15 per client-month | https://www.xenett.com/pricing | Vendor pricing page |
+| M10 | Xenett about $7.5 (AI Review) or $10 (Workflow) per client-month; accruals-and-AI add-on $15 | https://www.xenett.com/pricing | Vendor pricing page |
 | M11 | Financial Cents seats $19-$89 per user-month; month-end close add-on $5 per client-month | https://financial-cents.com/pricing/ | Vendor pricing page |
 | M12 | Karbon seats $59-$99 per user-month; Kai and a public MCP server | https://karbonhq.com/pricing/; https://karbonhq.com/resources/karbon-launches-kai/ | Vendor pages; Kai in early access |
 | M13 | Uku seats $19-$99 per user-month; Uku MCP | https://getuku.com/pricing/ | Vendor pricing page |

@@ -14,13 +14,13 @@ Part of the product doc set ([index](README.md)). This document expands D11 (top
 | Package has | Code or data in the reference package today, verified on 2026-10-04 and named by file path. |
 | Proposed | This document's proposal, derived from the decision record. Not ratified. |
 
-**Nothing here has been measured.** There is no tenant, no effort ledger and no deployed service. Likelihood and impact ratings are the strategy panel's judgment, not data. Every threshold is a hypothesis from the decision record unless the spec or the catalog states it. All of them are pre-registered in threshold sheet v1 (backlog E24-S01) and ratified at the M0 exit. Each table says this once.
+**Nothing here has been measured.** There is no tenant, no effort ledger and no deployed service. Likelihood and impact ratings are the strategy panel's judgment, not data. Every threshold is a hypothesis from the decision record unless the spec or the catalog states it. All of them go into threshold sheet v1 (backlog E24-S01), issued in P0 and ratified at the M0 exit.
 
 **Where things stand (verified 2026-10-04).**
 
-- The reference package is a deterministic policy kernel: typed contracts, plan, approval, release and dataset checkers, a SQLite effect ledger and seven state machines. [VALIDATION_REPORT.md](../VALIDATION_REPORT.md) reports 819 passing local tests. Under spec §28 (L450), these tests do not validate models, business outcomes, tenant security, cloud isolation or integrations.
+- The reference package is a deterministic policy kernel: typed contracts, plan, approval, release and dataset checkers, a SQLite effect ledger and seven state machines. Its local contract tests (more than 800; counts in [VALIDATION_REPORT.md](../VALIDATION_REPORT.md)) do not, under spec §28 (L450), validate models, business outcomes, tenant security, cloud isolation or integrations. The spec's own "56 tests" figure (header table and Appendix C) is stale.
 - None of the 30 catalog scenarios has run against production. The catalog itself records `executed_against_production: false`.
-- The [capability registry](../plumb/registry/capability_registry.json) describes itself as synthetic. Of its 25 entries, 15 are marked PRODUCTION_VERIFIED, and none establishes access to a real account.
+- The [capability registry](../plumb/registry/capability_registry.json) describes itself as synthetic. Of its 25 records (covering 23 step types), 15 are marked PRODUCTION_VERIFIED, and none establishes access to a real account.
 - The value-producing loop (inventory, connect, collect, plan, execute, verify, release, measure) is not built.
 
 ---
@@ -35,7 +35,7 @@ Spec §27 (L442) lists six experiments that "remain necessary", and the decision
 |---|---|---|---|---|
 | Threshold sheet v1 (E24-S01) | Every numeric trigger in section 2; the experiment thresholds in section 3; the D5 M2 entry gates; the D6 interruption budget and Draft-to-Send ladder; the D10 targets; the D7 commercial triggers; the correct-package threshold (set by the domain expert at the P4 exit, then frozen) | Plumb domain expert, co-owned by the founder (D12) | P0 (weeks 0-2) | M0 exit (P1), by the domain expert and an external technical advisor |
 | Experiment charter | The six spec §27 experiments as written in section 3: hypothesis, test, metric, threshold, decision, phase, failure response | Founder | P0, with the threshold sheet | M0 exit |
-| Effort rubric v1 | The five categories (CUSTOMER_AUTHORIZATION, DOMAIN_CLARIFICATION, NORMAL_BUSINESS_REVIEW, ENGINEERING_INTERVENTION, OPERATIONAL_REPAIR) and their boundary cases ([metrics](06-metrics.md) section 6) | Founder, with the domain expert | Frozen in week 1 (P0) | Signed at P0 exit |
+| Effort rubric v1 | The five categories (CUSTOMER_AUTHORIZATION, DOMAIN_CLARIFICATION, NORMAL_BUSINESS_REVIEW, ENGINEERING_INTERVENTION, OPERATIONAL_REPAIR) and their boundary cases, as D6 amended by founder decision 18 (to ratify) ([metrics](06-metrics.md) section 6) | Founder, with the domain expert | Frozen in week 1 (P0) | Signed at P0 exit |
 | Never-claim checklist | The twelve items in section 7 | Founder | Published in P0 | Not relaxed under any result (D8) |
 
 **Changing a threshold (proposed).** After ratification, a threshold changes only through a new, dated sheet version that states the reason, and only for readings taken after the change. No threshold changes once the data it judges is visible. Old versions stay in the record, and every report names the version in force. The decision record's revisit triggers are the only route to changing a decision itself.
@@ -62,8 +62,8 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 | R1 | Replication does not get cheaper, so Plumb is a services business | Experiments 3 and 6 | Medium-High | Existential | EIH/VD; hands-off build rate; artifact reuse rate and fork count | Tenant 3 EIH/VD at or above 75% of tenant 1; hands-off below 50%; reuse below 60%; any fork | P2 baseline; P3 trigger | Founder |
 | R2 | Hidden human labor presented as autonomy | PL-003 | Medium | Existential to credibility | Ledger audit findings; share of effort captured automatically | Any unrecorded engineering found in an audit | P0 ledger; P2 first milestone audit | Founder |
 | R3 | Interruption load turns the customer into the systems integrator | Experiment 4 | Medium | High | Interruption load | Median clarification above 10 questions or 3 hours per workflow on tenant 3; owner time above 60 minutes a week; more than 3x budget at two partners | P1 onboarding; P4 workflow | Product engineer |
-| R4 | Generated failure handling is unreliable and causes an effect-safety incident | Experiment 5 | Medium | High | Protected failure-case pass rate; client-request integrity | More than 10% of protected cases fail across two tenants; one real-client incident in canary | P4 sandbox; P6 canary | Tech lead |
-| R5 | Market squeeze and low willingness to pay | Commercial unknown | Medium-High | High | Commercial conversion; design-partner funnel; measured value per active client-month | 3 of 5 prospects choose native tools; 50% pick an incumbent; fewer than 2 of first 4 convert at $15 or more; cost above 2x price at tenant 4 | P0 funnel; P5-P6 conversion | Founder |
+| R4 | Generated failure handling is unreliable and causes an effect-safety incident | Experiment 5 | Medium | High | Protected failure-case pass rate; client-request integrity | More than 10% of protected cases fail across two tenants; one real-client incident in canary | P4 sandbox; P6 Draft canary; Send canary not before about July 2027 | Tech lead |
+| R5 | Market squeeze and low willingness to pay | Commercial unknown | Medium-High | High | Commercial conversion; design-partner funnel; measured value per active client-month | 3 of 5 prospects choose native tools; 50% pick an incumbent; fewer than 2 of first 4 convert at $15 or more; cost above 2x price at tenant 4 | P0 funnel; P6 conversion (tenant 1's evidence to date in the day-180 packet) | Founder |
 | R6 | Build time versus runway | Commercial unknown | High | High | Milestone attestation dates; time to first verified event | PA-001 not passed on tenant 1 by week 14; M1R not passed by week 24 | P2 | Founder |
 | R7 | Data rights and access block the evidence | Commercial unknown | Medium | Medium-High | Source grants by source and purpose | 2 of 5 partners refuse mailbox scopes, or no vendor approval by M3-lite; fewer than 2 TRAIN grants; counsel finds IRC 7216 blocks sources | P0 vendor timelines; P4 | Founder |
 
@@ -98,7 +98,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 
 **Kill or pivot criterion (pre-registered, D11).** At the M1R checkpoint, any of: tenant 3's EIH/VD at or above 75% of tenant 1's; hands-off build rate on tenants 2 and 3 below 50%; artifact reuse below 60%; any code fork. Response: freeze new milestone work for 4 weeks and find the root cause. If tenant 4 still shows no decline, pivot: sell the factory as tooling for human implementers (MSPs, VARs, roll-ups) and drop the autonomous-implementation claim, or become an honestly priced verified-implementation service.
 
-**Owner (proposed).** Founder, accountable. Integration engineer (registry owner, spec §26 L416), responsible for reuse. Verification and acceptance-harness engineer, who computes EIH/VD outside the build team.
+**Owner (proposed).** Founder, accountable. Integration engineer (registry owner under D12; spec §26 L416 asks for a named owner), responsible for reuse. Verification and acceptance-harness engineer, who computes EIH/VD outside the build team.
 
 **Linked ids.** PL-002, PL-003, PL-020, PL-062, PL-063; ADR-010; PA-001, PA-027; PA-P01, PA-P13.
 
@@ -109,8 +109,8 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 **Cause.**
 - Spec §1 (L51) allows a supervised first delivery, and there is commercial pressure to look autonomous during it.
 - PA-001 fails on any ENGINEERING_INTERVENTION entry. That condition rewards keeping work off the ledger.
-- Package has: the `HumanEffortCategory` enum and a `HumanEffortRecord` model in [common.py](../plumb/contracts/common.py), but no ledger, API or capture.
-- Other leak paths: work in provider admin consoles, tenant work relabeled as platform investment, and customer IT staff doing the wiring.
+- Package has: the `HumanEffortCategory` enum and a `HumanEffortRecord` model in [common.py](../plumb/contracts/common.py) and a `human_effort` table in the [SQL design](../sql/001_initial_design.sql), but no running ledger, no API operation that records effort and no capture. `PrincipalType` has no type for Plumb staff, so staff effort cannot be told apart from the customer's by principal type (gap).
+- Other leak paths: work in provider admin consoles, tenant work relabeled as platform investment, and customer IT staff doing the wiring (ENGINEERING_INTERVENTION under the D6 rubric as amended by founder decision 18).
 - Market context: Builder.ai went bankrupt after reports that its "AI" relied on hundreds of human engineers (secondary coverage, May-June 2025), and the FTC's Operation AI Comply continues to pursue deceptive AI claims (law-firm analysis, Aug 2026). Sources are at the end.
 
 **Likelihood and impact.** Medium; existential to credibility. It would invalidate every PL-062 claim and expose Plumb to AI-washing enforcement.
@@ -130,7 +130,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 - An auditor outside the delivery team at M1, M1R and M5, plus a monthly audit of the delivery team's account using PA-027's method (D12).
 - A customer-visible ledger in the results-and-effort view (E11-S05).
 - No per-customer delivery engineers (D12).
-- Credentials are resolved only through the gateway (PL-006), so out-of-band work leaves a trace.
+- Agents get no general administrator credentials and the gateway resolves credentials for approved operations (PL-006). Human console access outside it is logged as break-glass access (proposed; [metrics](06-metrics.md) section 2.3).
 - The never-claim checklist (section 7; E24-S02).
 
 **Kill or pivot criterion (pre-registered, D11).** Any unrecorded engineering found in an audit invalidates the milestone and forces a re-run. A second occurrence triggers an external audit before any external claim.
@@ -154,7 +154,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 **Likelihood and impact.** Medium; high.
 
 **Early-warning indicators.**
-- Interruption load: DOMAIN_CLARIFICATION questions per workflow and the decay ratio of close n against close 1; owner decision minutes per tenant-week by decision type (DATA_USE, IMPLEMENT_OPERATE, CASE_LEVEL_BUSINESS); owner requests per tenant-week; repeat-ask rate; per-case approval share.
+- Interruption load: DOMAIN_CLARIFICATION questions per workflow and the decay ratio of close n against close 1; owner decision minutes per tenant-week by decision type (DATA_USE, IMPLEMENT_OPERATE, CASE_LEVEL_BUSINESS); owner requests per tenant-week; repeat-ask rate; per-case approval share. The budget counts unscheduled asks; scheduled weekly check-ins and baseline-study recording overhead are DOMAIN_CLARIFICATION and reported beside it (founder decision 18).
 - CUSTOMER_AUTHORIZATION minutes per firm at onboarding. Above 4 hours re-scopes the stack (D1).
 - Outcome mix per authorized goal: median days in dependency with the customer as resolver.
 - Review burden: accountant minutes per package against the month-0 baseline.
@@ -163,7 +163,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 - Engagement-checklist templates (E13-S02).
 - A focused-question queue with a per-workflow budget (E11-S06).
 - Answers become versioned conventions (E09-S06; PA-004).
-- Batching with `group_missing_authorizations`. Package has it in [approval_checker.py](../plumb/checker/approval_checker.py), not wired to anything; wiring is E15.
+- Batching with `group_missing_authorizations`. Package has it in [approval_checker.py](../plumb/checker/approval_checker.py), called only by the local tests; wiring it to a product surface is E15.
 - Interruption-budget metering (E15-S05).
 - Policy-level approval with D6 materiality triggers (E15-S06; PA-P03).
 - Batched review sessions (E14-S07).
@@ -184,7 +184,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 **Cause.**
 - Experiment 5 is open: "the reliability of generated failure handling" (spec §27 L442).
 - Package has: a SQLite effect ledger that "does not implement a production outbox, distributed leases or provider guarantees" (spec §16 L264).
-- Package has: a RELEASE state machine that allows PAUSED only from ACTIVE, so a CANARY release cannot be paused, only rolled back or promoted ([machines.py](../plumb/statemachines/machines.py)). The ledger does not check release pause or authority before dispatch (research notes: implementation-reality).
+- Package has: a RELEASE state machine that allows PAUSED only from ACTIVE, so a CANARY release cannot be paused, only promoted, rolled back or retired ([machines.py](../plumb/statemachines/machines.py)). The [effect ledger](../plumb/ledger/effect_ledger.py) does not check release pause before dispatch; on authority it only flags a divergent `authority_ref` and leaves the re-check to the dispatcher.
 - Temporal "does not supply a business-level exactly-once guarantee for arbitrary external APIs" (spec §3 L84).
 - A provider without request-id lookup leaves an UNKNOWN effect that only a human can reconcile.
 - A mailbox draft is an external write, not an action without external effect (D3).
@@ -212,7 +212,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 - One real-client duplicate, stale or wrong-client request in canary: halt sends, revert to Draft, and run root-cause analysis.
 - Two such incidents within 90 days: Send leaves the product for two quarters, and preparation-only becomes the product.
 
-**Owner (proposed).** Tech lead (action gateway owner, spec §26 L416). The verification engineer owns the protected verifier. SRE/on-call joins by about week 22, before any Draft or canary (D12).
+**Owner (proposed).** Tech lead (action gateway owner under D12; spec §26 L416). The verification engineer owns the protected verifier. SRE/on-call joins by about week 22, before any Draft or canary (D12).
 
 **Linked ids.** PL-036, PL-037, PL-038, PL-039, PL-042, PL-047, PL-061; ADR-009; PA-003, PA-004, PA-005, PA-006, PA-007, PA-008, PA-009, PA-010, PA-011, PA-015; PA-P02, PA-P03, PA-P04, PA-P05.
 
@@ -300,7 +300,7 @@ The seven risks come from the decision record. In its words, R1 and R2 decide wh
 **Cause.**
 - Partners may refuse mailbox scopes.
 - Spec requires that Plumb "must not bypass vendor approvals, MFA, licensing or unavailable endpoints" (spec §5 L106).
-- Google's Workspace policy restricts "uses beyond the specific user's personalized model", and "vendor terms can change" (spec §21 L328).
+- Google's Workspace policy restricts "uses beyond the specific user's personalized model", and "Vendor terms can change" (spec §21 L328).
 - IRC 7216 governs tax-return information shared with third-party AI systems (secondary compliance commentary; verify with counsel).
 - 53% of small firms demand no model training on their data. This comes from a small, self-selected survey and is directional only (Uku 2026); the decision record states it without the caveat.
 - Package has: SERVE is never enforced. No fixture envelope grants SERVE, yet every fixture plan passes. The `SourceGrant` contract has no `revoked_at` ([envelope.py](../plumb/contracts/envelope.py)), so revoking a single grant is not modeled.
@@ -345,7 +345,7 @@ Every experiment below has a pre-registered threshold (section 1). All threshold
 | 3 | "whether agents can adapt existing adapters cheaply enough" | R1 | P3 | PL-063 platform verdict; "automatically constructed" claim |
 | 4 | "the amount of domain clarification per workflow" | R3 | P4 (tenant 1) | Self-discovery claim; template pivot; wedge kill |
 | 5 | "the reliability of generated failure handling" | R4 | P4-P6 | Generated versus template workflows; Draft and Send go |
-| 6 | "the rate of maintainable reuse across customers" | R1 | P3; P6 (M5) | M5 and M6 ("not a forked engine") |
+| 6 | "the rate of maintainable reuse across customers" | R1 | P3; M5 (starts in P6) | M5 and M6 ("not a forked engine") |
 
 ### 3.1 Experiment 1: "whether richer observation materially improves deployable discovery"
 
@@ -371,7 +371,7 @@ Every experiment below has a pre-registered threshold (section 1). All threshold
 | Threshold (hypothesis) | At least 90% join precision (D5; the domain expert ratifies) |
 | Decision it informs | M2 go/no-go. All four D5 gates are required: join precision of at least 90%; TRAIN grants on at least 2 tenants; at least 500 explicit accept/correct events; and either classification errors account for at least 25% of review minutes, or a candidate comparison shows a reviewer-time gain. |
 | Phase | The M2 go/no-go memo in P5 (E21-S01), if grants and events exist by then; otherwise after day 180 |
-| If it fails | M2 stays deferred. The baseline workflow continues without training (spec App. B L624: "the baseline workflow can operate while useful training data accumulates"), and the collector keeps accumulating explicit decisions. Not a company kill. |
+| If it fails | M2 stays deferred. The baseline workflow continues without training (spec App. B L624: "The baseline workflow can operate while useful training data accumulates"), and the collector keeps accumulating explicit decisions. Not a company kill. |
 | Limits | The measurement is not a PA-012 pass. PA-012 itself is the gated M2 evidence and is not claimed in P0-P6 ([roadmap](04-roadmap.md) section 5). |
 
 ### 3.3 Experiment 3: "whether agents can adapt existing adapters cheaply enough"
@@ -394,7 +394,7 @@ Every experiment below has a pre-registered threshold (section 1). All threshold
 | Hypothesis | Per workflow, domain clarification fits the D6 budget: at most 5 DOMAIN_CLARIFICATION questions at onboarding, at most 2 new questions per close after close 1, and zero repeat asks |
 | Cheapest credible test | No separate experiment. Count questions and minutes in the focused-question queue and the effort ledger during M3-lite on tenant 1 (P4), then on tenants 2 and 3. Engagement-checklist templates (E13-S02) are the intervention being tested. |
 | Metric | Interruption load: DOMAIN_CLARIFICATION questions and minutes per workflow, the decay ratio of close n against close 1, and the repeat-ask rate |
-| Threshold (hypothesis) | Within budget. R3 fires on tenant 3 at a median above 10 questions or 3 hours per workflow, or on steady-state owner decision time above 60 minutes a week, or on clarification plus authorization above 3x budget at two partners. |
+| Threshold (hypothesis) | Within budget. R3 fires on tenant 3 under the section 2.3 criterion. |
 | Decision it informs | Whether "Plumb discovers and implements" holds in this vertical, or Plumb moves to a fixed template with firm-level defaults and a narrower ICP. If owner minutes exceed measured accountant savings, the wedge is killed. |
 | Phase | P4 exit for tenant 1 (decision record, P4 exit evidence); P5-P6 for tenant 3's workflow, which may be pending at day 180 (section 2.3) |
 | If it fails | The R3 response (section 2.3) |
@@ -405,11 +405,11 @@ Every experiment below has a pre-registered threshold (section 1). All threshold
 | Element | Plan |
 |---|---|
 | Hypothesis | After bounded repair, generated workflow logic handles the protected Appendix B failure cases: wrong client, ambiguous period, already-received document, corrected statement, duplicate request, expired permission, provider timeout after send, changed approval and stale source |
-| Cheapest credible test | Run the protected verifier before any external effect exists. In sandbox in P4: PA-003, PA-004, PA-006, PA-008, PA-010, PA-011. Against the sandbox gateway in P5: PA-005 and PA-009. PA-007 needs concurrent ACTIVE and CANARY releases, so it can pass only in the Send canary (P6). The fault-injection harness (E10-S03) makes these cases runnable. |
+| Cheapest credible test | Run the protected verifier before any external effect exists. In sandbox in P4: PA-003, PA-004, PA-006, PA-008, PA-010, PA-011. Against the sandbox gateway in P5: PA-005 and PA-009. PA-007 needs concurrent ACTIVE and CANARY releases, so it cannot pass before the Send canary (earliest close around July 2027, after the P6 window). The fault-injection harness (E10-S03) makes these cases runnable. |
 | Metric | Protected failure-case pass rate, per tenant, on generated workflow logic. A certified template workflow is reported separately, so template passes are not counted as generated passes. |
 | Threshold (hypothesis) | More than 10% of the cases failing across two tenants triggers R4 |
 | Decision it informs | Whether Plumb keeps generating workflow logic or uses only certified template workflows. Draft and M4-accounting go/no-go at day 180. |
-| Phase | P4 (tenant 1, sandbox); P5 (gateway sandbox; second tenant's workflow); P6 (production gateway and canary) |
+| Phase | P4 (tenant 1, sandbox); P5 (gateway sandbox; second tenant's workflow); P6 (production gateway and Draft canary); Send canary from about July 2027 |
 | If it fails | Stop generating workflow logic, use only certified template workflows, and never claim "generated workflows" (section 2.4) |
 | Limits | The "across two tenants" reading needs a second tenant's workflow, which starts in P5, so it may land after day 180. Any HIGH-severity failure blocks activation anyway (PL-061), whatever the rate. |
 
@@ -421,8 +421,8 @@ Every experiment below has a pre-registered threshold (section 1). All threshold
 | Cheapest credible test | Digest comparison of each new tenant's deployment against the registry at M1R (collection path, tenants 2 and 3), then at M5 (full workflow, tenants 2-4) (E07-S07). **Proposed addition:** a maintainability read, using post-verification OPERATIONAL_REPAIR minutes per deployed component (the split view in [metrics](06-metrics.md) section 2.1) over each component's first months in operation. |
 | Metric | Artifact reuse rate and fork count; post-verification OPERATIONAL_REPAIR minutes per deployed component (proposed) |
 | Threshold (hypothesis) | Reuse of at least 60% by tenant 3, with fork count 0; any fork triggers R1. The decision record sets no maintainability threshold. This document proposes setting one at the M1 audit, once real repair data exists, and not before. |
-| Decision it informs | M5 ("falling manual implementation effort with stable quality and value", spec §26 L413) and M6 ("not a forked engine", spec §26 L414). How much to invest in the registry. |
-| Phase | P3 first read; P6 (M5) full read |
+| Decision it informs | M5 ("Falling manual implementation effort with stable quality and value", spec §26 L413) and M6 ("not a forked engine", spec §26 L414). How much to invest in the registry. |
+| Phase | P3 first read; full read at M5, which starts in P6 and may finish after it |
 | If it fails | The R1 response (section 2.1) |
 | Limits | Reuse at deployment time is not the same as maintainability over time. The decision record's metric reads only the first, which is why the repair read above is proposed. |
 
@@ -447,11 +447,11 @@ Each assumption names the evidence available today, with its source, and the tes
 
 | # | Assumption | Evidence today (source) | Test | Phase | Risk |
 |---|---|---|---|---|---|
-| A-V1 | Firms will pay $15 per active client-month for Prepare, with a $500 firm minimum | Per-client close tools: Double $10/$25/$50 per client-month (secondary listings; the vendor page confirms only the per-client model); Xenett about $7.5-$15; the Financial Cents close add-on $5. Cost is the least-cited adoption barrier at 6% (Financial Cents, Aug 2026; vendor survey). | Paid pilot of $1,500-$3,000 invoiced at signature; at least 2 paid LOIs from about 30 qualified conversations; at least 2 of the first 4 partners convert at $15 or more; price test at $15, $25 and $35 plus a per-accepted-package unit (D7) | P1; P5-P6 | R5 |
+| A-V1 | Firms will pay $15 per active client-month for Prepare, with a $500 firm minimum | Per-client close tools: Double $10/$25/$50 per client-month (secondary listings; the vendor page confirms only the per-client model); Xenett about $7.5 (AI Review) or $10 (Workflow), plus a $15 accruals-and-AI add-on; the Financial Cents close add-on $5. Cost is the least-cited adoption barrier at 6% (Financial Cents, Aug 2026; vendor survey). | Paid pilot of $1,500-$3,000 invoiced at signature; at least 2 paid LOIs from about 30 qualified conversations; at least 2 of the first 4 partners convert at $15 or more; price test at $15, $25 and $35 plus a per-accepted-package unit (D7) | P1; P5-P6 | R5 |
 | A-V2 | Measured value is at least 3x price, about $45 per client-month | None. No reputable primary source for hours per client-month (market-accounting notes) | Month-0 time study (E14-S01) against shadow-close timing; the PA-P12 economic-result attestation | P5 | R5 |
 | A-V3 | Fully loaded cost to serve falls to at most 2x price by tenant 4, or trends down | None. Plumb labor has not been measured. | Fully loaded cost per verified deployment, and gross margin per active client-month (E20) | P5-P6 | R1, R5 |
 | A-V4 | The ICP pool is large enough after its filters (10-40 staff, at least 60% recurring CAS revenue, at least 50 recurring clients, mixed stack) | Census SUSB 2022 (employer firms only): about 13.4k CPA firms with 5-19 employees, and about 3.3k CPA and other-accounting firms with 20-99 (derived from the Census table). The 60% CAS filter is untested and may shrink the pool, because most small CPA firms do both CAS and tax (dissent record). | Qualification rate in the funnel; at least 25 qualified conversations by week 8 (D9) | P0-P1 | R5 |
-| A-V5 | Partners renew after about three closes | None | Renewal decision. The earliest credible one is about three closes after connection, around mid-April 2027 for tenant 1 (D5). | P5-P6 | R5 |
+| A-V5 | Partners convert to paid annual after one full close in ACTIVE, and renew | None | Conversion under the Prepare-tier promotion path (founder decision 17, to ratify): SHADOW for at least one full close, CANARY on client-periods whose accountants use the packages in their real review, then ACTIVE; conversion after one full ACTIVE close at or above the correct-package threshold. The day-180 packet records tenant 1's evidence to date; its conversion is expected in P6. The earliest credible renewal decision is about three closes after connection (D5). | P6 | R5 |
 | A-V6 | Firms accept native-setting outcomes billed at the same rate (D7) | None | PA-P11 cases; billing feedback at conversion | P6 | R5 |
 
 ### 4.3 Feasibility
@@ -494,7 +494,7 @@ Each assumption names the evidence available today, with its source, and the tes
 
 ## 5. Open product questions
 
-Each question has a recommended default (proposed) and an owner. The default applies until the founder ratifies or changes it. "Decide by" is the latest phase in which the answer is still cheap.
+Each question has a recommended default (proposed) and an owner. The default applies until the founder ratifies or changes it. Q14 records a head-of-product decision awaiting ratification, not a proposal. "Decide by" is the latest phase in which the answer is still cheap.
 
 | # | Question | Why it matters | Recommended default (proposed) | Owner | Decide by | Linked ids |
 |---|---|---|---|---|---|---|
@@ -509,11 +509,11 @@ Each question has a recommended default (proposed) and an owner. The default app
 | Q9 | What is the IRC 7216 scope? | Tax-return information shared with third-party AI systems carries consent obligations (secondary commentary; verify with counsel). | Exclude tax-return information from v1 source grants through folder and label exclusions and PL-053 purpose checks. The firm warrants it will not route such data. Counsel opinion before the first signature. Relax only for monthly-close sources that counsel confirms are out of scope (D9). (E18-S02) | Founder with counsel | P0-P1 | PL-023, PL-053 |
 | Q10 | Who sets task-specific thresholds, and through what surface? | Spec §24 (L382): "No universal 99% score". Each release sets its own denominators and thresholds, and the release gate cannot work without an owner. | The domain expert authors threshold sheet versions, ratified with an external technical advisor. Stored as a versioned artifact the build team cannot edit (protected bundle store, E10-S02). Changes apply prospectively (section 1.1). | Plumb domain expert | P0 | PL-044, PL-061 |
 | Q11 | What exactly is an obligation, and an obligation epoch? | Effect-slot identity is "tenant + case + obligation epoch + operation + target" (spec §16 L260). If the domain model is wrong, deduplication is wrong. | Obligation = client + period + one required item from the engagement checklist. Epoch = one consolidated request cycle per close; follow-ups within the cadence cap stay in the epoch. A deliberate new reminder opens a new approved epoch. | Domain expert; tech lead | P4 | PL-037, PL-039; PA-007 |
-| Q12 | What do "block" and "degrade" mean per obligation when coverage is missing? | PL-025: workflows "MUST block or degrade explicitly", and a stopped collector must never make an obligation look satisfied or unsatisfied (spec §11 L188) | Missing coverage shows UNKNOWN or STALE, never CONFIRMED_ABSENT. The package is marked "coverage incomplete" with the affected sources, and request steps block (PA-011). A client-month where a Plumb-caused DEGRADED collector covered more than 20% of the period is credited (D7). (E08-S09) | Product engineer; domain expert | P2 | PL-010, PL-025; PA-011; PA-P17 |
+| Q12 | What do "block" and "degrade" mean per obligation when coverage is missing? | PL-025: workflows "MUST block or degrade explicitly", and a stopped collector must never make an obligation look satisfied or unsatisfied (spec §11 L188) | Missing coverage shows Presence UNKNOWN with fact status STALE, never CONFIRMED_ABSENT. The package is marked "coverage incomplete" with the affected sources, and request steps block (PA-011). A client-month where a Plumb-caused DEGRADED collector covered more than 20% of the period is credited (D7). (E08-S09) | Product engineer; domain expert | P2 | PL-010, PL-025; PA-011; PA-P17 |
 | Q13 | Should an accounting write ever follow the package? | Spec §15 (L248): "Whether an accounting write follows is an explicit policy choice." | No posting and no FINANCIAL_COMMITMENT. Any future posting is a new envelope decision with accountant approval, never a silent widening. | Founder | Not planned | PL-005, PL-035 |
-| Q14 | How is wiring done by the customer's own staff categorized? | Spec App. B (L652): "If a person manually wires the integrations ... record that labor." D6 defines ENGINEERING_INTERVENTION as Plumb staff work. | ENGINEERING_INTERVENTION under the customer principal, counted in EIH/VD, and triaged as an interruption-budget defect ([metrics](06-metrics.md) section 6.2). Pending ratification. | Founder | P0 (rubric freeze) | PL-002, PL-003 |
+| Q14 | How is wiring done by the customer's own staff categorized? | Spec App. B (L652): "If a person manually wires the integrations ... record that labor." The record's D6 rubric limited ENGINEERING_INTERVENTION to Plumb staff. | Decided by the head of product as a flagged amendment to D6 (founder decision 18, to ratify): ENGINEERING_INTERVENTION covers implementation work by any person, Plumb or customer staff. Customer wiring is logged under the customer principal, counted in EIH/VD and triaged as an interruption-budget defect ([metrics](06-metrics.md) section 6.2). The contracts still need a Plumb-staff principal type (gap). | Founder | P0 (rubric freeze) | PL-002, PL-003 |
 
-Related questions answered elsewhere: how a Prepare workflow becomes ACTIVE, where the review surface lives, who confirms the backfill watermark, and what establishes CONFIRMED_ABSENT ([MVP scope](03-mvp-scope.md) section 10). The reminder-policy approval category, the deployment unit and the abandonment rule are in [metrics](06-metrics.md) (open questions).
+Related questions answered elsewhere: how a Prepare workflow becomes ACTIVE (founder decision 17), where the review surface lives, who confirms the backfill watermark, and what establishes CONFIRMED_ABSENT ([MVP scope](03-mvp-scope.md) section 10). Approving the reminder policy is CUSTOMER_AUTHORIZATION (founder decision 18). The deployment unit and the abandonment rule are open in [metrics](06-metrics.md) (open questions).
 
 ---
 
@@ -526,7 +526,7 @@ Related questions answered elsewhere: how a Prepare workflow becomes ACTIVE, whe
 | Vendor app review and consent for mail and document scopes (Google Workspace, Microsoft 365), and ledger app registration | Spec requires: Plumb "must not bypass vendor approvals, MFA, licensing or unavailable endpoints" (spec §5 L106). Workspace terms restrict uses beyond a user's personalized model and can change (spec §21 L328). Mail history is on the P4 critical path. | Approval timelines known at the P0 exit; status reviewed weekly (E02-S08); the vendor-terms version recorded per data-use decision (E18-S06) | Fractional compliance lead | Start in week 0 (Oct 5, 2026). Not granted by M3-lite: the R7 fallback |
 | US tax season, February to April 15 | Overlaps the P4-P5 shadow period, when reviewing accountants must adjudicate packages (D5) | Partner response latency; review queue age; sign-off lag | Founder | Collect tenant 2-3 grants, clarifications and baseline studies before mid-January; batch review sessions; the 60% CAS-revenue ICP floor |
 | Ledger authorization per client company | If QBO or Xero access is granted per client company, onboarding authorization may blow the budget (D1). It also defines account boundaries (PA-P08). | CUSTOMER_AUTHORIZATION minutes per firm in M0 | Integration engineer | Above 4 hours per firm: re-scope the stack (D1 trigger) |
-| Fixture envelopes expire 2027-03-31 | Package has: all three envelope fixtures expire then, and the checker returns ENVELOPE_INACTIVE from that date. The fixtures are also EU/EUR (`eu-west-1`). | CI and demo runs dated near the expiry | Integration engineer | Refresh or clock-pin in P0, alongside the US/USD re-template (E24-S03) |
+| Fixture envelopes expire 2027-03-31 | Package has: all three envelope fixtures expire then, and the checker returns ENVELOPE_INACTIVE from that date. The accounting envelope and plan are also EU/EUR (`eu-west-1`); the RFQ fixtures are USD (`us-east-1`) and laundry GBP (`eu-west-2`). | CI and demo runs dated near the expiry | Integration engineer | Refresh or clock-pin in P0, alongside re-templating the accounting fixtures to US/USD (E24-S03) |
 | Substrate dependencies (Nango, Airbyte, Temporal, Pulumi Automation API) | Candidates only; each must pass contract tests (spec §3 L84) | Contract-test results; vendor deprecations | Integration engineer; tech lead | A failing substrate keeps its operations at DOCUMENTED |
 
 ### 6.2 Competitive and market moves
@@ -558,24 +558,24 @@ Dates and claims come from the research notes, checked against sources dated bef
 | Element | Definition |
 |---|---|
 | Owner | Founder (D8, D12) |
-| Enforcement point | Before any external artifact leaves Plumb: sales decks and scripts, the website and landing pages, investor updates and data rooms, per-close partner reports, case studies, LOI and contract text, demo scripts, job postings that describe the product, and public anonymized ledger publications. The backlog's definition of done also applies it to any statement about completed work (E24-S02; backlog section 1.5, item 6). |
+| Enforcement point | Before any external artifact leaves Plumb: sales decks and scripts, the website and landing pages, investor updates and data rooms, per-close partner reports, case studies, LOI and contract text, demo scripts, job postings that describe the product, and public anonymized ledger publications. The backlog's definition of done also applies it to anything said about the work outside the team (E24-S02; backlog section 1.5, item 6). |
 | Published | P0 (decision record, phased plan) |
 | Rule of change | "The never-claim checklist is not relaxed under any result" (D8). Items 7 and 12 change their allowed wording only when the named evidence exists. |
 
 | # | Never claim | Say instead | What changes the allowed wording | Source |
 |---|---|---|---|---|
-| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or integrations. Never quote Appendix C's stale figure of 56 tests. | "A reference package with 819 passing local tests of its contracts and checkers. None validates production behavior." | Nothing changes this. Production claims need verifier-attested catalog scenarios. | spec §28 L450; VALIDATION_REPORT.md |
+| 1 | That local tests validate models, business outcomes, tenant security, cloud isolation or integrations. Never quote the spec's stale "56 tests" (header table and Appendix C). | "A reference package whose local contract tests (counts in VALIDATION_REPORT.md) check its contracts and checkers. None validates production behavior." Take any count from the current report. | Nothing changes this. Production claims need verifier-attested catalog scenarios. | spec §28 L450; VALIDATION_REPORT.md |
 | 2 | Cross-industry autonomy from the three synthetic scenarios | "The contracts represent three domains. Accounting is the only domain in scope." | Per domain only: M6 evidence (PA-P10) for laundry | spec §25 L398 |
 | 3 | 90 days as a delivery commitment | "A planning hypothesis contingent on access and staffing", plus each tenant's measured time to first verified event | Never becomes a promise | spec §26 L418 |
 | 4 | Product-video results as evidence | Nothing. Do not use them. | Never | spec §29 L492 |
 | 5 | An "autonomous close", or posting | "Ready for review" until the accountant signs off; no ledger writes | A new envelope decision for posting, if ever (Q13) | spec §15 L248; spec App. B L652 |
 | 6 | "Fully autonomous", "zero human", "no humans needed", "AI employee"; any autonomy claim where hidden human implementation occurred | "Supervised", with the labor ledger shown | PA-027-level evidence for that path (PA-P13 when marketed as autonomously implemented). The banned phrases stay banned. | PL-003; spec §1 L47 |
 | 7 | "Automatically constructed" or "generated integrations" before M1R | "Agent-configured certified connectors and agent-built collection" | M1R passes, including the zero-unrecorded-work audit (D4) | D4; D8 |
-| 8 | Logo walls; integration coverage taken from the synthetic registry | Coverage per operation at its maturity level ("supported environments v1", E02-S06) | Real probe receipts and attestations, per operation | PL-007, PL-008; capability_registry.json (15 synthetic PRODUCTION_VERIFIED entries) |
+| 8 | Logo walls; integration coverage taken from the synthetic registry | Coverage per operation at its maturity level ("supported environments v1", E02-S06) | Real probe receipts and attestations, per operation | PL-007, PL-008; capability_registry.json (15 of 25 synthetic records marked PRODUCTION_VERIFIED) |
 | 9 | Any hours-saved or ROI figure without a baseline and a denominator; causal claims from historical replay | Accountant minutes against the firm's month-0 baseline, with denominators; the duplicate-chase history labeled "historical, non-causal" | PA-P12 attests realized value before any external value claim | spec §7 L136 |
 | 10 | Exact unlearning from trained weights | "Quarantine, retire and stop serving, with lineage evidence" | Never | spec §20 L318 |
 | 11 | That a message was not sent after the provider accepted it | "The receipt is retained and a remediation is open" | Never | spec §17 L276; PA-014 (accounting analogue PA-P05) |
-| 12 | Claims beyond the released tier, such as "fewer duplicate requests" before Send-canary evidence, or the D8 headline's "one owner and one request per missing item" | The Prepare tier's verified outcomes only | Send-canary evidence (PA-P04, PA-007) | D8 item 12 |
+| 12 | Claims beyond the released tier, such as "fewer duplicate requests" before Send-canary evidence (earliest Send canary close around July 2027), or the D8 headline's "one owner and one request per missing item" | The Prepare tier's verified outcomes only | Send-canary evidence (PA-P04, PA-007) | D8 item 12 |
 
 **Mechanics (proposed).**
 
@@ -589,7 +589,7 @@ Dates and claims come from the research notes, checked against sources dated bef
 
 ## Related documents
 
-- [Decision record](02-strategy-decisions.md): D1-D12, the phased plan, R1-R7 as decided.
+- [Decision record](02-strategy-decisions.md): D1-D12, the phased plan, R1-R7 as decided, and founder decisions 17 (Prepare-tier promotion) and 18 (effort-rubric amendment).
 - [Product brief](01-product-brief.md): problem, personas and principles.
 - [MVP scope](03-mvp-scope.md): what is in and out, and the product's own open questions.
 - [Roadmap](04-roadmap.md): phase windows, the day-180 packet and PA-P01 to PA-P19.
@@ -602,10 +602,10 @@ Dates and claims come from the research notes, checked against sources dated bef
 
 **Repository (verified for this document on 2026-10-04).**
 
-- [Spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md): §1 L47, L51; §3 L84; §5 L106, L110; §6 L118; §7 L136; §11 L184, L188; §12 L198; §15 L248; §16 L254, L260, L264; §17 L266, L270, L272, L274, L276; §20 L318; §21 L328; §24 L378, L380, L382; §25 L398; §26 L404, L413, L414, L416, L418; §27 L440, L442; §28 L450; §29 L492; App. A.5 L570; App. A.6 L580; App. A.7 L586, L588; App. B L596, L602, L614, L624, L652, L654.
+- [Spec v0.2](../spec/Plumb_Autonomous_Implementation_Specification_v0.2.md): §1 L47, L51; §3 L84; §5 L106, L110; §6 L118; §7 L136; §11 L184, L188; §12 L198; §15 L248; §16 L254, L260, L264; §17 L266, L270, L272, L274, L276; §20 L318; §21 L328; §24 L378, L380, L382; §25 L398; §26 L404, L413, L414, L416, L418; §27 L440, L442; §28 L450; §29 L492; App. A.5 L570; App. A.6 L578; App. A.7 L586, L588; App. B L596, L602, L614, L624, L652, L654; the stale "56 tests" in the header table (L15) and App. C (L662).
 - [Requirements index](../spec/requirements_index.json): every PL id cited above, checked against its text; ADR-007, ADR-009, ADR-010.
 - [Acceptance catalog](../acceptance/production_acceptance_catalog.yaml): PA-001, PA-002, PA-003, PA-004, PA-005, PA-006, PA-007, PA-008 (one-minute invalidation), PA-009, PA-010, PA-011, PA-012, PA-014, PA-015, PA-019, PA-021 and PA-026 (no local analogue), PA-027; `executed_against_production: false`.
-- Code and data: [capability_registry.json](../plumb/registry/capability_registry.json) (synthetic; 15 of 25 entries PRODUCTION_VERIFIED), [plan_checker.py](../plumb/checker/plan_checker.py) (`required_maturity`), [machines.py](../plumb/statemachines/machines.py) (RELEASE allows PAUSED only from ACTIVE), [approval_checker.py](../plumb/checker/approval_checker.py) (`group_missing_authorizations`), [envelope.py](../plumb/contracts/envelope.py) (SourceGrant has no `revoked_at`), [common.py](../plumb/contracts/common.py) (`HumanEffortCategory`, `HumanEffortRecord`), [accounting plan fixture](../fixtures/plans/accounting_evidence_preparation.json), [accounting envelope fixture](../fixtures/envelopes/accounting_evidence_preparation.json) (expiry 2027-03-31; `eu-west-1`), [VALIDATION_REPORT.md](../VALIDATION_REPORT.md) (819 passed).
+- Code and data: [capability_registry.json](../plumb/registry/capability_registry.json) (synthetic; 25 records covering 23 step types, 15 marked PRODUCTION_VERIFIED), [plan_checker.py](../plumb/checker/plan_checker.py) (`required_maturity`), [machines.py](../plumb/statemachines/machines.py) (RELEASE allows PAUSED only from ACTIVE), [effect_ledger.py](../plumb/ledger/effect_ledger.py) (no pause check; divergent `authority_ref` flagged only), [approval_checker.py](../plumb/checker/approval_checker.py) (`group_missing_authorizations`), [envelope.py](../plumb/contracts/envelope.py) (SourceGrant has no `revoked_at`), [common.py](../plumb/contracts/common.py) (`HumanEffortCategory`, `HumanEffortRecord`, `PrincipalType` with no Plumb-staff type, `Presence`, `FactStatus`), [001_initial_design.sql](../sql/001_initial_design.sql) (`human_effort` table), [accounting plan fixture](../fixtures/plans/accounting_evidence_preparation.json), envelope fixtures for [accounting](../fixtures/envelopes/accounting_evidence_preparation.json) (`eu-west-1`, EUR), [RFQ](../fixtures/envelopes/industrial_rfq_preparation.json) (`us-east-1`, USD) and [laundry](../fixtures/envelopes/laundry_route_preparation.json) (`eu-west-2`, GBP), all expiring 2027-03-31; [VALIDATION_REPORT.md](../VALIDATION_REPORT.md) (local test counts).
 - Research notes (strategy panel inputs): spec-1-7, spec-8-16, spec-17-29, appendices, acceptance-and-index, implementation-reality, market-accounting, market-implementation.
 
 **Market (from the research notes; vendor-reported and secondary items flagged).**
