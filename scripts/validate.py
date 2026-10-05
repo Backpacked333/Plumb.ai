@@ -54,6 +54,7 @@ ARTIFACT_INSPECTION_FILES = {
     "test_schemas.py",
     "test_contract_registry.py",
     "test_acceptance_catalog.py",
+    "test_product_docs.py",
 }
 """Test files that inspect a delivered artifact (the OpenAPI document, the SQL design, the generated
 schemas, the contract registry, the acceptance catalog) rather than exercise contract, checker,
@@ -318,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
         "`tests/test_requirements_index.py` only pin the normative wording, and tests in "
         + ", ".join(f"`tests/{name}`" for name in sorted(ARTIFACT_INSPECTION_FILES))
         + " only inspect a delivered artifact (the OpenAPI document, the SQL design, the generated schemas, "
-        "the registry, the acceptance catalog); both are counted in their own columns and never make a "
+        "the registry, the acceptance catalog, the product documents); both are counted in their own columns and never make a "
         "requirement *locally tested*. A local test exercises the reference package, not the production "
         "behaviour; the acceptance column lists production acceptance scenarios that specify the real test. "
         "Requirements with neither are enforced only by the production gates named in the specification.\n"

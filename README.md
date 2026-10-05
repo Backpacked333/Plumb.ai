@@ -87,6 +87,7 @@ python3 spec/build_requirements_index.py --check      # requirements index is re
 | `tests/` | Contract and failure tests; every test is marked with the requirements it exercises | Appendix C |
 | `scripts/validate.py`, `scripts/refresh_fixture_digests.py` | Runs everything and writes `VALIDATION_REPORT.md` and `MANIFEST.json`; recomputes fixture and registry digests | section 28 |
 | `docs/REFERENCE_PACKAGE_DESIGN.md` | The design contract that fixes module names and interfaces | derived |
+| `product/` | Product-management documents: brief, strategy decisions, MVP scope, roadmap, backlog with requirement traceability, metrics, risks, market and design-partner program (proposals, not measurements) | sections 1, 24 to 27, Appendices A and B |
 
 ## The 17 top-level contracts
 
@@ -138,7 +139,7 @@ transitions of section 23.
 `VALIDATION_REPORT.md` separates requirements exercised by behavioural tests from those covered
 only by text-pinning tests (`tests/test_requirements_index.py`) or artifact-inspection tests
 (`tests/test_openapi.py`, `tests/test_sql_design.py`, `tests/test_schemas.py`,
-`tests/test_contract_registry.py`, `tests/test_acceptance_catalog.py`; the lists are
+`tests/test_contract_registry.py`, `tests/test_acceptance_catalog.py`, `tests/test_product_docs.py`; the lists are
 `TEXT_PIN_FILES` and `ARTIFACT_INSPECTION_FILES` in `scripts/validate.py`): a marker on such a
 test pins the specification text or inspects a delivered artifact, it does not mean the behaviour
 is enforced here.
