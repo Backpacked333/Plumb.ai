@@ -64,6 +64,26 @@ close or posting; "fully autonomous" or "no humans needed"; integration coverage
 registry; savings without a baseline and a denominator; anything beyond the released tier. The full
 12-item checklist is decision D8 in the [decision record](02-strategy-decisions.md).
 
+## Decisions the founder needs to make first
+
+These block P0-P2. Each line gives the decision (its row number and decide-by phase) and the
+recommended default; the full table, with options, is in the
+[decision record](02-strategy-decisions.md#founder-decisions-needed).
+
+- **M1 construction bar (1, P0).** PA-001 plus an agent-filled plan and an agent-generated mapping;
+  fall back to PA-001 as written if sandbox work slips more than 4 weeks.
+- **Replication timing (2, P0).** M1R on tenants 2 and 3 right after M1, not deferred to M5.
+- **Effort rubric (18, P0 week 1).** Ratify the amended D6 rubric: every human minute on a tenant,
+  customer or Plumb staff, lands in one of the five categories with its principal, Plumb time
+  defaulting to ENGINEERING_INTERVENTION when in doubt; add a Plumb-staff principal type.
+- **Pilot terms and pricing (3, 4 and 21, P0-P1).** A $1,500-$3,000 paid pilot credited to year
+  one, a 90-day clock from the first attested path and pilot terms at no further fee until
+  conversion; $15 Prepare, $25 Prepare + Chase, $500 minimum.
+- **Data rights, IRC 7216 and SERVE (7, 9 and 10, P0).** An explicit per-source SERVE grant the
+  checker enforces; tax-return information excluded from v1; TRAIN off by default, opt-in per source.
+- **Early hires (12, P0).** A security/platform engineer in weeks 0-4 and an independent
+  verification engineer by week 6.
+
 ## Documents
 
 | Document | Answers | Read it if you are |

@@ -100,12 +100,14 @@ Plumb records all human effort, the partner's and its own, in five categories (s
 | Category | Includes (proposed rubric) |
 |---|---|
 | CUSTOMER_AUTHORIZATION | Grants, consents and envelope decisions; approving the reminder policy (amends D6) |
-| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; baseline-study recording overhead (the timed close work itself is not logged again); scheduled weekly check-ins (amends D6) |
+| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; baseline-study recording overhead (the timed close work itself is not logged again); scheduled weekly check-ins (amends D6); Plumb staff facilitating a clarification session or the baseline time study, logged under the Plumb principal beside the customer's own minutes (amends D6) |
 | NORMAL_BUSINESS_REVIEW | Per-case approvals, draft review and package sign-off |
-| ENGINEERING_INTERVENTION | Implementation work by any person, Plumb or customer staff (amends D6; spec Appendix B: "If a person manually wires the integrations or writes the production workflow, record that labor"): wiring, mapping, plan or workflow authoring or editing; manual deployment |
-| OPERATIONAL_REPAIR | Plumb staff fixing a running collector or workflow |
+| ENGINEERING_INTERVENTION | Implementation work by any person, Plumb or customer staff (amends D6; spec Appendix B: "If a person manually wires the integrations or writes the production workflow, record that labor"): wiring, mapping, plan or workflow authoring or editing; manual deployment. Plumb staff implementing, configuring, mapping, authoring, deploying, verifying or sandbox-reviewing a specific tenant's build (amends D6) |
+| OPERATIONAL_REPAIR | Fixing a running collector or workflow, by any person, Plumb or customer staff (amends D6) |
 
-The interruption budget (D6) counts unscheduled asks; scheduled check-in time is reported beside it. The package's principal types have no type for Plumb staff, so one must be added before their effort can be captured (a contract gap).
+Every human minute spent on a tenant's deployment, by customer staff or Plumb staff, is recorded in one of the five categories with its principal (customer staff or Plumb staff). Plumb staff never log NORMAL_BUSINESS_REVIEW or CUSTOMER_AUTHORIZATION on a customer's behalf. When in doubt, Plumb staff time on a tenant is ENGINEERING_INTERVENTION, the conservative choice that worsens EIH/VD rather than flattering it. Time not attributable to one tenant goes to the platform-investment ledger, and general overhead (sales, program management) to the cost ledger (PL-059). These amendments are founder decision 18 in the [decision record](02-strategy-decisions.md).
+
+The interruption budget (D6) counts unscheduled asks; scheduled check-in time is reported beside it. The package's principal types have no type for Plumb staff, so one must be added before their effort can be captured (a contract gap; backlog E01-S02).
 
 The ledger is customer-visible. A deployment is labeled "supervised", with its labor shown, until that path has PA-027-level evidence (D4, D8). Plumb never calls a deployment autonomous if a person secretly performed the implementation behind the interface (PL-003).
 
@@ -169,7 +171,7 @@ The firm's client is an affected party, not a principal. Their effort is not a P
 
 Notes:
 - The spec's accounting fixture names the owner a "finance controller" ([envelope fixture](../fixtures/envelopes/accounting_evidence_preparation.json)). In this doc set the canonical name is Firm owner.
-- Principal types come from the package contracts: HUMAN_OWNER, HUMAN_REVIEWER, HUMAN_APPROVER, VERIFIER and others. The firm's client has no principal type, consistent with its role as an affected party. Plumb staff have none either, which is a contract gap (section 3.4).
+- Principal types come from the package contracts: HUMAN_OWNER, HUMAN_REVIEWER, HUMAN_APPROVER, VERIFIER and others. The firm's client has no principal type, consistent with its role as an affected party. Plumb staff have none either, which is a contract gap (section 3.4; backlog E01-S02).
 
 ---
 

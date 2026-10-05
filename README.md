@@ -22,11 +22,11 @@ exactly what was executed and what was not.
 ## Measured results in this environment
 
 <!-- COUNTS:BEGIN -->
-Measured by `python3 scripts/validate.py` on 2026-10-03 (Python 3.11.15, Pydantic 2.13.4, pytest 9.1.1):
+Measured by `python3 scripts/validate.py` on 2026-10-05 (Python 3.11.15, Pydantic 2.13.4, pytest 9.1.1):
 
 | Check | Measured result |
 |-------|-----------------|
-| Local contract and failure tests | 819 passed, 0 failed, 0 skipped |
+| Local contract and failure tests | 828 passed, 0 failed, 0 skipped |
 | Top-level contract schemas | 17 generated; generation matches the Pydantic models |
 | Supporting schemas | 5 generated |
 | API interface | 24 proposed operations; no running API server |

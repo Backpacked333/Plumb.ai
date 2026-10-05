@@ -345,7 +345,7 @@ From D1. Thresholds are hypotheses, ratified at M0.
 
 Effort categories follow the amended D6 rubric in the [decision record](02-strategy-decisions.md) (founder decision 18, to ratify). All partner time lands in one of the five categories, and implementation work by anyone, firm staff included (wiring, mapping, writing the workflow), is ENGINEERING_INTERVENTION (spec Appendix B L652).
 
-The Plumb domain expert joins first calls where the month-0 time study is designed. Plumb's engineers and the independent verifier do not sell. Plumb staff time appears in the labor ledger (the contracts still lack a principal type for Plumb staff, a recorded gap), and verifier results appear as verification receipts.
+The Plumb domain expert joins first calls where the month-0 time study is designed. Plumb's engineers and the independent verifier do not sell. Plumb staff time on a tenant appears in the labor ledger, in the five categories under the Plumb principal (founder decision 18; the contracts still lack a principal type for Plumb staff, a recorded gap covered by backlog E01-S02), and verifier results appear as verification receipts.
 
 ### 5.3 Qualify-out
 
@@ -672,6 +672,7 @@ From D7:
 - Credited to year one. Refundable only if Plumb misses the M0-agreed gate for Plumb-side reasons.
 - The 90-day pilot clock starts at the first attested collection path, because packages cannot exist before then.
 - Partners convert to annual at $15 Prepare with a 24-month price lock, once the workflow has been ACTIVE through one full close at or above the correct-package threshold.
+- Between the end of the 90-day clock and paid conversion or exit, pilot terms continue at no further fee (decided default, founder decision 21 in the [decision record](02-strategy-decisions.md); founder to ratify).
 - Exit is pre-agreed whether or not the gate is met.
 
 **Proposed size bands for the pilot fee** (within D7's range; to ratify):

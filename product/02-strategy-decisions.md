@@ -344,8 +344,8 @@ PL-001, PL-009, PL-010, PL-025, PL-035; PA-001, PA-003, PA-005, PA-011; spec §7
 | `collection.backfill` | INTERNAL_WRITE (not shadow) | SANDBOX_TESTED | M0 |
 | `workflow.compile` | INTERNAL_WRITE | SANDBOX_TESTED | A sandbox receipt before the M3-lite build (added while rendering; see corrections) |
 | `dataset.build`, `training.submit` | INTERNAL_WRITE | SANDBOX_TESTED | Out of scope until M2 |
-| `release.create`, `release.activate_shadow`, `release.canary` | INTERNAL_WRITE (create, activate_shadow); EXTERNAL_COMMUNICATION (canary of reminders). The floor follows the `release.*` prefix | PRODUCTION_VERIFIED | Platform qualification run in M3-lite for create and activate_shadow. `release.canary` must also be qualified before the Prepare-tier CANARY (a preparation-only canary declares no EXTERNAL_COMMUNICATION), and again for the Send canary in M4-accounting |
-| `infrastructure.apply` | INFRASTRUCTURE_CHANGE | PRODUCTION_VERIFIED | The same qualification run, if the tenant plan keeps the fixture's serving-infrastructure step |
+| `release.create`, `release.activate_shadow`, `release.canary` | INTERNAL_WRITE (create, activate_shadow); EXTERNAL_COMMUNICATION (canary of reminders). The floor follows the `release.*` prefix | PRODUCTION_VERIFIED | Platform qualification run in M3-lite for create and activate_shadow. `release.canary` must also be qualified before the Prepare-tier CANARY (a preparation-only canary declares no EXTERNAL_COMMUNICATION), together with a registry step type for CANARY to ACTIVE promotion, which the registry lacks (backlog E16-S09, P5), and again for the Send canary in M4-accounting |
+| `infrastructure.apply` | INFRASTRUCTURE_CHANGE | PRODUCTION_VERIFIED | Not in tenant plans (founder decision 19, decided default; founder to ratify): MVP releases run on platform-managed shared infrastructure that Plumb provisions outside tenant envelopes, so Prepare-tier envelopes exclude INFRASTRUCTURE_CHANGE and the tenant plan template drops the fixture's dependency of `release.create` on this step. Revisit if a tenant requires dedicated infrastructure |
 | `dependency.raise` | INTERNAL_WRITE | DOCUMENTED | Already sufficient |
 
 ### Rationale
@@ -643,24 +643,26 @@ A stale source blocks the send instead of asking (PA-011).
 
 | Stage | Budget |
 |---|---|
-| Onboarding | At most 2 hours of CUSTOMER_AUTHORIZATION; at most 5 DOMAIN_CLARIFICATION questions per workflow; at most 4 owner-hours in the first 30 days |
+| Onboarding | At most 2 hours of CUSTOMER_AUTHORIZATION, covering the grants of the collection path (M1); later grants (mail history, SERVE) at most 30 minutes each (founder decision 20); at most 5 DOMAIN_CLARIFICATION questions per workflow; at most 4 owner-hours in the first 30 days |
 | Steady state | At most 1 batched owner request per tenant-week; at most 30 minutes a week of owner decision time; at most 2 new domain questions per close after close 1; reviewer approvals batched into at most one session a day; repeat-ask rate 0 |
 | After calibration | At most 10% of requests need per-case approval |
 | Review cost | Accountant review minutes per package stay below baseline assembly-plus-review minutes |
 
 The budget counts unscheduled asks. Scheduled time, such as the weekly check-in (D9), is reported beside it, not inside it.
 
-**Effort rubric (frozen in week 1).** These are the five spec categories (PL-003), with the assignments Appendix B leaves open. PL-003 requires all human effort to be recorded by category, so every minute of partner time lands in one of the five. The rubric below includes clarifications that amend the panel's D6 rubric (flagged; founder decision 18).
+**Effort rubric (frozen in week 1).** These are the five spec categories (PL-003), with the assignments Appendix B leaves open. PL-003 requires all human effort to be recorded by category, so every human minute spent on a tenant's deployment, by customer staff or Plumb staff, lands in one of the five, recorded with its principal (customer staff or Plumb staff). PL-059 requires Plumb's own labor to be measured. The rubric below includes clarifications that amend the panel's D6 rubric (flagged; founder decision 18).
 
 | Category | Includes |
 |---|---|
-| CUSTOMER_AUTHORIZATION | Grants and envelope decisions; approving the reminder policy (amended: the record did not place it) |
-| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; baseline-study recording overhead; scheduled weekly check-ins (amended: the record did not place check-ins) |
-| NORMAL_BUSINESS_REVIEW | Per-case approvals, draft review and package sign-off |
-| ENGINEERING_INTERVENTION | Implementation work by any person, Plumb or customer staff: wiring, mapping, plan or workflow authoring or editing, and manual deployment (amended: the record said "Plumb staff". Spec Appendix B L652: if a person manually wires the integrations or writes the production workflow, record that labor) |
-| OPERATIONAL_REPAIR | Plumb staff fixing a running collector or workflow |
+| CUSTOMER_AUTHORIZATION | Grants and envelope decisions; approving the reminder policy (amended: the record did not place it). Plumb staff never log this category on a customer's behalf |
+| DOMAIN_CLARIFICATION | Owner answers on conventions; label or attribution sample audits; baseline-study recording overhead; scheduled weekly check-ins (amended: the record did not place check-ins); Plumb staff facilitating a clarification session or the baseline time study, logged under the Plumb principal beside the customer's own minutes (amended) |
+| NORMAL_BUSINESS_REVIEW | Per-case approvals, draft review and package sign-off. Plumb staff never log this category on a customer's behalf |
+| ENGINEERING_INTERVENTION | Implementation work by any person, Plumb or customer staff: wiring, mapping, plan or workflow authoring or editing, and manual deployment (amended: the record said "Plumb staff". Spec Appendix B L652: if a person manually wires the integrations or writes the production workflow, record that labor). Plumb staff implementing, configuring, mapping, authoring, deploying, verifying or sandbox-reviewing a specific tenant's build (amended) |
+| OPERATIONAL_REPAIR | Fixing a running collector or workflow, by any person, Plumb or customer staff (amended: the record said "Plumb staff") |
 
-Gap: the package's `PrincipalType` has no type for Plumb staff (it has human owner, reviewer and approver, plus service, agent, verifier and release-executor types). The contracts need one before Plumb's own labor can be captured automatically.
+When in doubt, Plumb staff time on a tenant is ENGINEERING_INTERVENTION, the conservative choice that worsens EIH/VD rather than flattering it (amended). Time not attributable to one tenant goes to the platform-investment ledger; general overhead, such as sales and program management, goes to the cost ledger (PL-059).
+
+Gap: the package's `PrincipalType` has no type for Plumb staff (it has human owner, reviewer and approver, plus service, agent, verifier and release-executor types). The contracts need one before Plumb's own labor can be captured automatically (backlog E01-S02).
 
 ### Rationale
 
@@ -732,6 +734,7 @@ PL-003, PL-037, PL-040, PL-041, PL-053, PL-059; PA-003, PA-004, PA-006, PA-010, 
 - Credited to year one. Refundable only if Plumb misses the M0-agreed gate for Plumb-side reasons.
 - The 90-day pilot clock starts at the first attested collection path, because packages cannot exist before then.
 - Partners convert to annual at $15 Prepare with a 24-month price lock, once the workflow has been ACTIVE through one full close at or above the correct-package threshold.
+- Between the end of the 90-day clock and paid conversion or exit, pilot terms continue at no further fee (added by the head of product; founder decision 21).
 - Exit is pre-agreed whether or not the gate is met.
 
 **Price test.** Three list points ($15, $25, $35) and a per-accepted-package alternative unit, run with tenants 4-5 and new prospects.
@@ -921,7 +924,7 @@ At most 3 active builds until M1R passes.
    - Retention and deletion terms, with a deletion certificate.
    - Derived data is quarantined or retired. No exact-unlearning promise.
 5. **Revocation semantics.**
-   - Cached grants and queued dispatches are invalidated within one minute, as in PA-008.
+   - Cached grants and queued dispatches are invalidated within 1 minute (hypothesis; PA-008 applies the same bound to grant expiry, and PA-014 covers the revocation race).
    - The terms cover the race where a provider accepts an action before revocation lands (PA-014).
 6. **Labor-ledger disclosure.** Plumb records and may publish anonymized effort data. The partner may audit its own ledger.
 7. **Business boundaries.** Accountant sign-off is mandatory, and there is no posting.
@@ -1198,7 +1201,7 @@ PL-042, PL-044; ADR-007; PA-017, PA-019, PA-021, PA-022, PA-026; spec Appendix A
 
 ## Founder decisions needed
 
-Rows 1-16 carry the panel's recommended defaults; rows 17 and 18 were added by the head of product while rendering. Every number is a hypothesis. "Decide by" names the phase whose work depends on the decision.
+Rows 1-16 carry the panel's recommended defaults; rows 17 and 18 were added by the head of product while rendering, and rows 19-21 record later head-of-product decided defaults for the founder to ratify. Every number is a hypothesis. "Decide by" names the phase whose work depends on the decision.
 
 | # | Decision | Options | Recommended default | Decide by |
 |---|---|---|---|---|
@@ -1219,7 +1222,10 @@ Rows 1-16 carry the panel's recommended defaults; rows 17 and 18 were added by t
 | 15 | Region and fixtures | (a) A single US region. (b) US plus a Canada fast-follow. (c) Multi-region | (a). Re-template the EUR/eu-west-1 accounting fixtures to US/USD, and refresh or clock-pin fixture envelopes that expire 2027-03-31, which falls inside the 180-day window | P0 |
 | 16 | Roll-up channel | (a) One optional roll-up slot, off the critical path. (b) A roll-up as the primary buyer. (c) None | (a), as tenant 5 or a sixth slot. Promote it to primary channel only if R5 fires | P1, at cohort signing |
 | 17 | Prepare-tier promotion and paid conversion (added by the head of product) | (a) SHADOW for at least one full close, then CANARY on a subset of client-periods whose accountants use the prepared packages in their real review, then ACTIVE, all with no EXTERNAL_COMMUNICATION. Convert to paid annual after one full close in ACTIVE at or above the correct-package threshold. No alternative is offered; the head of product has decided it | Ratify (a). The day-180 packet records tenant 1's evidence to date; tenant 1's conversion is expected in P6 | P4, before production shadow |
-| 18 | Effort-rubric amendment to D6 (added by the head of product) | (a) The amended rubric: ENGINEERING_INTERVENTION covers implementation work by any person, Plumb or customer staff (spec Appendix B L652); approving the reminder policy is CUSTOMER_AUTHORIZATION; scheduled weekly check-ins and baseline-study recording overhead are DOMAIN_CLARIFICATION; the interruption budget counts unscheduled asks and reports scheduled check-in time beside it. No alternative is offered; the head of product has decided it | Ratify (a), with a principal type for Plumb staff added to the contracts (a gap today) | P0, when the rubric is frozen in week 1 |
+| 18 | Effort-rubric amendment to D6 (added by the head of product) | (a) The amended rubric: ENGINEERING_INTERVENTION covers implementation work by any person, Plumb or customer staff (spec Appendix B L652); approving the reminder policy is CUSTOMER_AUTHORIZATION; scheduled weekly check-ins and baseline-study recording overhead are DOMAIN_CLARIFICATION; the interruption budget counts unscheduled asks and reports scheduled check-in time beside it. Plumb staff time (PL-003, PL-059): every human minute on a tenant's deployment, customer or Plumb staff, is recorded in one of the five categories with its principal. Plumb staff implementing, configuring, mapping, authoring, deploying, verifying or sandbox-reviewing a specific tenant's build is ENGINEERING_INTERVENTION; fixing a running component is OPERATIONAL_REPAIR, which covers repair by any person, customer staff included; facilitating a clarification session or the baseline time study is DOMAIN_CLARIFICATION under the Plumb principal; Plumb staff never log NORMAL_BUSINESS_REVIEW or CUSTOMER_AUTHORIZATION on a customer's behalf; when in doubt, Plumb time on a tenant is ENGINEERING_INTERVENTION. Time not attributable to one tenant goes to the platform-investment ledger, general overhead (sales, program management) to the cost ledger. No alternative is offered; the head of product has decided it | Ratify (a), with a principal type for Plumb staff added to the contracts (a gap today; backlog E01-S02) | P0, when the rubric is frozen in week 1 |
+| 19 | Per-tenant infrastructure (added by the head of product) | (a) MVP releases run on platform-managed shared infrastructure that Plumb provisions outside tenant envelopes: tenant plans contain no `infrastructure.apply` step, and tenant envelopes for the Prepare tier exclude INFRASTRUCTURE_CHANGE. (b) Per-tenant infrastructure: qualify `infrastructure.apply` in the release-executor qualification run (backlog E16-S02) and add INFRASTRUCTURE_CHANGE to each tenant envelope | (a), a decided default; founder to ratify. The tenant plan template replaces the accounting fixture's dependency of `release.create` on `infrastructure.apply`. Revisit if a tenant requires dedicated infrastructure | Ratify before P4, when the Prepare template and the qualification run are fixed |
+| 20 | Window of the onboarding authorization budget (added by the head of product) | (a) The 2-hour onboarding CUSTOMER_AUTHORIZATION budget covers the grants for the collection path (M1); later grants (mail history, SERVE) are budgeted at 30 minutes each. (b) Every onboarding grant through SERVE counts against the 2 hours (140 minutes on the planned runbook, over budget) | (a), a decided default; founder to ratify | P1, before tenant 1's grants |
+| 21 | Pilot terms after the 90-day clock (added by the head of product) | (a) Between the end of the 90-day pilot clock and paid conversion (or exit), pilot terms continue at no further fee. (b) Charge a fee for the gap | (a), a decided default; founder to ratify. Conversion needs one full ACTIVE close, which on the planned calendar comes after the clock ends | P0, in the contract template, before tenant 1 signs |
 
 ## Where the panel disagreed
 
@@ -1272,7 +1278,7 @@ These points were verified against the repository on 2026-10-04. Where the panel
 11. **Effect classes of M1 and the Prepare tier (resolution R-A).** The record says the M1 readiness ledger "uses only READ and COLLECT effect classes". COLLECT is a data purpose (`DataPurpose`), not an effect class. The accounting plan's collection path declares READ, INTERNAL_WRITE (shadow deploy, backfill) and EXTERNAL_WRITE_REVERSIBLE (`integration.configure`, `collection.enable_incremental`). The decision stands; the corrected wording, used in the conventions, D2 and the disagreement notes, is: READ, INTERNAL_WRITE and EXTERNAL_WRITE_REVERSIBLE on the firm's own accounts, and no EXTERNAL_COMMUNICATION.
 12. **Send timing (resolution R-G).** The record's P6 window, "Weeks 26-36 or later (Apr-Jun 2027), earliest", and its D5 line that the Send canary cannot finish before about weeks 30-36 both ignore the D6 calibration ladder. Two Draft closes must come first, so the earliest policy-approved Send canary close is around July 2027 (about weeks 39-41). The P6 window covers the Draft tier and the start of M5, not Send.
 13. **Tenant 1 conversion timing (resolution R-D).** The record's P5 scope lists a "Tenant 1 pilot-to-paid decision", but D7 and D9 convert only after a full close in ACTIVE, and tenant 1 is still in SHADOW at day 180. The Prepare-tier promotion path (D4) and founder decision 17 resolve this: the day-180 packet records tenant 1's evidence to date, and conversion is expected in P6.
-14. **Effort rubric (resolution R-F).** The record's D6 rubric limits ENGINEERING_INTERVENTION to Plumb staff and leaves the reminder-policy approval and the weekly check-ins unplaced. D6 now carries the amended rubric, flagged as an amendment, and founder decision 18 asks for ratification. The missing principal type for Plumb staff is recorded as a contracts gap.
+14. **Effort rubric (resolution R-F).** The record's D6 rubric limits ENGINEERING_INTERVENTION to Plumb staff and leaves the reminder-policy approval and the weekly check-ins unplaced. D6 now carries the amended rubric, flagged as an amendment, and founder decision 18 asks for ratification. The amendment also places all Plumb staff time on a tenant in the five categories under the Plumb principal, and makes OPERATIONAL_REPAIR cover repair by any person. The missing principal type for Plumb staff is recorded as a contracts gap (backlog E01-S02).
 15. **Approval decision kinds.** The record attributes DATA_USE, IMPLEMENT_OPERATE and CASE_LEVEL_BUSINESS to `approval_checker.py`. They are defined in `plumb/contracts/approval.py`; `approval_checker.py` holds `group_missing_authorizations`.
 16. **Xenett pricing.** The record gives Xenett as "about $7.5-$15" per client-month. The market notes give about $7.5 (AI Review) and about $10 (Workflow) per client-month; $15 is an accruals-and-AI add-on, not a plan price. D7 and the market-sources table use the notes' wording.
 

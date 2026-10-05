@@ -1,6 +1,6 @@
 {
   "digest_algorithm": "sha256",
-  "file_count": 129,
+  "file_count": 145,
   "files": [
     {
       "bytes": 94,
@@ -8,14 +8,14 @@
       "sha256": "f7fbbe1730ce13f1759eae3a5988243f13be17d2c3560f910d2404ddcf45dd48"
     },
     {
-      "bytes": 13137,
+      "bytes": 13423,
       "path": "README.md",
-      "sha256": "47a589a9cd3cb6b57b2730eb22795bda47b1d9cad37a068bbcf6a9b9f2c74ba7"
+      "sha256": "5f4e7ae7cda78065fa7fd22cb12a2e02593c9f4d80e23aa3a3036bb020bb98d7"
     },
     {
-      "bytes": 11042,
+      "bytes": 11131,
       "path": "VALIDATION_REPORT.md",
-      "sha256": "5485671fa0c8479c3ff592342c8ac2b7ee259da9e9a562b8488a3e8f83304efa"
+      "sha256": "b55784321b484131b7675a8851804a8e11be7de230424702837adcafe8cfcdf6"
     },
     {
       "bytes": 76544,
@@ -408,6 +408,81 @@
       "sha256": "c6eeb8dd66364039a4ff2270663dc45e618476e46ae1f9481098b7328f05eba4"
     },
     {
+      "bytes": 13633,
+      "path": "plumb_reference.egg-info/PKG-INFO",
+      "sha256": "8c5240486610e35b1de8095e5c29cbe100940ef8d7c8b0ab61ca41c018a8b575"
+    },
+    {
+      "bytes": 1753,
+      "path": "plumb_reference.egg-info/SOURCES.txt",
+      "sha256": "7612746bcb9273a326a4facc9d95126333e04a03c458959aef285c312f001cd5"
+    },
+    {
+      "bytes": 1,
+      "path": "plumb_reference.egg-info/dependency_links.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "bytes": 95,
+      "path": "plumb_reference.egg-info/requires.txt",
+      "sha256": "6d7a93cc0ac3b36961cad66a7b76bec0ec637f6bcc5f75d06e62dbe056b3295e"
+    },
+    {
+      "bytes": 6,
+      "path": "plumb_reference.egg-info/top_level.txt",
+      "sha256": "0078e1c5e44dda786740ec55b2697097c927117a0646e14eb659a02f0f1e3a58"
+    },
+    {
+      "bytes": 57384,
+      "path": "product/01-product-brief.md",
+      "sha256": "e38a9ef83cf0ed85021982519f689297bbd1dc53372960124c853fd60725b0ff"
+    },
+    {
+      "bytes": 141903,
+      "path": "product/02-strategy-decisions.md",
+      "sha256": "1797abf394049df01c72b4952e6186d58be20dc8fe2e8b355f946e0fe63fdfbe"
+    },
+    {
+      "bytes": 98490,
+      "path": "product/03-mvp-scope.md",
+      "sha256": "4e9d5a5149b9194e2e955f914570a31fe16b4af29f871d2855789bac6d07dbab"
+    },
+    {
+      "bytes": 99371,
+      "path": "product/04-roadmap.md",
+      "sha256": "427f6fa7fd065fdce20d5c41ca017c6a7e971e528425b14c8a680dadf2fd2cce"
+    },
+    {
+      "bytes": 224329,
+      "path": "product/05-backlog.md",
+      "sha256": "95ae293f04f2fbf5ca1de5f3cb3976d9b91c0eb6f96a30c6b4c49f2e6df74b51"
+    },
+    {
+      "bytes": 85566,
+      "path": "product/06-metrics.md",
+      "sha256": "7df11faa0c9ff1249cda36be2d90732c400729a5be4287d47b6a8756c109d360"
+    },
+    {
+      "bytes": 87013,
+      "path": "product/07-risks-and-assumptions.md",
+      "sha256": "34d989117c42e5fa1a6e6194c5917711252aa8123be36cb223a9efc4e97e955c"
+    },
+    {
+      "bytes": 136411,
+      "path": "product/08-market-and-positioning.md",
+      "sha256": "efc828c23d60603accb9729bede5268e84acefad5f5f8c5a5761a0d756b05ae2"
+    },
+    {
+      "bytes": 96363,
+      "path": "product/09-design-partner-program.md",
+      "sha256": "347d534cb784af5e967364144f2345807fa14577f8c53f52c86e7ce641fe4474"
+    },
+    {
+      "bytes": 10494,
+      "path": "product/README.md",
+      "sha256": "5d68c3d8e4319dec541efc722cb92a7352f5e2318c0297e95e250650759feee8"
+    },
+    {
       "bytes": 762,
       "path": "pyproject.toml",
       "sha256": "873a88919a472485701688bc74196c8bf7bff0e7e3f5660060f32e0493f973a4"
@@ -533,9 +608,9 @@
       "sha256": "f1d6588a7fe0afdf5e671f28cc2511e954e7d87563ef8cadfb586c1c06e2ea14"
     },
     {
-      "bytes": 18680,
+      "bytes": 18731,
       "path": "scripts/validate.py",
-      "sha256": "fd022de5da4f1fe32e7c77bb65e718455726d572cca39a6fe5f5b90f018c556c"
+      "sha256": "c7bcf1eeed42551e282f22090077e8883624663214ac5e519465f4b8935c9134"
     },
     {
       "bytes": 85572,
@@ -621,6 +696,11 @@
       "bytes": 71275,
       "path": "tests/test_plan_checker.py",
       "sha256": "98707d100ff53613780dd9264f6b6cb46de9ace498639c7672734a75076d4556"
+    },
+    {
+      "bytes": 10099,
+      "path": "tests/test_product_docs.py",
+      "sha256": "a1aa7d635eb6a07d34bcbde93cd99b2d66e46330a44aaf092cf0ce5275248551"
     },
     {
       "bytes": 28687,
